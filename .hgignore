@@ -1,0 +1,12 @@
+syntax: glob
+*.orig
+*.rej
+*~
+*.o
+*.svn/*
+*.DS_Store
+*.class
+*.metadata/*
+.idea/
+*.iml
+*.settings/*
