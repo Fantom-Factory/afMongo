@@ -25,16 +25,7 @@ const class Index {
 	
 	** Returns 'true' if this index exists.
 	Bool exists() {
-		Collection(conMgr, idxNs.qname).findOne(["ns":colNs.qname, "name":name], false) != null		
-	}
-	
-	** Drops this index.
-	** 
-	** @see `http://docs.mongodb.org/manual/reference/command/dropIndexes/`
-	This drop() {
-		cmd.add("dropIndexes", colNs.collectionName).add("index", name).run
-		// [nIndexesWas:2, ok:1.0]
-		return this
+		Collection(conMgr, idxNs.qname).findCount(["ns":colNs.qname, "name":name]) > 0		
 	}
 	
 	** Creates this index.
@@ -84,6 +75,15 @@ const class Index {
 		return true
 	}
 	
+	** Drops this index.
+	** 
+	** @see `http://docs.mongodb.org/manual/reference/command/dropIndexes/`
+	This drop() {
+		cmd.add("dropIndexes", colNs.collectionName).add("index", name).run
+		// [nIndexesWas:2, ok:1.0]
+		return this
+	}
+
 	// ---- Private Methods -----------------------------------------------------------------------
 	
 	private Cmd cmd(Str? action := null) {

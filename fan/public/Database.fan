@@ -47,10 +47,8 @@ const class Database {
 	
 	** Returns all the index names of this collection.
 	Str[] userNames() {
-		userNs := Namespace(name, "system.users")
-		c:= Collection(conMgr, userNs).findAll	//(["ns":namespace.qname]).map { it["name"] }.sort
-		Env.cur.err.printLine(c)
-		return [,]
+		userNs := Namespace("admin", "system.users")
+		return Collection(conMgr, userNs).findAll(["db":name]).map { it["user"] }.sort
 	}
 	
 	** Returns a 'User' with the given name.
@@ -77,8 +75,8 @@ const class Database {
 	** 
 	** @see `http://docs.mongodb.org/manual/reference/command/dropDatabase/`
 	This drop() {
-		c:=cmd.add("dropDatabase", 1).run
-		Env.cur.err.printLine(c)
+		cmd.add("dropDatabase", 1).run
+		// [dropped:afMongoTest, ok:1.0]
 		return this
 	}
 	
