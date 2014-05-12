@@ -1,3 +1,4 @@
+using concurrent
 using inet
 
 const class MongoClient {
@@ -6,7 +7,8 @@ const class MongoClient {
 	
 	** A convenience ctor
 	new makeWithTcpDetails(Str address := "127.0.0.1", Int port := 27017) {
-		this.conMgr = ConnectionManagerSingleThread(TcpConnection(IpAddr(address), port))
+//		this.conMgr = ConnectionManagerSingleThread(TcpConnection(IpAddr(address), port))
+		this.conMgr = ConnectionManagerPool(ActorPool(), IpAddr(address), port)
 	}
 	
 	new makeWithConnectionManager(ConnectionManager connectionManager) {
@@ -35,7 +37,9 @@ const class MongoClient {
 	}
 	
 	Str:Obj? runAdminCommand(Str:Obj? cmd) {
-		conMgr.operation.runCommand("admin.\$cmd", cmd)
+		conMgr.leaseConnection |con->Obj?| {
+			Operation(con).runCommand("admin.\$cmd", cmd)
+		}
 	}
 
 	** Convenience for 'connectionManager.shutdown'.

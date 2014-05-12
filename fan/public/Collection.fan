@@ -4,10 +4,7 @@ class Collection {
 	
 	private Namespace	namespace
 	
-	** The 'connection' this collection will use to query the database. 
-	internal Connection	connection {
-		private set
-	}
+	internal const ConnectionManager conMgr
 
 	** The qualified name of the collection. 
 	** It takes the form of: 
@@ -24,13 +21,13 @@ class Collection {
 		private set { }
 	}
 	
-	new makeFromQname(Connection connection, Str qname) {
-		this.connection	= connection
+	new makeFromQname(ConnectionManager conMgr, Str qname) {
+		this.conMgr		= conMgr
 		this.namespace 	= Namespace(qname)
 	}
 
 	new makeFromDatabase(Database database, Str name) {
-		this.connection = database.conMgr.getConnection
+		this.conMgr 	= database.conMgr
 		this.namespace 	= Namespace(database.name, name)
 	}
 
@@ -52,11 +49,13 @@ class Collection {
 	** 
 	** @see `Cursor`
 	Obj? find(Str:Obj? query, |Cursor->Obj?| func) {
-		cursor := Cursor(connection, namespace, query)
-		try {
-			return func(cursor)
-		} finally {
-			cursor.kill
+		conMgr.leaseConnection |con->Obj?| {
+			cursor := Cursor(con, namespace, query)
+			try {
+				return func(cursor)
+			} finally {
+				cursor.kill
+			}
 		}
 	}
 
@@ -68,7 +67,7 @@ class Collection {
 		// findOne() is optomised to NOT call count() on a successful call 
 		find(query) |cursor| {
 			// "If numberToReturn is 1 the server will treat it as -1 (closing the cursor automatically)."
-			// Means I then can't use the isAlive() trick to check for more documents.
+			// Means I can't use the isAlive() trick to check for more documents.
 			cursor.batchSize = 2
 			one := cursor.next(false) ?: (checked ? throw MongoErr(ErrMsgs.collection_findOneIsEmpty(qname, query)) : null)
 			if (cursor.isAlive || cursor.next(false) != null)
@@ -184,7 +183,7 @@ class Collection {
 	}
 	
 	Indexes indexes() {
-		Indexes(connection, namespace)
+		Indexes(conMgr, namespace)
 	}
 	
 	// ---- Private Methods -----------------------------------------------------------------------
@@ -194,11 +193,15 @@ class Collection {
 	}	
 	
 	private Str:Obj? runCmd(Str:Obj? cmd) {
-		Operation(connection).runCommand("${namespace.databaseName}.\$cmd", cmd)
+		conMgr.leaseConnection |con->Obj?| {
+			Operation(con).runCommand("${namespace.databaseName}.\$cmd", cmd)			
+		}
 	}
 
 	private Str:Obj? runAdminCmd(Str:Obj? cmd) {
-		Operation(connection).runCommand("admin.\$cmd", cmd)
+		conMgr.leaseConnection |con->Obj?| {
+			Operation(con).runCommand("admin.\$cmd", cmd)
+		}
 	}
 	
 	private Str:Obj? checkForWriteErrs(Str what, Str past, Str:Obj? doc) {

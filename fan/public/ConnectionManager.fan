@@ -1,28 +1,30 @@
-using concurrent
+using afConcurrent
 using inet
 
 const mixin ConnectionManager {
-	abstract Connection getConnection()
+	
+	abstract Obj? leaseConnection(|Connection->Obj?| c)
 	
 	abstract Void shutdown()
-	
-	Operation operation() {
-		Operation(getConnection)
-	}
+
 }
 
 @NoDoc
 const class ConnectionManagerSingleThread : ConnectionManager {
+	private const LocalRef connectionRef	:= LocalRef("afMongo.connection")
 	
 	new make(Connection connection) {
-		Actor.locals["afMongo.connection"] = connection
+		connectionRef.val = connection
 	}
 	
-	override Connection getConnection() {
-		return Actor.locals["afMongo.connection"]		
+	override Obj? leaseConnection(|Connection->Obj?| c) {
+		// TODO: throw Err if connection doesn't exist in this thread
+		c(connectionRef.val)
 	}
 	
 	override Void shutdown() {
-		getConnection.close
+		(connectionRef.val as Connection)?.close
+		connectionRef.cleanUp
 	}
 }
+

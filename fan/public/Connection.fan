@@ -11,14 +11,14 @@ mixin Connection {
 class TcpConnection : Connection {
 	TcpSocket socket
 	
-	new makeFromDetails(IpAddr address := IpAddr("127.0.0.1"), Int port := 27017, SocketOptions? options := null) {
+	new makeWithIpAddr(IpAddr address := IpAddr("127.0.0.1"), Int port := 27017, SocketOptions? options := null) {
 		this.socket = TcpSocket()
 		if (options != null)
 			this.socket.options.copyFrom(options)
 		socket.connect(address, port)
 	}
 	
-	new makeFromSocket(TcpSocket socket) {
+	new makeWithSocket(TcpSocket socket) {
 		this.socket = socket
 	}
 

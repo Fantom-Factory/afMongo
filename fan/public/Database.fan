@@ -43,7 +43,9 @@ const class Database {
 	// ---- Private Methods ----
 	
 	private Str:Obj? runCmd(Str:Obj? cmd) {
-		Operation(conMgr.getConnection).runCommand("${name}.\$cmd", cmd)
+		conMgr.leaseConnection |con->Obj?| {
+			Operation(con).runCommand("${name}.\$cmd", cmd)
+		}
 	}
 
 //	private Str:Obj? runAdminCmd(Str:Obj? cmd) {
