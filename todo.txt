@@ -1,8 +1,12 @@
 
+
+Give DB objs some nice toStr
+
 On connection, check the mongo version, assert it's >= 2.6
 
 When writing, maybe convert MongoMaps into Document Objs that cache the size?
 
+explain this:
 the plan is to give a basic level of support, so should the mongo API grow (as it has been doing) then this driver doesn't get outdated.
 
 

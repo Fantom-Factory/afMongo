@@ -2,7 +2,16 @@ Overview [#overview]
 ********************
 A Fantom driver for MongoDB
 
+Features
 
+Collections:
+ - Standard queries: create, insert, update, delete & drop
+ - Optomised queries for findOne() and findAll()
+ - Cursor support for large queries
+ - Capped collections
+
+Indexes:
+ -
 
 Install [#Install]
 ******************

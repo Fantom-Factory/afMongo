@@ -8,7 +8,6 @@ internal class TestCollectionDb : MongoDbTest {
 		collection = db["collectionTest"]
 		10.times |i| { collection.insert(["data":i+1]) }
 	}
-
 	
 	Void testBasicMethods() {
 		col := db["col-test"]
@@ -75,7 +74,6 @@ internal class TestCollectionDb : MongoDbTest {
 		verifyEq(col.findCount(["milk":"4 pints"]), 1)		
 		verifyEq(col.findCount(["milk":"5 pints"]), 1)		
 	}
-	
 	
 	Void testFind() {
 		second := collection.find([:]) |cursor| {

@@ -21,19 +21,25 @@ const class Collection {
 		private set { }
 	}
 	
+	** Creates a 'Collection' with the given qualified (dot separated) name.
+	** 
+	** Note this just instantiates the Fantom object, it does not create anything in the database. 
 	new makeFromQname(ConnectionManager conMgr, Str qname) {
 		this.conMgr		= conMgr
 		this.namespace 	= Namespace(qname)
 	}
 
-	internal new makeFromNamespace(ConnectionManager conMgr, Namespace namespace) {
-		this.conMgr		= conMgr
-		this.namespace 	= namespace
-	}
-
+	** Creates a 'Collection' with the given name under the database.
+	** 
+	** Note this just instantiates the Fantom object, it does not create anything in the database. 
 	new makeFromDatabase(Database database, Str name) {
 		this.conMgr 	= database.conMgr
 		this.namespace 	= Namespace(database.name, name)
+	}
+
+	internal new makeFromNamespace(ConnectionManager conMgr, Namespace namespace) {
+		this.conMgr		= conMgr
+		this.namespace 	= namespace
 	}
 
 	** Returns 'true' if this collection exists.
@@ -225,13 +231,32 @@ const class Collection {
 		return this
 	}
 	
-	Indexes indexes() {
-		Indexes(conMgr, namespace)
+	// ---- Indexes -------------------------------------------------------------------------------
+
+	** Returns the names of the indexes on this collection.
+	Str[] indexNames() {
+		idxNs := namespace.withCollection("system.indexes")
+		return Collection(conMgr, idxNs.qname).findAll(["ns":namespace.qname]).map { it["name"] }.sort
+	}
+
+	** Drops ALL indexes on the collection.
+	** 
+	** @see `http://docs.mongodb.org/manual/reference/command/dropIndexes/`
+	This dropAllIndexes() {
+		cmd("drop").add("dropIndexes", name).add("index", "*").run
+		return this
+	}
+	
+	** Returns an 'Index' of the given name.
+	** 
+	** Note this just instantiates the Fantom object, it does not create anything in the database. 
+	Index index(Str indexName) {
+		Index(conMgr, namespace, indexName)
 	}
 	
 	// ---- Private Methods -----------------------------------------------------------------------
 	
 	private Cmd cmd(Str action, Bool checkForErrs := true) {
-		Cmd(conMgr, namespace, action, checkForErrs)
+		Cmd(conMgr, namespace.databaseName, action, checkForErrs)
 	}	
 }

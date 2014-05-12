@@ -1,7 +1,7 @@
 
 internal class Cmd {
 	private const ConnectionManager conMgr
-	private const Namespace			namespace
+	private const Str				dbName
 
 	private [Str:Obj?] 	cmd	:= Str:Obj?[:] { ordered = true }
 	private [Str:Obj?]?	writeConcern
@@ -9,9 +9,9 @@ internal class Cmd {
 	private Str 		when
 	private Str 		what
 	
-	new make(ConnectionManager conMgr, Namespace namespace, Str action, Bool checkForErrs, [Str:Obj?]? writeConcern := null) {
+	new make(ConnectionManager conMgr, Str dbName, Str action, Bool checkForErrs, [Str:Obj?]? writeConcern := null) {
 		this.conMgr			= conMgr
-		this.namespace 		= namespace
+		this.dbName 		= dbName
 		this.writeConcern	= writeConcern
 		this.checkForErrs	= checkForErrs
 		
@@ -55,7 +55,7 @@ internal class Cmd {
 			cmd["writeConcern"] = writeConcern
 
 		return checkForWriteErrs(conMgr.leaseConnection |con->Obj?| {
-			Operation(con).runCommand("${namespace.databaseName}.\$cmd", cmd)			
+			Operation(con).runCommand("${dbName}.\$cmd", cmd)			
 		})
 	}
 
@@ -77,11 +77,10 @@ internal class Cmd {
 		if (doc.containsKey("writeConcernError"))
 			errs.add((Str:Obj?) doc["writeConcernError"])
 		if (!errs.isEmpty)
-			throw MongoCmdErr(ErrMsgs.collection_writeErrs(when, namespace.qname, errs))
+			throw MongoCmdErr(ErrMsgs.collection_writeErrs(when, dbName, errs))
 		if (doc["n"]?->toInt == 0)
 			// TODO: have a 'checked' variable?
 			throw MongoErr(ErrMsgs.collection_nothingHappened(what, doc))
 		return doc
 	}
-	
 }
