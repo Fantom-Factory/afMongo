@@ -1,6 +1,6 @@
 using afBson
 
-internal class TestBsonLiterals : MongoDbTest {
+internal class TestBsonLiteralsDb : MongoDbTest {
 	private ObjectId objId 	:= ObjectId()
 	private DateTime now	:= DateTime.now
 
