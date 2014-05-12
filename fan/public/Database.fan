@@ -16,6 +16,8 @@ const class Database {
 		this.name = Namespace.validateDatabaseName(name)
 	}
 
+	// ---- Collections ---------------------------------------------------------------------------
+	
 	Collection collection(Str collectionName) {
 		Collection(this, collectionName)
 	}
@@ -31,7 +33,9 @@ const class Database {
 		names := (Str[]) docs.map |ns->Str| { ns["name"] }
 		return names.exclude { !it.startsWith(name) || it.contains("\$") || it.contains(".system.") }.map { it[(name.size+1)..-1] }.sort
 	}
-	
+
+	// ---- Database ------------------------------------------------------------------------------
+
 	// FIXME: create!
 	
 	** Drops the database. *Be careful!*
@@ -42,8 +46,11 @@ const class Database {
 		return this
 	}
 	
-	// ---- Private Methods ----
+	// ---- Private Methods -----------------------------------------------------------------------
 	
+//	private Cmd cmd(Str action, Bool checkForErrs := true) {
+//		Cmd(conMgr, namespace, action, checkForErrs)
+//	}
 	private Str:Obj? runCmd(Str:Obj? cmd) {
 		conMgr.leaseConnection |con->Obj?| {
 			Operation(con).runCommand("${name}.\$cmd", cmd)
