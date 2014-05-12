@@ -38,7 +38,9 @@ const class Collection {
 
 	** Returns 'true' if this collection exists.
 	Bool exists() {
-		Collection(conMgr, namespace.withCollection("system.namespaces")).findCount(["name": "${namespace.databaseName}.${name}"]) > 0
+		d:=Collection(conMgr, namespace.withCollection("system.namespaces")).findAll
+		Env.cur.err.printLine(d)
+		return Collection(conMgr, namespace.withCollection("system.namespaces")).findCount(["name": "${namespace.databaseName}.${name}"]) > 0
 	}
 	
 	** Creates a new collection explicitly.
@@ -46,18 +48,24 @@ const class Collection {
 	** @see `http://docs.mongodb.org/manual/reference/command/create/`
 	This create(Bool? autoIndexId := true, Bool? usePowerOf2Sizes := true) {
 		cmd := cmd("insert").add("create", name)
-		if (autoIndexId != null)
-			cmd.add("autoIndexId", autoIndexId)
-		if (usePowerOf2Sizes != null)
-			cmd.add("flags", usePowerOf2Sizes ? 1 : 0)
+		if (autoIndexId != null)		cmd.add("autoIndexId", autoIndexId)
+		if (usePowerOf2Sizes != null)	cmd.add("flags", usePowerOf2Sizes ? 1 : 0)
 		cmd.run
 		// as create() only returns [ok:1.0], return this
 		return this
 	}
 
-	Void createCapped(Int size, Int? maxNoOfDocs := null, Bool? autoIndexId := null, Bool? usePowerOf2Sizes := null) {
-		// FIXME!
-		// TODO: what it returns?
+	** Creates a capped collection.
+	** 
+	** @see `http://docs.mongodb.org/manual/reference/command/create/`
+	This createCapped(Int size, Int? maxNoOfDocs := null, Bool? autoIndexId := null, Bool? usePowerOf2Sizes := null) {
+		cmd := cmd("insert").add("create", name).add("capped", true).add("size", size)
+		if (autoIndexId != null)		cmd.add("autoIndexId", autoIndexId)
+		if (maxNoOfDocs != null)		cmd.add("max", maxNoOfDocs)
+		if (usePowerOf2Sizes != null)	cmd.add("flags", usePowerOf2Sizes ? 1 : 0)
+		cmd.run
+		// as create() only returns [ok:1.0], return this
+		return this
 	}
 	
 	** Creates a `Cursor` over the given 'query' allowing you to iterate over results.
