@@ -1,19 +1,51 @@
 
 ** Represents a MongoDB user.
+** 
+** http://docs.mongodb.org/manual/reference/built-in-roles/
+** Built in roles are:
+**  - read
+**  - readWrite
+**  - dbAdmin
+**  - dbOwner
+**  - userAdmin
+**  - clusterAdmin
+**  - clusterManager
+**  - clusterMonitor
+**  - hostManager
+**  - backup
+**  - restore
+**  - readAnyDatabase
+**  - readWriteAnyDatabase
+**  - userAdminAnyDatabase
+**  - dbAdminAnyDatabase
+**  - root
 const class User {
 
 	private const ConnectionManager conMgr
-	private const Namespace	namespace
+	private const Namespace	adminNs
+	private const Namespace	userNs
 	
 	** The name of this user.
 	const Str name
 
 	internal new make(ConnectionManager conMgr, Str dbName, Str userName) {
 		this.conMgr		= conMgr
-		this.namespace	= Namespace(dbName, "system.users")
+		this.adminNs	= Namespace("admin", "system.users")
+		this.userNs		= Namespace(dbName, "system.users")
 		this.name		= userName
 	}	
 	
+	** Returns user info.
+	** FIXME: update to http://docs.mongodb.org/manual/reference/command/usersInfo/
+	Str:Obj? info() {
+		Collection(conMgr, adminNs).findOne(["db":userNs.databaseName, "user":name])
+	}
+
+	** Returns 'true' if this user exists.
+	Bool exists() {
+		Collection(conMgr, adminNs).findCount(["db":userNs.databaseName, "user":name]) > 0
+	}
+
 	** Creates the user with the given credentials. 
 	**
 	** @see `http://docs.mongodb.org/manual/reference/command/createUser/`
@@ -21,7 +53,7 @@ const class User {
 		cmd := cmd("insert")
 			.add("createUser",	name)
 			.add("pwd",			password)
-		if (customData != null)	cmd["customData"] 	= customData
+		if (customData != null)	cmd["customData"] = customData
 		cmd["roles"] = roles
 		return cmd.run
 	}
@@ -56,6 +88,6 @@ const class User {
 	// ---- Private Methods -----------------------------------------------------------------------
 	
 	private Cmd cmd(Str? action := null) {
-		Cmd(conMgr, namespace, action)
+		Cmd(conMgr, userNs, action)
 	}	
 }
