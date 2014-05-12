@@ -1,5 +1,5 @@
 
-internal class TestRegex : MongoDbTest {
+internal class TestRegexDb : MongoDbTest {
 	
 	Void testRegex() {
 		caseInsen := "(?i)dude".toRegex
