@@ -1,8 +1,9 @@
+using concurrent::AtomicBool
 
-internal class OneShotLock {
+internal const class OneShotLock {
 	
-	public 	Bool	locked
-	private Str 	because
+	private const Str 			because
+	private const AtomicBool	lockFlag	:= AtomicBool(false)
 	
 	new make(Str because) {
 		this.because = because
@@ -10,15 +11,19 @@ internal class OneShotLock {
 	
 	Void lock() {
 		check	// you can't lock twice!
-		locked = true
+		lockFlag.val = true
 	}
 	
-	public Void check() {
-		if (locked)
+	Bool locked() {
+		lockFlag.val
+	}
+	
+	Void check() {
+		if (lockFlag.val)
 			throw MongoErr(ErrMsgs.oneShotLock_violation(because))
 	}
 	
 	override Str toStr() {
-		(locked ? "" : "(un)") + "locked"
+		(lockFlag.val ? "" : "(un)") + "locked"
 	}
 }

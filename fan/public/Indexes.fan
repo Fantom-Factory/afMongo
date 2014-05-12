@@ -3,29 +3,30 @@ class Indexes {
 	
 	private Namespace	colNs
 	private Namespace	idxNs
-	private Connection	connection
 	
-	internal new make(Connection connection, Namespace namespace) {
-		this.connection	= connection
-		this.colNs		= namespace
-		this.idxNs		= Namespace(colNs.databaseName, "system.indexes")
+	private const ConnectionManager conMgr
+	
+	internal new make(ConnectionManager conMgr, Namespace namespace) {
+		this.conMgr	= conMgr
+		this.colNs	= namespace
+		this.idxNs	= Namespace(colNs.databaseName, "system.indexes")
 	}
 	
 	** Returns a list of index names.
 	Str[] names() {
-		Collection(connection, idxNs.qname).findList(["ns":colNs.qname]).map { it["name"] }.sort
+		Collection(conMgr, idxNs.qname).findList(["ns":colNs.qname]).map { it["name"] }.sort
 	}
 
 	** Returns info on the named index.
 	** 
 	** @see `http://docs.mongodb.org/manual/reference/method/db.collection.getIndexes/#db.collection.getIndexes`
 	Str:Obj? info(Str indexName) {
-		Collection(connection, idxNs.qname).findOne(["ns":colNs.qname, "name":indexName])
+		Collection(conMgr, idxNs.qname).findOne(["ns":colNs.qname, "name":indexName])
 	}
 	
 	** Returns 'true' if the named index exists.
 	Bool exists(Str indexName) {
-		Collection(connection, idxNs.qname).findOne(["ns":colNs.qname, "name":indexName], false) != null		
+		Collection(conMgr, idxNs.qname).findOne(["ns":colNs.qname, "name":indexName], false) != null		
 	}
 	
 	** Drops a named index.
@@ -64,10 +65,14 @@ class Indexes {
 	}	
 	
 	private Str:Obj? runCmd(Str:Obj? cmd) {
-		Operation(connection).runCommand("${colNs.databaseName}.\$cmd", cmd)
+		conMgr.leaseConnection |con->Obj?| {
+			Operation(con).runCommand("${colNs.databaseName}.\$cmd", cmd)
+		}
 	}
 
 	private Str:Obj? runAdminCmd(Str:Obj? cmd) {
-		Operation(connection).runCommand("admin.\$cmd", cmd)
+		conMgr.leaseConnection |con->Obj?| {
+			Operation(con).runCommand("admin.\$cmd", cmd)
+		}
 	}
 }
