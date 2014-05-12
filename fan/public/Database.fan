@@ -7,10 +7,14 @@
 ** http://docs.mongodb.org/manual/reference/command/
 ** http://www.mongodb.org/display/DOCS/Mongo+Wire+Protocol#MongoWireProtocol-Mongo::Constants::OPQUERY
 const class Database {
+	internal const ConnectionManager conMgr
+	
+	** The name of the database.
 	const Str name
 
-	internal const ConnectionManager conMgr
-	  
+	** Creates a 'Database' with the given name.
+	** 
+	** Note this just instantiates the Fantom object, it does not create anything in the database. 
 	new make(ConnectionManager connectionManager, Str name) {
 		this.conMgr = connectionManager
 		this.name = Namespace.validateDatabaseName(name)
@@ -18,15 +22,7 @@ const class Database {
 
 	// ---- Collections ---------------------------------------------------------------------------
 	
-	Collection collection(Str collectionName) {
-		Collection(this, collectionName)
-	}
-
-	@Operator
-	Collection get(Str collectionName) {
-		collection(collectionName)
-	}
-	
+	** Returns all the collection names in the database. 
 	Str[] collectionNames() {
 		// if it wasn't for F4, I could have this all on one line!
 		docs  := collection("system.namespaces").findAll
@@ -34,6 +30,45 @@ const class Database {
 		return names.exclude { !it.startsWith(name) || it.contains("\$") || it.contains(".system.") }.map { it[(name.size+1)..-1] }.sort
 	}
 
+	** Returns a 'Collection' with the given name.
+	** 
+	** Note this just instantiates the Fantom object, it does not create anything in the database. 
+	Collection collection(Str collectionName) {
+		Collection(this, collectionName)
+	}
+
+	** Convenience / shorthand notation for 'collection(name)'
+	@Operator
+	Collection get(Str collectionName) {
+		collection(collectionName)
+	}
+
+	// ---- Users ---------------------------------------------------------------------------------
+	
+	** Returns all the index names of this collection.
+	Str[] userNames() {
+		userNs := Namespace(name, "system.users")
+		c:= Collection(conMgr, userNs).findAll	//(["ns":namespace.qname]).map { it["name"] }.sort
+		Env.cur.err.printLine(c)
+		return [,]
+	}
+	
+	** Returns a 'User' with the given name.
+	** 
+	** Note this just instantiates the Fantom object, it does not create anything in the database. 
+	User user(Str userName) {
+		User(conMgr, name, userName)
+	}
+	
+	** Drops ALL users from this database. *Be careful!*
+	**
+	** @see `http://docs.mongodb.org/manual/reference/command/dropAllUsersFromDatabase/`
+	This dropAllUsers() {
+		c:=cmd.add("dropAllUsersFromDatabase", 1).run
+		Env.cur.err.printLine(c)
+		return this
+	}
+	
 	// ---- Database ------------------------------------------------------------------------------
 
 	// FIXME: create!
@@ -42,22 +77,14 @@ const class Database {
 	** 
 	** @see `http://docs.mongodb.org/manual/reference/command/dropDatabase/`
 	This drop() {
-		runCmd(["dropDatabase":1])
+		c:=cmd.add("dropDatabase", 1).run
+		Env.cur.err.printLine(c)
 		return this
 	}
 	
 	// ---- Private Methods -----------------------------------------------------------------------
 	
-//	private Cmd cmd(Str action, Bool checkForErrs := true) {
-//		Cmd(conMgr, namespace, action, checkForErrs)
-//	}
-	private Str:Obj? runCmd(Str:Obj? cmd) {
-		conMgr.leaseConnection |con->Obj?| {
-			Operation(con).runCommand("${name}.\$cmd", cmd)
-		}
+	private Cmd cmd(Str? action := null) {
+		Cmd(conMgr, Namespace(name, "wotever"), action)
 	}
-
-//	private Str:Obj? runAdminCmd(Str:Obj? cmd) {
-//		Operation(conMgr.getConnection).runCommand("admin.\$cmd", cmd)
-//	}
 }

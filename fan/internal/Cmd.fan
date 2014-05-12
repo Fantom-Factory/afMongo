@@ -1,34 +1,32 @@
 
 internal class Cmd {
 	private const ConnectionManager conMgr
-	private const Str				dbName
+	private const Namespace			namespace
 
 	private [Str:Obj?] 	cmd	:= Str:Obj?[:] { ordered = true }
 	private [Str:Obj?]?	writeConcern
 	private Bool 		checkForErrs
-	private Str 		when
-	private Str 		what
+	private Str? 		when
+	private Str? 		what
 	
-	new make(ConnectionManager conMgr, Str dbName, Str action, Bool checkForErrs, [Str:Obj?]? writeConcern := null) {
+	new make(ConnectionManager conMgr, Namespace namespace, Str? action, [Str:Obj?]? writeConcern := null) {
 		this.conMgr			= conMgr
-		this.dbName 		= dbName
+		this.namespace 		= namespace
 		this.writeConcern	= writeConcern
-		this.checkForErrs	= checkForErrs
+		this.checkForErrs	= action != null
 		
 		switch (action) {
-			case "read":
-				this.when	= "reading from"
-				this.what	= "read"
-				this.writeConcern = null
+			case null:
+				null?.toStr
 			case "insert":
 				this.when	= "inserting into"
 				this.what	= "inserted"
 			case "update":
 				this.when	= "updating"
 				this.what	= "updated"
-			case "drop":
-				this.when	= "dropping from"
-				this.what	= "dropped"
+			case "delete":
+				this.when	= "deleting from"
+				this.what	= "deleted"
 			default:
 				throw ArgErr("Unknown action: $action")
 		}
@@ -51,16 +49,16 @@ internal class Cmd {
 	}	
 	
 	Str:Obj? run() {
-		if (writeConcern != null && !cmd.containsKey("writeConcern"))
+		if (checkForErrs && writeConcern != null && !cmd.containsKey("writeConcern"))
 			cmd["writeConcern"] = writeConcern
 
 		return checkForWriteErrs(conMgr.leaseConnection |con->Obj?| {
-			Operation(con).runCommand("${dbName}.\$cmd", cmd)			
+			Operation(con).runCommand("${namespace.databaseName}.\$cmd", cmd)			
 		})
 	}
 
 	Str:Obj? runAdmin() {
-		if (writeConcern != null && !cmd.containsKey("writeConcern"))
+		if (checkForErrs && writeConcern != null && !cmd.containsKey("writeConcern"))
 			cmd["writeConcern"] = writeConcern
 
 		return checkForWriteErrs(conMgr.leaseConnection |con->Obj?| {
@@ -77,7 +75,7 @@ internal class Cmd {
 		if (doc.containsKey("writeConcernError"))
 			errs.add((Str:Obj?) doc["writeConcernError"])
 		if (!errs.isEmpty)
-			throw MongoCmdErr(ErrMsgs.collection_writeErrs(when, dbName, errs))
+			throw MongoCmdErr(ErrMsgs.collection_writeErrs(when, namespace.qname, errs))
 		if (doc["n"]?->toInt == 0)
 			// TODO: have a 'checked' variable?
 			throw MongoErr(ErrMsgs.collection_nothingHappened(what, doc))
