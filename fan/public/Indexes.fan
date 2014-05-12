@@ -1,9 +1,8 @@
 
-class Indexes {
-	
-	private Namespace	colNs
-	private Namespace	idxNs
-	
+const class Indexes {
+
+	private const Namespace			colNs
+	private const Namespace			idxNs
 	private const ConnectionManager conMgr
 	
 	internal new make(ConnectionManager conMgr, Namespace namespace) {
@@ -14,7 +13,7 @@ class Indexes {
 	
 	** Returns a list of index names.
 	Str[] names() {
-		Collection(conMgr, idxNs.qname).findList(["ns":colNs.qname]).map { it["name"] }.sort
+		Collection(conMgr, idxNs.qname).findAll(["ns":colNs.qname]).map { it["name"] }.sort
 	}
 
 	** Returns info on the named index.

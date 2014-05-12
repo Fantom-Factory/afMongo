@@ -27,13 +27,15 @@ const class Database {
 	
 	Str[] collectionNames() {
 		// if it wasn't for F4, I could have this all on one line!
-		docs  := collection("system.namespaces").findList
+		docs  := collection("system.namespaces").findAll
 		names := (Str[]) docs.map |ns->Str| { ns["name"] }
 		return names.exclude { !it.startsWith(name) || it.contains("\$") || it.contains(".system.") }.map { it[(name.size+1)..-1] }.sort
 	}
 	
 	// FIXME: create!
 	
+	** Drops the database. *Be careful!*
+	** 
 	** @see `http://docs.mongodb.org/manual/reference/command/dropDatabase/`
 	This drop() {
 		runCmd(["dropDatabase":1])

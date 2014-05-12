@@ -32,6 +32,10 @@ internal const class Namespace {
 		collectionName.startsWith("system.")
 	}
 	
+	Namespace withCollection(Str collectionName) {
+		Namespace(databaseName, collectionName)
+	}
+	
 	static Str validateDatabaseName(Str name) {
 		if (name.isEmpty)
 			throw ArgErr(ErrMsgs.namespace_nameCanNotBeEmpty("Database"))
