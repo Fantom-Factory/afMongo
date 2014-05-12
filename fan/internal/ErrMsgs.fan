@@ -61,8 +61,8 @@ internal const mixin ErrMsgs {
 		"FindOne() query returned $no documents from '${qname}': $query"
 	}
 
-	static Str collection_writeErrs(Str what, Str dbName, [Str:Obj?][] errs) {
-		"Errors when ${what} '${dbName}' - " + ((errs.size == 1) ? errs.first.toStr : errs.toStr)
+	static Str collection_writeErrs(Str what, Str colName, [Str:Obj?][] errs) {
+		"Errors when ${what} '${colName}' - " + ((errs.size == 1) ? errs.first.toStr : errs.toStr)
 	}
 	
 	static Str collection_nothingHappened(Str what, [Str:Obj?] response) {

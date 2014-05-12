@@ -32,7 +32,8 @@ const class Index {
 	** 
 	** @see `http://docs.mongodb.org/manual/reference/command/dropIndexes/`
 	This drop() {
-		cmd("drop").add("dropIndexes", colNs.collectionName).add("index", name).run
+		cmd.add("dropIndexes", colNs.collectionName).add("index", name).run
+		// [nIndexesWas:2, ok:1.0]
 		return this
 	}
 	
@@ -40,17 +41,20 @@ const class Index {
 	** 
 	** 'key' is a map of fields to index type, use 1 for ascending and -1 for descending.
 	** 
+	** 'unique' if not specified, defaults to 'false'.
+	** 
 	** @see `http://docs.mongodb.org/manual/reference/command/createIndexes/`
-	This create(Str:Obj key, Bool unique := false, Str:Obj options := [:]) {
+	This create(Str:Obj key, Bool? unique := null, Str:Obj options := [:]) {
 		// there's no createIndexMulti 'cos I figure no novice will need to create multiple indexes at once!
-		cmd("insert")
-			.add("createIndexes", colNs.collectionName)
+		if (unique != null)	options.set("unique", unique)
+		cmd	.add("createIndexes", colNs.collectionName)
 			.add("indexes", 	[ [Str:Obj?][:] { it.ordered = true }
 				.add("key",		key)
 				.add("name",	name)
-				.addAll(options.set("unique", unique))
+				.addAll(options)
 			])
 			.run
+		// [createdCollectionAutomatically:false, numIndexesBefore:1, numIndexesAfter:2, ok:1.0]
 		return this
 	}
 	
@@ -58,13 +62,15 @@ const class Index {
 	** If the index does not exist, it is created. 
 	** If it exists but with a different key / options, it is dropped and re-created.
 	** 
+	** 'unique' if not specified, defaults to 'false'.
+	** 
 	** Returns 'true' if the index was (re)-created, 'false' if nothing changed. 
-	Bool ensure(Str:Obj key, Bool unique := false, Str:Obj options := [:]) {
+	Bool ensure(Str:Obj key, Bool? unique := null, Str:Obj options := [:]) {
 		if (!exists) {
 			create(key, unique, options)
 			return true
 		}
-		options.set("unique", unique)
+		if (unique != null)	options.set("unique", unique)
 		
 		info := info
 		oldKeyMap := (Str:Obj?) info["key"]
@@ -80,7 +86,7 @@ const class Index {
 	
 	// ---- Private Methods -----------------------------------------------------------------------
 	
-	private Cmd cmd(Str action, Bool checkForErrs := true) {
-		Cmd(conMgr, colNs.databaseName, action, checkForErrs)
+	private Cmd cmd(Str? action := null) {
+		Cmd(conMgr, colNs, action)
 	}	
 }

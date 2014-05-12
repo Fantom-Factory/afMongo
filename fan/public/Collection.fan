@@ -44,16 +44,14 @@ const class Collection {
 
 	** Returns 'true' if this collection exists.
 	Bool exists() {
-		d:=Collection(conMgr, namespace.withCollection("system.namespaces")).findAll
-		Env.cur.err.printLine(d)
-		return Collection(conMgr, namespace.withCollection("system.namespaces")).findCount(["name": "${namespace.databaseName}.${name}"]) > 0
+		Collection(conMgr, namespace.withCollection("system.namespaces")).findCount(["name": "${namespace.databaseName}.${name}"]) > 0
 	}
 	
 	** Creates a new collection explicitly.
 	** 
 	** @see `http://docs.mongodb.org/manual/reference/command/create/`
 	This create(Bool? autoIndexId := true, Bool? usePowerOf2Sizes := true) {
-		cmd := cmd("insert").add("create", name)
+		cmd := cmd.add("create", name)
 		if (autoIndexId != null)		cmd.add("autoIndexId", autoIndexId)
 		if (usePowerOf2Sizes != null)	cmd.add("flags", usePowerOf2Sizes ? 1 : 0)
 		cmd.run
@@ -65,7 +63,7 @@ const class Collection {
 	** 
 	** @see `http://docs.mongodb.org/manual/reference/command/create/`
 	This createCapped(Int size, Int? maxNoOfDocs := null, Bool? autoIndexId := null, Bool? usePowerOf2Sizes := null) {
-		cmd := cmd("insert").add("create", name).add("capped", true).add("size", size)
+		cmd := cmd.add("create", name).add("capped", true).add("size", size)
 		if (autoIndexId != null)		cmd.add("autoIndexId", autoIndexId)
 		if (maxNoOfDocs != null)		cmd.add("max", maxNoOfDocs)
 		if (usePowerOf2Sizes != null)	cmd.add("flags", usePowerOf2Sizes ? 1 : 0)
@@ -125,6 +123,12 @@ const class Collection {
 			return cursor.toList
 		}
 	}
+	
+	** Convenience / shorthand notation for 'findOne(["_id" : id], true)'
+	@Operator
+	[Str:Obj?] get(Obj id) {
+		findOne(["_id" : id], true)
+	}
 
 	** Returns the number of documents that would be returned by the given 'query'.
 	** 
@@ -137,7 +141,7 @@ const class Collection {
 	** 
 	** @see `http://docs.mongodb.org/manual/reference/command/count/`
 	Int size() {
-		cmd("read", false).add("count", name).run["n"]->toInt
+		cmd.add("count", name).run["n"]->toInt
 	}
 
 	** Inserts the given document,
@@ -180,7 +184,7 @@ const class Collection {
 	** @see `http://docs.mongodb.org/manual/reference/command/delete/`
 	@NoDoc
 	Str:Obj? deleteMulti([Str:Obj?][] deletes, Bool? ordered := null, [Str:Obj?]? writeConcern := null) {
-		cmd := cmd("drop")
+		cmd := cmd("delete")
 			.add("delete",	name)
 			.add("deletes",	deletes)
 		if (ordered != null)		cmd["ordered"] 		= ordered
@@ -224,8 +228,7 @@ const class Collection {
 	** 
 	** @see `http://docs.mongodb.org/manual/reference/command/drop/`
 	This drop() {
-		// FIXME: check any returned output, can we check for errs?
-		cmd("drop", false).add("drop", name).run
+		cmd.add("drop", name).run
 		// [ns:afMongoTest.col-test, nIndexesWas:1, ok:1.0] 
 		// not sure wot 'nIndexesWas' or if it's useful, so return this for now 
 		return this
@@ -233,18 +236,10 @@ const class Collection {
 	
 	// ---- Indexes -------------------------------------------------------------------------------
 
-	** Returns the names of the indexes on this collection.
+	** Returns all the index names of this collection.
 	Str[] indexNames() {
 		idxNs := namespace.withCollection("system.indexes")
 		return Collection(conMgr, idxNs.qname).findAll(["ns":namespace.qname]).map { it["name"] }.sort
-	}
-
-	** Drops ALL indexes on the collection.
-	** 
-	** @see `http://docs.mongodb.org/manual/reference/command/dropIndexes/`
-	This dropAllIndexes() {
-		cmd("drop").add("dropIndexes", name).add("index", "*").run
-		return this
 	}
 	
 	** Returns an 'Index' of the given name.
@@ -253,10 +248,19 @@ const class Collection {
 	Index index(Str indexName) {
 		Index(conMgr, namespace, indexName)
 	}
+
+	** Drops ALL indexes on the collection. *Be careful!*
+	** 
+	** @see `http://docs.mongodb.org/manual/reference/command/dropIndexes/`
+	This dropAllIndexes() {
+		cmd.add("dropIndexes", name).add("index", "*").run
+		// [nIndexesWas:2, ok:1.0]
+		return this
+	}
 	
 	// ---- Private Methods -----------------------------------------------------------------------
 	
-	private Cmd cmd(Str action, Bool checkForErrs := true) {
-		Cmd(conMgr, namespace.databaseName, action, checkForErrs)
+	private Cmd cmd(Str? action := null) {
+		Cmd(conMgr, namespace, action)
 	}	
 }
