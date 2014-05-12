@@ -7,7 +7,7 @@ internal class TestBsonLiteralsDb : MongoDbTest {
 	Void testBsonLiterals() {
 		col := db["Literals"]	//.drop
 		col.insert(bsonValueMap)
-		verifyBsonValueMap(col.findList.first)
+		verifyBsonValueMap(col.findAll.first)
 	}
 	
 	Map bsonValueMap() {

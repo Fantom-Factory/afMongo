@@ -1,8 +1,8 @@
 
 ** Represents a MongoDB collection.
-class Collection {
+const class Collection {
 	
-	private Namespace	namespace
+	private const Namespace	namespace
 	
 	internal const ConnectionManager conMgr
 
@@ -26,13 +26,38 @@ class Collection {
 		this.namespace 	= Namespace(qname)
 	}
 
+	internal new makeFromNamespace(ConnectionManager conMgr, Namespace namespace) {
+		this.conMgr		= conMgr
+		this.namespace 	= namespace
+	}
+
 	new makeFromDatabase(Database database, Str name) {
 		this.conMgr 	= database.conMgr
 		this.namespace 	= Namespace(database.name, name)
 	}
 
-	Void create() {
+	** Returns 'true' if this collection exists.
+	Bool exists() {
+		Collection(conMgr, namespace.withCollection("system.namespaces")).findCount(["name": "${namespace.databaseName}.${name}"]) > 0
+	}
+	
+	** Creates a new collection explicitly.
+	** 
+	** @see `http://docs.mongodb.org/manual/reference/command/create/`
+	This create(Bool? autoIndexId := true, Bool? usePowerOf2Sizes := true) {
+		cmd := cmd("insert").add("create", name)
+		if (autoIndexId != null)
+			cmd.add("autoIndexId", autoIndexId)
+		if (usePowerOf2Sizes != null)
+			cmd.add("flags", usePowerOf2Sizes ? 1 : 0)
+		cmd.run
+		// as create() only returns [ok:1.0], return this
+		return this
+	}
+
+	Void createCapped(Int size, Int? maxNoOfDocs := null, Bool? autoIndexId := null, Bool? usePowerOf2Sizes := null) {
 		// FIXME!
+		// TODO: what it returns?
 	}
 	
 	** Creates a `Cursor` over the given 'query' allowing you to iterate over results.
@@ -79,7 +104,7 @@ class Collection {
 	** Returns the result of the given 'query' as a list of documents.
 	** 
 	** @see `Cursor`
-	[Str:Obj?][] findList(Str:Obj? query := [:], Int skip := 0, Int? limit := null) {
+	[Str:Obj?][] findAll(Str:Obj? query := [:], Int skip := 0, Int? limit := null) {
 		find(query) |Cursor cursor->[Str:Obj?][]| {
 			cursor.skip  = skip
 			cursor.limit = limit
@@ -98,37 +123,42 @@ class Collection {
 	** 
 	** @see `http://docs.mongodb.org/manual/reference/command/count/`
 	Int size() {
-		runCmd(cmd.add("count", name))["n"]->toInt
+		cmd("read", false).add("count", name).run["n"]->toInt
 	}
 
 	** Inserts the given document,
+	** Returns the number of documents deleted.
 	** 
 	** @see `http://docs.mongodb.org/manual/reference/command/insert/`
-	Str:Obj? insert(Str:Obj? document, [Str:Obj?]? writeConcern := null) {
-		insertMulti([document], null, writeConcern)
+	Int insert(Str:Obj? document) {
+		insertMulti([document], null)["n"]->toInt
 	}
 
-	** Inserts many delete documents.
+	** Inserts many documents.
 	** 
 	** @see `http://docs.mongodb.org/manual/reference/command/insert/`
 	@NoDoc
 	Str:Obj? insertMulti([Str:Obj?][] inserts, Bool? ordered := null, [Str:Obj?]? writeConcern := null) {
-		cmd := cmd
+		cmd := cmd("insert")
 			.add("insert",		name)
 			.add("documents",	inserts)
 		if (ordered != null)		cmd["ordered"] 		= ordered
 		if (writeConcern != null)	cmd["writeConcern"] = writeConcern
-		return checkForWriteErrs("inserting into", "inserted", runCmd(cmd))
+		return cmd.run
 	}
 
 	** Deletes documents that match the given query.
+	** Returns the number of documents deleted.
+	** 
+	** If 'deleteAll' is 'true' then all documents matching the query will be deleted, otherwise 
+	** only the first match will be deleted.
 	** 
 	** @see `http://docs.mongodb.org/manual/reference/command/delete/`
-	Str:Obj? delete(Str:Obj? query, Int limit := 0, [Str:Obj?]? writeConcern := null) {
-		cmd := cmd
+	Int delete(Str:Obj? query, Bool deleteAll := false) {
+		cmd := [Str:Obj?][:] { ordered = true }
 			.add("q",		query)
-			.add("limit",	limit)
-		return deleteMulti([cmd], null, writeConcern)
+			.add("limit",	deleteAll ? 0 : 1)
+		return deleteMulti([cmd], null)["n"]->toInt
 	}
 
 	** Executes many delete queries.
@@ -136,24 +166,26 @@ class Collection {
 	** @see `http://docs.mongodb.org/manual/reference/command/delete/`
 	@NoDoc
 	Str:Obj? deleteMulti([Str:Obj?][] deletes, Bool? ordered := null, [Str:Obj?]? writeConcern := null) {
-		cmd := cmd
+		cmd := cmd("drop")
 			.add("delete",	name)
 			.add("deletes",	deletes)
 		if (ordered != null)		cmd["ordered"] 		= ordered
 		if (writeConcern != null)	cmd["writeConcern"] = writeConcern
-		return checkForWriteErrs("deleting from", "deleted", runCmd(cmd))
+		return cmd.run
 	}
 
 	** Runs the given 'updateCmd' against documents returned by the given 'query'.
+	** Returns the number of documents modified.
 	** 
 	** @see `http://docs.mongodb.org/manual/reference/command/update/`
-	Str:Obj? update(Str:Obj? query, Str:Obj? updateCmd, Bool? upsert := null, Bool? multi := null, [Str:Obj?]? writeConcern := null) {
-		cmd := cmd
+	// TODO: we loose any returned upserted id...?
+	Int update(Str:Obj? query, Str:Obj? updateCmd, Bool? multi := false, Bool? upsert := false) {
+		cmd := [Str:Obj?][:] { ordered = true }
 			.add("q",	query)
 			.add("u",	updateCmd)
 		if (upsert != null)	cmd["upsert"] = upsert
 		if (multi  != null)	cmd["multi"]  = multi
-		return updateMulti([cmd], null, writeConcern)
+		return updateMulti([cmd], null)["nModified"]->toInt
 	}
 
 	** Runs multiple update queries.
@@ -161,12 +193,12 @@ class Collection {
 	** @see `http://docs.mongodb.org/manual/reference/command/update/`
 	@NoDoc
 	Str:Obj? updateMulti([Str:Obj?][] updates, Bool? ordered := null, [Str:Obj?]? writeConcern := null) {
-		cmd := cmd
+		cmd := cmd("update")
 			.add("update",	name)
 			.add("updates",	updates)
 		if (ordered != null)		cmd["ordered"] 		= ordered
 		if (writeConcern != null)	cmd["writeConcern"] = writeConcern
-		return checkForWriteErrs("updating", "updated", runCmd(cmd))
+		return cmd.run
 	}
 
 //	http://docs.mongodb.org/manual/reference/command/findAndModify/#dbcmd.findAndModify
@@ -178,7 +210,10 @@ class Collection {
 	** 
 	** @see `http://docs.mongodb.org/manual/reference/command/drop/`
 	This drop() {
-		runCmd(["drop":name])
+		// FIXME: check any returned output, can we check for errs?
+		cmd("drop", false).add("drop", name).run
+		// [ns:afMongoTest.col-test, nIndexesWas:1, ok:1.0] 
+		// not sure wot 'nIndexesWas' or if it's useful, so return this for now 
 		return this
 	}
 	
@@ -188,33 +223,7 @@ class Collection {
 	
 	// ---- Private Methods -----------------------------------------------------------------------
 	
-	private Str:Obj? cmd() {
-		Str:Obj?[:] { ordered = true }
+	private Cmd cmd(Str action, Bool checkForErrs := true) {
+		Cmd(conMgr, namespace, action, checkForErrs)
 	}	
-	
-	private Str:Obj? runCmd(Str:Obj? cmd) {
-		conMgr.leaseConnection |con->Obj?| {
-			Operation(con).runCommand("${namespace.databaseName}.\$cmd", cmd)			
-		}
-	}
-
-	private Str:Obj? runAdminCmd(Str:Obj? cmd) {
-		conMgr.leaseConnection |con->Obj?| {
-			Operation(con).runCommand("admin.\$cmd", cmd)
-		}
-	}
-	
-	private Str:Obj? checkForWriteErrs(Str what, Str past, Str:Obj? doc) {
-		errs := [Str:Obj?][,]
-		if (doc.containsKey("writeErrors"))
-			errs.addAll((Obj?[]) doc["writeErrors"])
-		if (doc.containsKey("writeConcernError"))
-			errs.add((Str:Obj?) doc["writeConcernError"])
-		if (!errs.isEmpty)
-			throw MongoCmdErr(ErrMsgs.collection_writeErrs(what, qname, errs))
-		if (doc["n"]?->toInt == 0)
-			// TODO: have a 'checked' variable?
-			throw MongoErr(ErrMsgs.collection_nothingHappened(past, doc))
-		return doc
-	}
 }
