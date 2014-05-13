@@ -10,13 +10,13 @@ On connection, check the mongo version, assert it's >= 2.6
 explain this:
 the plan is to give a basic level of support, so should the mongo API grow (as it has been doing) then this driver doesn't get outdated.
 
-index to use asc / desc
 
 For v1.0
 -------
-gridfs
+GridFs
 Role Commands (new in 2.6)
 Query Plan Cache Commands (new in 2.6)
+Geospatial Commands
 
 When writing, maybe convert MongoMaps into Document Objs that cache the size?
 

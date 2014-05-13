@@ -65,7 +65,7 @@ const class Collection {
 	** Creates a capped collection.
 	** 
 	** @see `http://docs.mongodb.org/manual/reference/command/create/`
-	This createCapped(Int size, Int? maxNoOfDocs := null, Bool? autoIndexId := null, Bool? usePowerOf2Sizes := null) {
+	This createCapped(Int size, Int? maxNoOfDocs := null, Bool? autoIndexId := true, Bool? usePowerOf2Sizes := true) {
 		flags := (usePowerOf2Sizes == null) ? null : (usePowerOf2Sizes ? 1 : 0) 
 		cmd	.add("create", 		name)
 			.add("capped", 		true)
@@ -245,12 +245,39 @@ const class Collection {
 			.run
 	}
 
-//	http://docs.mongodb.org/manual/reference/command/findAndModify/#dbcmd.findAndModify
-	// TODO: findAndDelete findAndUpdate eval
-//	findAndDelete()
-//	findAndUpdate()
-//	eval()
-	
+	** Updates and returns a single document.
+	** 
+	**   Options  Type  
+	**   -------  ----  
+	**   upsert   Bool  
+	**   sort     Doc   
+	**   fields   Doc
+	** 
+	** @see `http://docs.mongodb.org/manual/reference/command/findAndModify/`
+	[Str:Obj?] findAndUpdate(Str:Obj? query, Str:Obj? updateCmd, Bool returnModified, [Str:Obj?]? options := null) {
+		cmd	.add("findAndModify",	name)
+			.add("query", 			query)
+			.add("update", 			updateCmd)
+			.add("new", 			returnModified)
+			.addAll(options)
+			.run["value"]
+	}
+
+	** Updates and returns a single document.
+	** 
+	**   Options  Type  
+	**   -------  ----  
+	**   sort     Doc   
+	**   fields   Doc
+	** 
+	** @see `http://docs.mongodb.org/manual/reference/command/findAndModify/`
+	[Str:Obj?] findAndDelete(Str:Obj? query, [Str:Obj?]? options := null) {
+		cmd	.add("findAndModify",	name)
+			.add("query", 			query)
+			.add("remove", 			true)
+			.addAll(options)
+			.run["value"]
+	}	
 	
 	// ---- Aggregation Commands ------------------------------------------------------------------
 	
@@ -322,11 +349,6 @@ const class Collection {
 			}
 		}		
 	}
-	
-	// ---- Geospatial Commands -------------------------------------------------------------------
-	
-	// TODO: geoNear() & geoSearch()
-
 	
 	// ---- Indexes -------------------------------------------------------------------------------
 
