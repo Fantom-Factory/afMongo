@@ -1,11 +1,5 @@
 
 ** Represents a MongoDB database.
-** 
-** http://docs.mongodb.org/meta-driver/latest/legacy/mongodb-driver-requirements/
-** http://docs.mongodb.org/meta-driver/latest/legacy/feature-checklist-for-mongodb-drivers/
-** 
-** http://docs.mongodb.org/manual/reference/command/
-** http://www.mongodb.org/display/DOCS/Mongo+Wire+Protocol#MongoWireProtocol-Mongo::Constants::OPQUERY
 const class Database {
 	internal const ConnectionManager conMgr
 	
@@ -36,7 +30,7 @@ const class Database {
 		// don't pass in a writeConcern, leave it up to the user
 		this.cmd("cmd").addAll(cmd).run
 	}
-	
+
 	** Evaluates a JavaScript function on the database server.
 	** 
 	** @see `http://docs.mongodb.org/manual/reference/command/eval/`
@@ -45,6 +39,51 @@ const class Database {
 			.add("args", 	args)
 			.add("nolock", 	noLock)
 			.run["retval"]
+	}
+
+	** Executes the given function passing in a database (connection) that has been authenticated 
+	** with the given user. Within the function, the authenticated database may be used as often 
+	** as you wish.   
+	** 
+	**   wibble := db.authenticate("ZeroCool", "password") |authDb -> Obj?| {
+	** 
+	**       return authDb["collection"].findOne(["wibble": true])
+	**   }
+	** 
+	** All Mongo objects ( 'Collection', 'Index', 'User', etc...) created from the authenticated
+	** database will inherit the user credentials.
+	Obj? authenticate(Str userName, Str password, |Database db->Obj?| func) {
+		nonce 	:= (Str) cmd.add("getnonce", 1).run["nonce"]
+		passdig	:= "${userName}:mongo:${password}".toBuf.toDigest("MD5").toHex
+		digest	:=  ( nonce + userName + passdig ).toBuf.toDigest("MD5").toHex
+		
+		return conMgr.leaseConnection |connection->Obj?| {
+			cmd := Str:Obj?[:] { ordered = true }
+				.add("authenticate", 1)
+				.add("user", 		 userName)
+				.add("nonce", 		 nonce)
+				.add("key", 		 digest)
+			
+			Operation(connection).runCommand("${name}.\$cmd", cmd)			
+	
+			try {
+				cm := ConnectionManagerSingleThread(connection)
+				db := Database(cm, name)
+				return func.call(db)
+			
+			} finally {
+				Operation(connection).runCommand("${name}.\$cmd", ["logout": 1])
+			}
+		}
+	}
+	
+	// ---- Diagnostics  --------------------------------------------------------------------------
+	
+	** Returns storage statistics for this database.
+	** 
+	** @see `http://docs.mongodb.org/manual/reference/command/dbStats/`
+	Str:Obj? stats(Int scale := 1) {
+		cmd.add("dbStats", 1).add("scale", scale).run
 	}
 	
 	// ---- Collections ---------------------------------------------------------------------------

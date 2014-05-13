@@ -1,6 +1,31 @@
 
 internal class TestUserDb : MongoDbTest {
+	
+	Void testAuthentication() {
+		db.dropAllUsers
+		zcool := db.user("ZeroCool").create("password", ["read"])
 		
+		db["testAuth"].insert(["wibble":"wobble"])
+		
+		verifyErr(MongoCmdErr#) {
+			db.authenticate("ZeroCool", "whoops") |->| { }
+		}
+		
+		// just walk through the code - we can't test actual auth without restarting MongoDB 
+		db.authenticate("ZeroCool", "password") |db2->Obj?| {
+			verifyEq(db2["testAuth"].findAll.first["wibble"], "wobble")
+			
+			// this still works 'cos we don't start Mongo with --auth 
+			db2["testAuth"].insert(["wibble2":"wobble2"])
+			
+			return null
+		}
+
+//		// how to create a *superuser* - http://stackoverflow.com/questions/20117104/mongodb-root-user
+//		mc["admin"].dropAllUsers
+//		mc["admin"].user("root").create("root", ["userAdminAnyDatabase", "dbAdminAnyDatabase", "readWriteAnyDatabase"])		
+	}
+	
 	Void testBasicMethods() {
 		db.dropAllUsers
 		
@@ -21,7 +46,6 @@ internal class TestUserDb : MongoDbTest {
 		
 		zcool.grantRoles(["read"])
 		verifyEq(zcool.roles, ["dbAdmin", "read"])
-		Env.cur.err.printLine(zcool.info)
 
 		zcool.revokeRoles(["dbAdmin"])
 		verifyEq(zcool.roles, ["read"])

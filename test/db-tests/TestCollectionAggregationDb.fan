@@ -32,7 +32,6 @@ internal class TestCollectionAggregationDb : MongoDbTest {
 		] 
 		
 		tags := collection.aggregate(pipeline)
-		Env.cur.err.printLine(tags)
 		verifyEq(tags.size, 4)
 		verifyEq(tags.find { it["_id"] == "programming" }["count"], 2)
 		verifyEq(tags.find { it["_id"] == "database"    }["count"], 1)

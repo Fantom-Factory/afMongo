@@ -55,7 +55,7 @@ class CollectionTest : OldMongoTest
     verifyEq(0, c.find().count())
   }
   
-  Void testLotsOfInserts()
+  Void NOtestLotsOfInserts()
   {
     c := db["actortest"]
     // a := Actor(ActorPool()) |Int i| {

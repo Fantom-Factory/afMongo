@@ -9,6 +9,12 @@ internal class TestCollectionDb : MongoDbTest {
 		10.times |i| { collection.insert(["data":i+1]) }
 	}
 
+	
+	Void testDiagnostics() {
+		Env.cur.err.printLine(collection.stats(3))
+		verifyEq(collection.stats(3)["ns"], collection.qname)
+	}
+
 	Void testFindAndUpdate() {
 		collection.drop
 		collection.insert([

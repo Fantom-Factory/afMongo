@@ -6,4 +6,8 @@ internal class TestDatabaseDb : MongoDbTest {
 		 verifyEq(db.eval("function ( ) { return null;  }", [ ,]), null)
 		 verifyEq(db.eval("function (x) { return {'x':x+1 };  }", [6f]), Str:Obj?["x":7f])
 	}
+	
+	Void testDiagnostics() {
+		verifyEq(db.stats(3)["db"], db.name)
+	}
 }

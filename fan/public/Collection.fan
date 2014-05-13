@@ -87,7 +87,16 @@ const class Collection {
 		// not sure wot 'nIndexesWas' or if it's useful, so return this for now 
 		return this
 	}
+
+	// ---- Diagnostics  --------------------------------------------------------------------------
 	
+	** Returns storage statistics for this collection.
+	** 
+	** @see `http://docs.mongodb.org/manual/reference/command/collStats/`
+	[Str:Obj?] stats(Int scale := 1) {
+		cmd.add("collStats", name).add("scale", scale).run
+	}
+
 	// ---- Cursor Queries ------------------------------------------------------------------------
 
 	** Creates a `Cursor` over the given 'query' allowing you to iterate over results.
@@ -182,7 +191,7 @@ const class Collection {
 	** 
 	** @see `http://docs.mongodb.org/manual/reference/command/insert/`
 	@NoDoc
-	Str:Obj? insertMulti([Str:Obj?][] inserts, Bool? ordered := null, [Str:Obj?]? writeConcern := null) {
+	[Str:Obj?] insertMulti([Str:Obj?][] inserts, Bool? ordered := null, [Str:Obj?]? writeConcern := null) {
 		cmd("insert")
 			.add("insert",			name)
 			.add("documents",		inserts)
@@ -209,7 +218,7 @@ const class Collection {
 	** 	
 	** @see `http://docs.mongodb.org/manual/reference/command/delete/`
 	@NoDoc
-	Str:Obj? deleteMulti([Str:Obj?][] deletes, Bool? ordered := null, [Str:Obj?]? writeConcern := null) {
+	[Str:Obj?] deleteMulti([Str:Obj?][] deletes, Bool? ordered := null, [Str:Obj?]? writeConcern := null) {
 		cmd("delete")
 			.add("delete",			name)
 			.add("deletes",			deletes)
@@ -236,7 +245,7 @@ const class Collection {
 	** 
 	** @see `http://docs.mongodb.org/manual/reference/command/update/`
 	@NoDoc
-	Str:Obj? updateMulti([Str:Obj?][] updates, Bool? ordered := null, [Str:Obj?]? writeConcern := null) {
+	[Str:Obj?] updateMulti([Str:Obj?][] updates, Bool? ordered := null, [Str:Obj?]? writeConcern := null) {
 		cmd("update")
 			.add("update",			name)
 			.add("updates",			updates)
