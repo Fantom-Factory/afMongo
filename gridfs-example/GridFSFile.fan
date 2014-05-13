@@ -161,7 +161,5 @@ class GridFSFile
   }
 }
 
-**
-** TODO - add ChunkInStream and ChunkOutStream to read/write directly into GridFS
-**
+// todo - add ChunkInStream and ChunkOutStream to read/write directly into GridFS
 

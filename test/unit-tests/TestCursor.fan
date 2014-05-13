@@ -11,7 +11,6 @@ internal class TestCursor : MongoTest {
 	}
 
 	Void testAllQueryDataSent() {
-		// FIXME! index warnings...
 		cursor.batchSize = 3 
 		cursor.skip = 6 
 		cursor.fieldNames = ["field1", "field2"]
@@ -34,7 +33,6 @@ internal class TestCursor : MongoTest {
 	}
 
 	Void testQueryDataCannotBeSetAfterQuery() {
-		// FIXME! index warnings...
 		Obj? t := null
 		mmc.reply([:])
 		cursor.getSome

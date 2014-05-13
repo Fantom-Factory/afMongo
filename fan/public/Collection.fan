@@ -1,3 +1,4 @@
+using afBson
 
 ** Represents a MongoDB collection.
 const class Collection {
@@ -306,14 +307,38 @@ const class Collection {
 			.add("query",		query)
 			.run["values"]
 	}
+
+	** Groups documents by the specified key and performs simple aggregation functions. 
+	** 
+	** 'key' must either be a list of field names ( 'Str[]' ) or a function that creates a 
+	** "key object" ( 'Str' ).  
+	** 
+	** @see `http://docs.mongodb.org/manual/reference/command/group/`
+	[Str:Obj?][] group(Obj key, [Str:Obj?] initial, Code reduceFunc, [Str:Obj?]? options := null) {
+		keydoc := ([Str:Obj?]?) null; keyf := (Str?) null
+		if (key is List)  { keydoc  = cmd.query.addList(key); keydoc.keys.each { keydoc[it] = 1 } }
+		if (key is Str)		keyf 	= key
+		if (keydoc == null && keyf == null)
+			throw ArgErr(ErrMsgs.collection_badKeyGroup(key))
+
+		group := cmd
+			.add("ns",			name)
+			.add("key",			keydoc)
+			.add("\$keyf",		keyf)
+			.add("initial",		initial)
+			.add("\$reduce",	reduceFunc)
+			.addAll(options)
+		
+		return cmd.add("group", group.query).run["retval"]
+	}
 	
 	** Run a map-reduce aggregation operation over the collection.
 	** 
 	** If 'out' is a Str, it specifies the name of a collection to store the results.
-	** If 'out' is a Map, it specified the action to take. 
+	** If 'out' is a Map, it specifies the action to take. 
 	** 
 	** @see `http://docs.mongodb.org/manual/reference/command/mapReduce/`
-	[Str:Obj?] mapReduce(Str mapFunc, Str reduceFunc, Obj out, [Str:Obj?]? options := null) {
+	[Str:Obj?] mapReduce(Code mapFunc, Code reduceFunc, Obj out, [Str:Obj?]? options := null) {
 		cmd	.add("mapReduce",	name)
 			.add("map", 		mapFunc)
 			.add("reduce", 		reduceFunc)
