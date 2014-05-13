@@ -132,6 +132,19 @@ class Cursor {
 		this.flags		= OpQueryFlags.none
 		this.special	= cmd
 	}
+
+	** Used from Collection.aggregate()
+	internal new makeFromId(Connection connection, Namespace namespace, Str:Obj? query, Int cursorId, [Str:Obj?][] results) {
+		this.connection = connection		
+		this.nsCol		= namespace
+		this.query		= query
+		this.flags		= OpQueryFlags.none
+		this.special	= cmd
+		
+		this.querySent.lock
+		this.cursorId	= cursorId
+		this.results	= results
+	}
 	
 	** Returns the next document from the query.
 	** Use with 'hasNext()' to iterate over the results:

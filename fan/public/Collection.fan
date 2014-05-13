@@ -277,7 +277,7 @@ const class Collection {
 	** If 'out' is a Map, it specified the action to take. 
 	** 
 	** @see `http://docs.mongodb.org/manual/reference/command/mapReduce/`
-	Str:Obj? mapReduce(Str mapFunc, Str reduceFunc, Obj out, [Str:Obj?]? options := null) {
+	[Str:Obj?] mapReduce(Str mapFunc, Str reduceFunc, Obj out, [Str:Obj?]? options := null) {
 		cmd	.add("mapReduce",	name)
 			.add("map", 		mapFunc)
 			.add("reduce", 		reduceFunc)
@@ -286,7 +286,42 @@ const class Collection {
 			.run
 	}
 	
-	// TODO:  	aggregate() & mapReduce() &  aggregateWithCursor()
+	** Performs an aggregation operation using a sequence of stage-based manipulations.
+	** 
+	** @see 
+	**  - `http://docs.mongodb.org/manual/reference/command/aggregate/`
+	**  - `http://docs.mongodb.org/manual/reference/aggregation/`
+	[Str:Obj?][] aggregate([Str:Obj?][] pipeline, [Str:Obj?]? options := null) {
+		cmd	.add("aggregate",	name)
+			.add("pipeline", 	pipeline)
+			.addAll(options)
+			.run["result"]
+	}
+
+	** Same as 'aggregate()' but returns a cursor to iterate over the results.
+	** 
+	** @see 
+	**  - `http://docs.mongodb.org/manual/reference/command/aggregate/`
+	**  - `http://docs.mongodb.org/manual/reference/aggregation/`
+	Obj? aggregateCursor([Str:Obj?][] pipeline, |Cursor->Obj?| func) {
+		cmd := cmd
+			.add("aggregate",	name)
+			.add("pipeline", 	pipeline)
+			.add("cursor",		["batchSize": 0])
+
+		results	 := (Str:Obj?) cmd.run["cursor"]
+		cursorId := results["id"]
+		firstBat := results["firstBatch"]
+
+		return conMgr.leaseConnection |con->Obj?| {
+			cursor := Cursor(con, namespace, cmd.query, cursorId, firstBat)
+			try {
+				return func(cursor)
+			} finally {
+				cursor.kill
+			}
+		}		
+	}
 	
 	// ---- Geospatial Commands -------------------------------------------------------------------
 	
