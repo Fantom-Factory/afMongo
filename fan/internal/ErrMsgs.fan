@@ -66,7 +66,11 @@ internal const mixin ErrMsgs {
 	}
 
 	static Str collection_findAllSortArgBad(Obj sort) {
-		stripSys("Sort argument must be either a Str (Cursor.hint) or a Map (Cursor.orderBy) not ${sort.typeof.signature} ${sort}")	
+		stripSys("Sort argument must be either a Str (Cursor.hint) or a Map (Cursor.orderBy), not ${sort.typeof.signature} ${sort}")	
+	}
+
+	static Str collection_badKeyGroup(Obj key) {
+		stripSys("Group key must be either a Str[] (field names) or a Str (function), not ${key.typeof.signature} ${key}")
 	}
 
 	static Str cmd_writeErrs(Str what, Str colName, [Str:Obj?][] errs) {

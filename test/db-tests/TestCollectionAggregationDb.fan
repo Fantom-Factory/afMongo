@@ -10,6 +10,32 @@ internal class TestCollectionAggregationDb : MongoDbTest {
 		10.times |i| { collection.insert(["data":i+1]) }
 	}
 	
+	Void testGroup() {
+		c := collection.drop
+		
+		c.insert(["x":"a"])
+		c.insert(["x":"a"])
+		c.insert(["x":"a"])
+		c.insert(["x":"b"])
+		
+		initial := ["count": 0.0f]
+		f := "function (obj, prev) { prev.count += inc_value; }"
+		
+		g1 := c.group(["x"], initial, Code(f, ["inc_value":1]))
+		verifyEq(3f, g1[0]["count"])
+
+		g2 := c.group(["x"], initial, Code("function (obj, prev) { prev.count += 2; }"))
+		verifyEq(6f, g2[0]["count"])
+		
+		g3 := c.group(["x"], initial, Code(f, ["inc_value":0.5f]))
+		verifyEq(1.5f, g3[0]["count"])
+		
+		// with finalize
+		fin := "function(doc) {doc.f = doc.count + 200; }"
+		g4 := c.group(Str[,], initial, Code(f, ["inc_value":1]), ["finalize":fin])
+		verifyEq(204f, g4[0]["f"])		
+	}
+	
 	Void testAggregate() {
 		
 		collection.insert([
@@ -63,8 +89,8 @@ internal class TestCollectionAggregationDb : MongoDbTest {
 		c.insert(["user_id": 1])
 		c.insert(["user_id": 2])
 		
-		map := "function() { emit(this.user_id, 1); }"
-		red := "function(k, vals) { return 1; }"
+		map := Code("function() { emit(this.user_id, 1); }")
+		red := Code("function(k, vals) { return 1; }")
 		res := c.mapReduce(map, red, "whoopie")
 
 		mrcoll := db[res["result"]]

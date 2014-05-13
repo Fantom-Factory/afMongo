@@ -1,5 +1,18 @@
 
 
+Basic Operation
+
+Commands
+ - a lot of MongoDB functionalirt can be accompilshed through the use of commands. Commnads are run against a database
+
+Authentication
+
+
+
+BSON -> put eval Code example in Code obj
+Code("function (x) { return x + y; }", ["y":2])
+
+
 default write concerns
 
 Give DB objs some nice toStr

@@ -1,3 +1,4 @@
+using afBson
 
 ** Represents a MongoDB database.
 const class Database {
@@ -34,7 +35,7 @@ const class Database {
 	** Evaluates a JavaScript function on the database server.
 	** 
 	** @see `http://docs.mongodb.org/manual/reference/command/eval/`
-	Obj? eval(Str func, Obj?[] args := [,], Bool noLock := false) {
+	Obj? eval(Code func, Obj?[] args := [,], Bool noLock := false) {
 		cmd	.add("eval",	func)
 			.add("args", 	args)
 			.add("nolock", 	noLock)
