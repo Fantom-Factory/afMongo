@@ -14,6 +14,12 @@ class Cursor {
 	private Int 				downloaded
 	private Int 				indexLocal
 
+	** Use in 'orderBy' maps to denote sort order.
+	static const Int ASC		:= 1
+	
+	** Use in 'orderBy' maps to denote sort order.
+	static const Int DESC		:= -1
+	
 	** The query as used by this cursor. 
 	Str:Obj? query {
 		private set
@@ -74,12 +80,57 @@ class Cursor {
 	** cursor.index  // -->  3
 	** <pre
 	Int index { private set }
+	
+	** Query modifiers to use. Synonymous to using '_addSpecial()' in the mongo shell.
+	** 
+	** This value can not be changed once the query has been sent to the server.
+	** 
+	** @see `http://docs.mongodb.org/manual/reference/operator/query-modifier/`
+	[Str:Obj?] special {
+		get { querySent.locked ? &special.ro : &special}
+		set { querySent.check  ; &special = it }
+	}
 
+	** The name of the index to use for sorting.
+	** 
+	** This value can not be changed once the query has been sent to the server.
+	** 
+	** @see `http://docs.mongodb.org/manual/reference/operator/meta/hint/`
+	Str? hint {
+		get { special["\$hint"] }		
+		set { special["\$hint"] = it }
+	}
+
+	** Use to sort the query results in ascending or descending order.
+	** 
+	** If 'sort' is a '[Str:Obj?]' map, it should be a sort document with field names as keys. 
+	** Values may either be the standard Mongo '1' and '-1' for ascending / descending or the 
+	** strings 'ASC' / 'DESC'.
+	** Should 'orderBy' contain more than 1 entry, it must be ordered.
+	** 
+	** Examples:
+	**   cursor.orderBy = ["age": 1]
+	**   cursor.orderBy = [:] { ordered = true }.add("name", "asc").add("age", "desc")
+	** 
+	** This value can not be changed once the query has been sent to the server.
+	** 
+	** @see `http://docs.mongodb.org/manual/reference/operator/meta/orderby/`
+	[Str:Obj?]? orderBy {
+		get { special["\$orderby"] }
+		// convert here with no check, 'cos what is invalid today maybe valid tomorrow. 
+		set {
+			if (it.size > 1 && it.ordered == false)
+				throw ArgErr(ErrMsgs.cursor_mapNotOrdered(it))
+			special["\$orderby"] = Utils.convertAscDesc(it) 
+		}
+	}
+	
 	internal new make(Connection connection, Namespace namespace, Str:Obj? query) {
 		this.connection = connection		
 		this.nsCol		= namespace
 		this.query		= query
 		this.flags		= OpQueryFlags.none
+		this.special	= cmd
 	}
 	
 	** Returns the next document from the query.
@@ -162,7 +213,7 @@ class Cursor {
 	once Int count() {
 		runCmd(cmd
 			.add("count", nsCol.collectionName)
-			.add("query", query)
+			.add("query", compileQuery)
 		)["n"]->toInt
 	}
 
@@ -173,6 +224,15 @@ class Cursor {
 		querySent.locked && cursorId != 0
 	}
 
+	** Returns a query plan that describes the process and indexes used to return the query. 
+	** Useful when attempting to optimise queries.
+	** 
+	** @see `http://docs.mongodb.org/manual/reference/operator/meta/explain/`
+	Str:Obj? explain() {
+		special["\$explain"] = 1
+		return toList.first
+	}
+	
 	// ---- Helper Methods ------------------------------------------------------------------------
 
 	internal Void kill() {
@@ -198,7 +258,7 @@ class Cursor {
 		if (qlimit == limit)
 			qlimit = -limit
 		
-		reply := Operation(connection).query(nsCol.qname, query, qlimit, skip, fields, flags)
+		reply := Operation(connection).query(nsCol.qname, compileQuery, qlimit, skip, fields, flags)
 		querySent.lock
 		gotSome(reply, false)
 		
@@ -256,6 +316,10 @@ class Cursor {
 	
 	private Int maxDownload() {
 		limit ?: count - skip
+	}
+	
+	private [Str:Obj?] compileQuery() {
+		special.isEmpty ? query : cmd.add("\$query", query).addAll(special)
 	}
 	
 	private Str:Obj? cmd() {

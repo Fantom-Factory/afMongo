@@ -16,23 +16,12 @@
 //
 ////////////////////////////////////////////////////////////////////////////////
 
-
-
 **
 **  CursorTest
 **
 class CursorTest : OldMongoTest
 {
   
-  override Void setup()
-  {
-  
-  }
-
-  override Void teardown()
-  {
-  
-  }
   
   Void testLimit()
   {

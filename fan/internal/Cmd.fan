@@ -83,12 +83,12 @@ internal class Cmd {
 		if (doc.containsKey("writeConcernError"))
 			errs.add((Str:Obj?) doc["writeConcernError"])
 		if (!errs.isEmpty)
-			throw MongoCmdErr(ErrMsgs.collection_writeErrs(when, namespace.qname, errs))
+			throw MongoCmdErr(ErrMsgs.cmd_writeErrs(when, namespace.qname, errs))
 		
 		// it's handy that null != 0, means we don't blow up if 'n' doesn't exist
 		if (doc["n"]?->toInt == 0)
 			// TODO: have a 'checked' variable?
-			throw MongoErr(ErrMsgs.collection_nothingHappened(what, doc))
+			throw MongoErr(ErrMsgs.cmd_nothingHappened(what, doc))
 
 		return doc
 	}

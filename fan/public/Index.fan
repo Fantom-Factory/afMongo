@@ -6,6 +6,12 @@ const class Index {
 	private const Namespace			idxNs
 	private const ConnectionManager conMgr
 	
+	** Use in 'key' arguments to denote sort order.
+	static const Int ASC	:= 1
+	
+	** Use in 'key' arguments to denote sort order.
+	static const Int DESC	:= -1
+	
 	** The name of this index. 
 	const Str	name
 	

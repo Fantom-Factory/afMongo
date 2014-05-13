@@ -22,15 +22,6 @@
 **
 class GridFSTest : OldMongoTest
 {
-  override Void setup()
-  {
-  
-  }
-
-  override Void teardown()
-  {
-  
-  }
   
   Void NOtestBasic()
   {

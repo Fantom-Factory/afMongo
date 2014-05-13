@@ -115,11 +115,20 @@ const class Collection {
 
 	** Returns the result of the given 'query' as a list of documents.
 	** 
+	** If 'sort' is a Str it should the name of an index to use as a hint. 
+	** If 'sort' is a '[Str:Obj?]' map, it should be a sort document with field names as keys. 
+	** Values may either be the standard Mongo '1' and '-1' for ascending / descending or the strings 'ASC' / 'DESC'.
+	** The 'sort' map, should it contain more than 1 entry, must be ordered.
+	** 
 	** @see `Cursor`
-	[Str:Obj?][] findAll(Str:Obj? query := [:], Int skip := 0, Int? limit := null) {
+	[Str:Obj?][] findAll(Str:Obj? query := [:], Obj? sort := null, Int skip := 0, Int? limit := null) {
 		find(query) |Cursor cursor->[Str:Obj?][]| {
 			cursor.skip  = skip
 			cursor.limit = limit
+			if (sort is Str)	cursor.hint 	= sort
+			if (sort is Map)	cursor.orderBy  = sort
+			if (sort isnot Str && sort isnot Map)
+				throw ArgErr(ErrMsgs.collection_findAllSortArgBad(sort))
 			return cursor.toList
 		}
 	}
