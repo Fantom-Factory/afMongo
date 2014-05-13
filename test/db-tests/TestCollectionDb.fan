@@ -106,4 +106,49 @@ internal class TestCollectionDb : MongoDbTest {
 			collection.findOne(["data":42])
 		}
 	}
+	
+	Void testSort() {
+		
+		// test sort
+		verifyEq(collection.findAll([:], ["data": 1])[0]["data"],  1)
+		verifyEq(collection.findAll([:], ["data": 1])[9]["data"], 10)
+
+		verifyEq(collection.findAll([:], ["data": "asc"])[0]["data"],  1)
+		verifyEq(collection.findAll([:], ["data": "asc"])[9]["data"], 10)
+		
+		verifyEq(collection.findAll([:], ["data": "ASCending"])[0]["data"],  1)
+		verifyEq(collection.findAll([:], ["data": "ASCending"])[9]["data"], 10)
+		
+		verifyEq(collection.findAll([:], ["data": -1])[0]["data"], 10)
+		verifyEq(collection.findAll([:], ["data": -1])[9]["data"],  1)
+
+		verifyEq(collection.findAll([:], ["data": "desc"])[0]["data"], 10)
+		verifyEq(collection.findAll([:], ["data": "desc"])[9]["data"],  1)
+		
+		verifyEq(collection.findAll([:], ["data": "DESCending"])[0]["data"], 10)
+		verifyEq(collection.findAll([:], ["data": "DESCending"])[9]["data"],  1)
+		
+		// test hint
+		collection.index("up").create(["data": 1])
+		collection.index("down").create(["data": -1])
+		
+		verifyEq(collection.findAll([:], "up")[0]["data"],  1)
+		verifyEq(collection.findAll([:], "up")[9]["data"], 10)
+		
+		verifyEq(collection.findAll([:], "down")[0]["data"], 10)
+		verifyEq(collection.findAll([:], "down")[9]["data"],  1)
+		
+		// test invalid
+		verifyErr(MongoOpErr#) {
+			collection.findAll([:], ["data":"lavalamp"])
+		}
+
+		verifyErr(ArgErr#) {
+			collection.findAll([:], 6)
+		}
+		
+		verifyErr(ArgErr#) {
+			collection.findAll([:], ["data":-1, "data2":1])
+		}
+	}
 }

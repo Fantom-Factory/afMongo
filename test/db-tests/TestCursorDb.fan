@@ -150,4 +150,10 @@ internal class TestCursorDb : MongoDbTest {
 			cursor.next			
 		}
 	}
+	
+	Void testExplain() {
+		// just make sure it returns something that's not query results
+		verifyEq(cursor.explain["cursor"], "BasicCursor")
+	}
+
 }

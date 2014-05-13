@@ -37,6 +37,10 @@ internal const mixin ErrMsgs {
 		"Expected ONE document but OpReply has ZERO!"
 	}
 	
+	static Str cursor_mapNotOrdered(Str:Obj? map) {
+		"Maps with more than 1 entry must be ordered: ${map}"
+	}
+	
 	static Str cursor_noMoreData() {
 		"No more data"
 	}
@@ -61,11 +65,15 @@ internal const mixin ErrMsgs {
 		"FindOne() query returned $no documents from '${qname}': $query"
 	}
 
-	static Str collection_writeErrs(Str what, Str colName, [Str:Obj?][] errs) {
+	static Str collection_findAllSortArgBad(Obj sort) {
+		stripSys("Sort argument must be either a Str (Cursor.hint) or a Map (Cursor.orderBy) not ${sort.typeof.signature} ${sort}")	
+	}
+
+	static Str cmd_writeErrs(Str what, Str colName, [Str:Obj?][] errs) {
 		"Errors ${what} '${colName}' - " + ((errs.size == 1) ? errs.first.toStr : errs.toStr)
 	}
 	
-	static Str collection_nothingHappened(Str what, [Str:Obj?] response) {
+	static Str cmd_nothingHappened(Str what, [Str:Obj?] response) {
 		"Nothing ${what}! ${response}"
 	}
 	
@@ -73,4 +81,7 @@ internal const mixin ErrMsgs {
 //		"Collection names beginning with 'system.' are reserved: ${name}"
 //	}
 	
+	static Str stripSys(Str str) {
+		str.replace("sys::", "")
+	}
 }
