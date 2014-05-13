@@ -66,8 +66,8 @@ const class User {
 	** Drops this user.
 	**
 	** @see `http://docs.mongodb.org/manual/reference/command/dropUser/`
-	This drop() {
-		cmd.add("dropUser", name).run
+	This drop(Bool checked := true) {
+		if (checked || exists) cmd.add("dropUser", name).run
 		// [ok:1.0]
 		return this
 	}

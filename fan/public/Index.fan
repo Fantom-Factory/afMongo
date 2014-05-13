@@ -84,8 +84,8 @@ const class Index {
 	** Drops this index.
 	** 
 	** @see `http://docs.mongodb.org/manual/reference/command/dropIndexes/`
-	This drop() {
-		cmd.add("dropIndexes", colNs.collectionName).add("index", name).run
+	This drop(Bool checked := true) {
+		if (checked || exists) cmd.add("dropIndexes", colNs.collectionName).add("index", name).run
 		// [nIndexesWas:2, ok:1.0]
 		return this
 	}
