@@ -81,8 +81,8 @@ const class Collection {
 	** Drops this collection.
 	** 
 	** @see `http://docs.mongodb.org/manual/reference/command/drop/`
-	This drop() {
-		cmd.add("drop", name).run
+	This drop(Bool checked := true) {
+		if (checked || exists) cmd.add("drop", name).run
 		// [ns:afMongoTest.col-test, nIndexesWas:1, ok:1.0] 
 		// not sure wot 'nIndexesWas' or if it's useful, so return this for now 
 		return this
@@ -164,8 +164,8 @@ const class Collection {
 	
 	** Convenience / shorthand notation for 'findOne(["_id" : id], true)'
 	@Operator
-	[Str:Obj?] get(Obj id) {
-		findOne(["_id" : id], true)
+	[Str:Obj?]? get(Obj id, Bool checked := true) {
+		findOne(["_id" : id], checked)
 	}
 
 	// ---- Write Operations ----------------------------------------------------------------------
@@ -271,8 +271,19 @@ const class Collection {
 			.run["values"]
 	}
 	
-	Str:Obj? mapReduce(Str map, Str reduce, Str out := "reduceOut", Str:Obj opts := [:]) {
-		[:]
+	** Run a map-reduce aggregation operation over the collection.
+	** 
+	** If 'out' is a Str, it specifies the name of a collection to store the results.
+	** If 'out' is a Map, it specified the action to take. 
+	** 
+	** @see `http://docs.mongodb.org/manual/reference/command/mapReduce/`
+	Str:Obj? mapReduce(Str mapFunc, Str reduceFunc, Obj out, [Str:Obj?]? options := null) {
+		cmd	.add("mapReduce",	name)
+			.add("map", 		mapFunc)
+			.add("reduce", 		reduceFunc)
+			.add("out", 		out)
+			.addAll(options)
+			.run
 	}
 	
 	// TODO:  	aggregate() & mapReduce() &  aggregateWithCursor()

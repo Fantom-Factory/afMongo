@@ -42,8 +42,10 @@ internal class Cmd {
 		return this
 	}	
 
-	This addAll(Str:Obj? all) {
-		cmd.addAll(all)
+	** If 'all' is null, it is not added. Handy for chaining 'add()' methods.
+	This addAll([Str:Obj?]? all) {
+		if (all != null)
+			cmd.addAll(all)
 		return this
 	}	
 
