@@ -185,8 +185,6 @@ class Cursor {
 	** list := cursor.toList
 	** list.size    // -->  6
 	** <pre
-	** 
-	** If 'toList()'
 	[Str:Obj?][] toList() {
 		// if nothing has been returned, ask for some data
 		if (!querySent.locked) {

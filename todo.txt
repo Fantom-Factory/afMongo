@@ -1,10 +1,5 @@
 
-http://docs.mongodb.org/manual/reference/operator/query-modifier/
-cursor special fields -> sort, explain, hint .... see QueryOpBuilder
-
-collection, validate cmd, distinct cmd, mapReduce, group
-
-database authenticate, profiling, validate, eval, buildInfo, listDatabases, serverStatus 
+database authenticate, validate, eval, buildInfo, listDatabases, serverStatus 
 
 default write concerns
 
@@ -20,7 +15,8 @@ index to use asc / desc
 For v1.0
 -------
 gridfs
-roles
+Role Commands (new in 2.6)
+Query Plan Cache Commands (new in 2.6)
 
 When writing, maybe convert MongoMaps into Document Objs that cache the size?
 
