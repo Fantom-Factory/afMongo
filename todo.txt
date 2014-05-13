@@ -1,5 +1,4 @@
 
-database authenticate, validate, buildInfo, listDatabases, serverStatus 
 
 default write concerns
 
@@ -12,13 +11,22 @@ the plan is to give a basic level of support, so should the mongo API grow (as i
 
 
 For v1.0
--------
-GridFs
+--------
+GridFs 
+ - http://docs.mongodb.org/manual/core/gridfs/
+ - http://docs.mongodb.org/manual/applications/gridfs
+ - http://docs.mongodb.org/manual/reference/gridfs/
+
+Automatically connect to proper server, and failover, when connecting to a replica set
+
+When writing, maybe convert MongoMaps into Document Objs that cache the size?
+
+For Future
+----------
 Role Commands (new in 2.6)
 Query Plan Cache Commands (new in 2.6)
 Geospatial Commands
-
-When writing, maybe convert MongoMaps into Document Objs that cache the size?
+Tailable Cursors
 
 
 

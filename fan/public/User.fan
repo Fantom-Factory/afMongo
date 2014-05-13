@@ -8,17 +8,10 @@
 **  - dbAdmin
 **  - dbOwner
 **  - userAdmin
-**  - clusterAdmin
-**  - clusterManager
-**  - clusterMonitor
-**  - hostManager
-**  - backup
-**  - restore
-**  - readAnyDatabase
+** 
 **  - readWriteAnyDatabase
 **  - userAdminAnyDatabase
 **  - dbAdminAnyDatabase
-**  - root
 ** 
 ** Note in this API all user roles are bound to the containing database.
 const class User {

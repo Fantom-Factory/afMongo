@@ -70,15 +70,6 @@ internal class Cmd {
 			Operation(con).runCommand("${namespace.databaseName}.\$cmd", cmd)			
 		})
 	}
-
-	Str:Obj? runAdmin() {
-		if (checkForErrs && writeConcern != null && !cmd.containsKey("writeConcern"))
-			cmd["writeConcern"] = writeConcern
-
-		return checkForWriteErrs(conMgr.leaseConnection |con->Obj?| {
-			Operation(con).runCommand("admin.\$cmd", cmd)
-		})
-	}
 	
 	private Str:Obj? checkForWriteErrs(Str:Obj? doc) {
 		if (!checkForErrs) return doc

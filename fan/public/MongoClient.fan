@@ -15,31 +15,68 @@ const class MongoClient {
 		this.conMgr = connectionManager
 	}
 	
+	// ---- Diagnostics ---------------------------------------------------------------------------
+
+	** Returns a list of existing databases with some basic statistics. 
+	** 
+	** @see `http://docs.mongodb.org/manual/reference/command/listDatabases/`
+	[Str:Obj?][] listDatabases() {
+		runAdminCmd(["listDatabases": 1])["databases"]
+	}
+
+	** Returns a list of database commands. 
+	** 
+	** @see `http://docs.mongodb.org/manual/reference/command/listCommands/`
+	[Str:Obj?] listCommands() {
+		runAdminCmd(["listCommands": 1])["commands"]
+	}
+
+	** Returns a build summary
+	** 
+	** @see `http://docs.mongodb.org/manual/reference/command/buildInfo/`
+	[Str:Obj?] buildInfo() {
+		runAdminCmd(["buildInfo": 1])
+	}
+
+	** Returns info about the underlying MongoDB system.
+	** 
+	** @see `http://docs.mongodb.org/manual/reference/command/hostInfo/`
+	[Str:Obj?] hostInfo() {
+		runAdminCmd(["hostInfo": 1])
+	}	
+
+	** Returns an overview of the database process’s state.
+	** 
+	** @see `http://docs.mongodb.org/manual/reference/command/serverStatus/`
+	[Str:Obj?] serverStatus() {
+		runAdminCmd(["serverStatus": 1])
+	}	
+	
+	// ---- Database ------------------------------------------------------------------------------
+
+	** Returns all the database names on the MongoDB instance. 
+	Str[] databaseNames() {
+		listDatabases.map |db->Str| { db["name"] }.sort
+	}
+
+	** Returns a 'Database' with the given name.
+	** 
+	** Note this just instantiates the Fantom object, it does not create anything in the database. 
 	Database db(Str dbName) {
 		Database(conMgr, dbName)
 	}
 
+	** Convenience / shorthand notation for 'db(name)'
 	@Operator
 	Database get(Str dbName) {
 		db(dbName)
 	}
-	
-	Str[] databaseNames() {
-		databases	:= (Map[]) runAdminCommand(["listDatabases":1])["databases"]
-		names 		:= databases.map { it["name"].toStr }.sort
-		return names
-	}
 
-	// TODO: add params to getlast err
-	** @see `http://docs.mongodb.org/manual/reference/command/getLastError/`
-	Str:Obj? getLastError() {
-		runAdminCommand(["getLastError":1])
-	}
+	// ---- Other ---------------------------------------------------------------------------------
 	
-	Str:Obj? runAdminCommand(Str:Obj? cmd) {
-		conMgr.leaseConnection |con->Obj?| {
-			Operation(con).runCommand("admin.\$cmd", cmd)
-		}
+	** Runs a command against the admin database.
+	[Str:Obj?] runAdminCmd(Str:Obj? cmd) {
+		db("admin").runCmd(cmd)
 	}
 
 	** Convenience for 'connectionManager.shutdown'.
