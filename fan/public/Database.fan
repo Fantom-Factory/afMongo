@@ -20,6 +20,23 @@ const class Database {
 		this.name = Namespace.validateDatabaseName(name)
 	}
 
+	// ---- Database ------------------------------------------------------------------------------
+
+	** Drops the database. *Be careful!*
+	** 
+	** @see `http://docs.mongodb.org/manual/reference/command/dropDatabase/`
+	This drop() {
+		cmd.add("dropDatabase", 1).run
+		// [dropped:afMongoTest, ok:1.0]
+		return this
+	}
+	
+	** Runs the given command against this database.
+	[Str:Obj?] runCmd(Str:Obj? cmd) {
+		// don't pass in a writeConcern, leave it up to the user
+		this.cmd("cmd").addAll(cmd).run
+	}
+	
 	// ---- Collections ---------------------------------------------------------------------------
 	
 	** Returns all the collection names in the database. 
@@ -47,8 +64,8 @@ const class Database {
 	
 	** Returns all the index names of this collection.
 	Str[] userNames() {
-		userNs := Namespace("admin", "system.users")
-		return Collection(conMgr, userNs).findAll(["db":name]).map { it["user"] }.sort
+		users := ([Str:Obj?][]) cmd.add("usersInfo", 1).run["users"]
+		return users.map |user->Str| { user["user"] }.sort
 	}
 	
 	** Returns a 'User' with the given name.
@@ -59,25 +76,12 @@ const class Database {
 	}
 	
 	** Drops ALL users from this database. *Be careful!*
+	** 
+	** Returns the number of users dropped.
 	**
 	** @see `http://docs.mongodb.org/manual/reference/command/dropAllUsersFromDatabase/`
-	This dropAllUsers() {
-		c:=cmd.add("dropAllUsersFromDatabase", 1).run
-		Env.cur.err.printLine(c)
-		return this
-	}
-	
-	// ---- Database ------------------------------------------------------------------------------
-
-	// FIXME: create!
-	
-	** Drops the database. *Be careful!*
-	** 
-	** @see `http://docs.mongodb.org/manual/reference/command/dropDatabase/`
-	This drop() {
-		cmd.add("dropDatabase", 1).run
-		// [dropped:afMongoTest, ok:1.0]
-		return this
+	Int dropAllUsers() {
+		cmd.add("dropAllUsersFromDatabase", 1).run["n"]->toInt
 	}
 	
 	// ---- Private Methods -----------------------------------------------------------------------

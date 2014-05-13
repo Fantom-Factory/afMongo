@@ -19,6 +19,8 @@
 **  - userAdminAnyDatabase
 **  - dbAdminAnyDatabase
 **  - root
+** 
+** Note in this API all user roles are bound to the containing database.
 const class User {
 
 	private const ConnectionManager conMgr
@@ -35,54 +37,68 @@ const class User {
 		this.name		= userName
 	}	
 	
-	** Returns user info.
-	** FIXME: update to http://docs.mongodb.org/manual/reference/command/usersInfo/
-	Str:Obj? info() {
-		Collection(conMgr, adminNs).findOne(["db":userNs.databaseName, "user":name])
+	** Returns info on the user.
+	** 
+	** @see `http://docs.mongodb.org/manual/reference/command/usersInfo/`
+	[Str:Obj?] info() {
+		cmd.add("usersInfo", ["user":name, "db":userNs.databaseName]).run["users"]->getSafe(0) ?: Str:Obj?[:]
 	}
 
 	** Returns 'true' if this user exists.
 	Bool exists() {
-		Collection(conMgr, adminNs).findCount(["db":userNs.databaseName, "user":name]) > 0
+		!info.isEmpty
 	}
 
 	** Creates the user with the given credentials. 
 	**
 	** @see `http://docs.mongodb.org/manual/reference/command/createUser/`
-	[Str:Obj?] create(Str password, Str[] roles, [Str:Obj?]? customData := null) {
-		cmd := cmd("insert")
+	This create(Str password, Str[] roles, [Str:Obj?]? customData := null) {
+		cmd := cmd("insert")	// has writeConcern
 			.add("createUser",	name)
 			.add("pwd",			password)
 		if (customData != null)	cmd["customData"] = customData
 		cmd["roles"] = roles
-		return cmd.run
+		cmd.run
+		// [ok:1.0]
+		return this
 	}
 
 	** Drops this user.
 	**
 	** @see `http://docs.mongodb.org/manual/reference/command/dropUser/`
-	[Str:Obj?] drop() {
-		cmd("drop").add("dropUser", name).run
+	This drop() {
+		cmd.add("dropUser", name).run
+		// [ok:1.0]
+		return this
 	}
 
+	** Returns all roles held by this user.
+	Str[] roles() {
+		(([Str:Obj?][]) info["roles"]).findAll { it["db"] == userNs.databaseName }.map |role->Str| { role["role"] }.sort
+	}
+	
 	** Grants roles to the user.
 	**
 	** @see `http://docs.mongodb.org/manual/reference/command/grantRolesToUser/`
-	[Str:Obj?] grantRoles(Str userName, Str[] roles) {
-		cmd("update")
-			.add("grantRolesToUser", userName)
+	This grantRoles(Str[] roles) {
+		cmd("update")	// has writeConcern
+			.add("grantRolesToUser", name)
 			.add("roles", roles)
 			.run
+		// [ok:1.0]
+		return this
 	}
 
 	** Revokes roles from the user.
 	**
 	** @see `http://docs.mongodb.org/manual/reference/command/revokeRolesFromUser/`
-	[Str:Obj?] revokeRoles(Str userName, Str[] roles) {
-		cmd("update")
-			.add("grantRolesToUser", userName)
+	This revokeRoles(Str[] roles) {
+		cmd("update")	// has writeConcern
+			.add("revokeRolesFromUser", name)
 			.add("roles", roles)
 			.run
+		// [ok:1.0]
+		return this
 	}
 	
 	// ---- Private Methods -----------------------------------------------------------------------

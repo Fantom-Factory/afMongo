@@ -18,15 +18,18 @@ internal class Cmd {
 		switch (action) {
 			case null:
 				null?.toStr
+			case "cmd":
+				this.when	= "commanding"
+				this.what	= "happened"
 			case "insert":
-				this.when	= "inserting into"
-				this.what	= "inserted"
+				this.when	= "when inserting into"
+				this.what	= "was inserted"
 			case "update":
-				this.when	= "updating"
-				this.what	= "updated"
+				this.when	= "when updating"
+				this.what	= "was updated"
 			case "delete":
-				this.when	= "deleting from"
-				this.what	= "deleted"
+				this.when	= "when deleting from"
+				this.what	= "was deleted"
 			default:
 				throw ArgErr("Unknown action: $action")
 		}
@@ -34,6 +37,11 @@ internal class Cmd {
 
 	This add(Str key, Obj? val) {
 		cmd[key] = val
+		return this
+	}	
+
+	This addAll(Str:Obj? all) {
+		cmd.addAll(all)
 		return this
 	}	
 
@@ -76,9 +84,12 @@ internal class Cmd {
 			errs.add((Str:Obj?) doc["writeConcernError"])
 		if (!errs.isEmpty)
 			throw MongoCmdErr(ErrMsgs.collection_writeErrs(when, namespace.qname, errs))
+		
+		// it's handy that null != 0, means we don't blow up if 'n' doesn't exist
 		if (doc["n"]?->toInt == 0)
 			// TODO: have a 'checked' variable?
 			throw MongoErr(ErrMsgs.collection_nothingHappened(what, doc))
+
 		return doc
 	}
 }
