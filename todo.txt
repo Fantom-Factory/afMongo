@@ -1,4 +1,5 @@
 
+default write concerns
 
 Give DB objs some nice toStr
 
