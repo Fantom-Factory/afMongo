@@ -35,8 +35,10 @@ internal class Cmd {
 		}
 	}
 
+	** If 'val' is null, it is not added. Handy for chaining 'add()' methods.
 	This add(Str key, Obj? val) {
-		cmd[key] = val
+		if (val != null)
+			cmd[key] = val
 		return this
 	}	
 
@@ -55,6 +57,8 @@ internal class Cmd {
 		cmd[key] = val
 		return this
 	}	
+	
+	Str:Obj? query() { cmd }
 	
 	Str:Obj? run() {
 		if (checkForErrs && writeConcern != null && !cmd.containsKey("writeConcern"))

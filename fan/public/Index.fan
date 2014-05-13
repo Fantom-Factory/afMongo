@@ -46,7 +46,7 @@ const class Index {
 		if (unique != null)	options.set("unique", unique)
 		cmd	.add("createIndexes", colNs.collectionName)
 			.add("indexes", 	[ [Str:Obj?][:] { it.ordered = true }
-				.add("key",		key)
+				.add("key",		Utils.convertAscDesc(key))
 				.add("name",	name)
 				.addAll(options)
 			])
@@ -71,7 +71,7 @@ const class Index {
 		
 		info := info
 		oldKeyMap := (Str:Obj?) info["key"]
-		newKeyMap := Map.make(oldKeyMap.typeof).addAll(key)
+		newKeyMap := Map.make(oldKeyMap.typeof).addAll(Utils.convertAscDesc(key))
 		
 		if (info.size == options.size + 4 && oldKeyMap == newKeyMap && options.all |v, k| { info[k] == v })
 			return false

@@ -23,7 +23,7 @@ internal class TestIndexDb : MongoDbTest {
 			collection.insert(["data":10])
 		}
 		
-		verifyEq(indat.ensure(["data":1], true), false)
+		verifyEq(indat.ensure(["data":"up"], true), false)
 		verifyEq(indat.ensure(["data":1], false), true)
 		verifyEq(indat.ensure(["data":-1]), true)
 		

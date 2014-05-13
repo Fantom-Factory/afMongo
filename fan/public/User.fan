@@ -53,12 +53,12 @@ const class User {
 	**
 	** @see `http://docs.mongodb.org/manual/reference/command/createUser/`
 	This create(Str password, Str[] roles, [Str:Obj?]? customData := null) {
-		cmd := cmd("insert")	// has writeConcern
+		cmd("insert")	// has writeConcern
 			.add("createUser",	name)
 			.add("pwd",			password)
-		if (customData != null)	cmd["customData"] = customData
-		cmd["roles"] = roles
-		cmd.run
+			.add("customData",	customData)
+			.add("roles",		roles)
+			.run
 		// [ok:1.0]
 		return this
 	}
