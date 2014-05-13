@@ -1,5 +1,5 @@
 
-database authenticate, validate, eval, buildInfo, listDatabases, serverStatus 
+database authenticate, validate, buildInfo, listDatabases, serverStatus 
 
 default write concerns
 
