@@ -15,7 +15,7 @@ const class Database {
 	** Creates a 'Database' with the given name.
 	** 
 	** Note this just instantiates the Fantom object, it does not create anything in the database. 
-	new make(ConnectionManager connectionManager, Str name) {
+	new makeWithName(ConnectionManager connectionManager, Str name) {
 		this.conMgr = connectionManager
 		this.name = Namespace.validateDatabaseName(name)
 	}
@@ -35,6 +35,16 @@ const class Database {
 	[Str:Obj?] runCmd(Str:Obj? cmd) {
 		// don't pass in a writeConcern, leave it up to the user
 		this.cmd("cmd").addAll(cmd).run
+	}
+	
+	** Evaluates a JavaScript function on the database server.
+	** 
+	** @see `http://docs.mongodb.org/manual/reference/command/eval/`
+	Obj? eval(Str func, Obj?[] args := [,], Bool noLock := false) {
+		cmd	.add("eval",	func)
+			.add("args", 	args)
+			.add("nolock", 	noLock)
+			.run["retval"]
 	}
 	
 	// ---- Collections ---------------------------------------------------------------------------
