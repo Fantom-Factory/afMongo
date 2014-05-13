@@ -21,7 +21,7 @@ class Build : BuildPod {
 			"afBson 0+"
 		]
 		
-		srcDirs = [`test/`, `test/utils/`, `test/unit-tests/`, `test/db-tests/`, `fan/`, `fan/public/`, `fan/public/util/`, `fan/old/`, `fan/internal/`]
+		srcDirs = [`test/`, `test/utils/`, `test/unit-tests/`, `test/db-tests/`, `fan/`, `fan/public/`, `fan/public/util/`, `fan/internal/`]
 		resDirs = [,]
 
 		docApi = true
