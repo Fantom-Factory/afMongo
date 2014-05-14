@@ -9,8 +9,6 @@ Authentication
 
 
 
-Give DB objs some nice toStr
-
 On connection, check the mongo version, assert it's >= 2.6
 
 explain this:

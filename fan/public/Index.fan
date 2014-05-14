@@ -18,7 +18,7 @@ const class Index {
 	internal new make(ConnectionManager conMgr, Namespace namespace, Str name) {
 		this.conMgr	= conMgr
 		this.colNs	= namespace
-		this.idxNs	= Namespace(colNs.databaseName, "system.indexes")
+		this.idxNs	= colNs.withCollection("system.indexes")
 		this.name	= name
 	}
 
@@ -96,4 +96,11 @@ const class Index {
 	private Cmd cmd(Str? action := null) {
 		Cmd(conMgr, colNs, action)
 	}	
+	
+	// ---- Obj Overrides -------------------------------------------------------------------------
+	
+	override Str toStr() {
+		"${idxNs.databaseName}::${name}"
+	}
+
 }

@@ -341,4 +341,10 @@ class Cursor {
 	private Str:Obj? runCmd(Str:Obj? cmd) {
 		Operation(connection).runCommand("${nsCol.databaseName}.\$cmd", cmd)
 	}
+
+	// ---- Obj Overrides -------------------------------------------------------------------------
+	
+	override Str toStr() {
+		nsCol.qname
+	}
 }

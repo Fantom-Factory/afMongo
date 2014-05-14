@@ -45,5 +45,11 @@ class TcpConnection : Connection {
 	override OutStream	out()		{ socket.out		}
 	override Void		close()		{ socket.close		}
 	override Bool		isClosed()	{ socket.isClosed	}
+	
+	// ---- Obj Overrides -------------------------------------------------------------------------
+	
+	override Str toStr() {
+		isClosed ? "Closed" : socket.remoteAddr.toStr
+	}
 }
 

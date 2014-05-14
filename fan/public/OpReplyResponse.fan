@@ -1,5 +1,5 @@
 
-@NoDoc
+@NoDoc	// Boring!
 class OpReplyResponse {
 
 	const OpReplyFlags	flags
@@ -26,7 +26,7 @@ class OpReplyResponse {
 	}
 }
 
-@NoDoc
+@NoDoc	// Boring!
 const class OpReplyFlags : Flag {
 	static const OpReplyFlags none				:= OpReplyFlags(0, "None")
 	
