@@ -75,11 +75,17 @@ internal class TestWriteConcern : MongoTest {
 		user := mc["any"].user("0-kool")
 		coll := mc["any"].collection("zero")
 		
-		mmc.reply(["ok":1.0f])
-		user.create("poo", [,])
-		verifyEq(mmc.readSentDoc["writeConcern"], Str:Obj?["cream":"pies"])
+		err1 := ["code":69, "errmsg":"too much cream"]
+		mmc.reset.reply(["ok":0.0f, "writeErrors":[err1]])
+		verifyErrMsg(MongoCmdErr#, ErrMsgs.cmd_writeErrs("when inserting into", "any.system.users", [err1])) {
+			user.create("poo", [,])
+		}
 		
-		fail
+		err2 := ["code":96, "errmsg":"too little cream"]
+		mmc.reset.reply(["ok":0.0f, "writeConcernError":["code":96, "errmsg":"too little cream"]])
+		verifyErrMsg(MongoCmdErr#, ErrMsgs.cmd_writeErrs("when inserting into", "any.zero", [err2])) {
+			coll.insert([:])
+		}
 	}
 	
 	Void verifyWc(Str:Obj? wc) {

@@ -98,7 +98,7 @@ class Cursor {
 	** @see `http://docs.mongodb.org/manual/reference/operator/meta/hint/`
 	Str? hint {
 		get { special["\$hint"] }		
-		set { special["\$hint"] = it }
+		set { querySent.check; special["\$hint"] = it }
 	}
 
 	** Use to sort the query results in ascending or descending order.
@@ -116,9 +116,10 @@ class Cursor {
 	** 
 	** @see `http://docs.mongodb.org/manual/reference/operator/meta/orderby/`
 	[Str:Obj?]? orderBy {
-		get { special["\$orderby"] }
+		get { querySent.locked ? (([Str:Obj?]?) special["\$orderby"])?.ro : special["\$orderby"] }
 		// convert here with no check, 'cos what is invalid today maybe valid tomorrow. 
 		set {
+			querySent.check
 			if (it.size > 1 && it.ordered == false)
 				throw ArgErr(ErrMsgs.cursor_mapNotOrdered(it))
 			special["\$orderby"] = Utils.convertAscDesc(it) 

@@ -35,8 +35,9 @@ internal class TestCursor : MongoTest {
 	Void testQueryDataCannotBeSetAfterQuery() {
 		Obj? t := null
 		mmc.reply([:])
+		cursor.orderBy = [:]
 		cursor.getSome
-		
+
 		t = cursor.batchSize
 		verifyErrMsg(MongoErr#, ErrMsgs.oneShotLock_violation("Query has been sent to MongoDB")) {
 			cursor.batchSize = 3
@@ -68,7 +69,7 @@ internal class TestCursor : MongoTest {
 		}		
 
 		t = cursor.orderBy["wot"]
-		verifyErrMsg(MongoErr#, ErrMsgs.oneShotLock_violation("Query has been sent to MongoDB")) {
+		verifyErr(ReadonlyErr#) {
 			cursor.orderBy["wot"] = ["drugs?"]
 		}		
 
@@ -78,7 +79,7 @@ internal class TestCursor : MongoTest {
 		}
 
 		t = cursor.special["wot"]
-		verifyErrMsg(MongoErr#, ErrMsgs.oneShotLock_violation("Query has been sent to MongoDB")) {
+		verifyErr(ReadonlyErr#) {
 			cursor.special["wot"] = ["drugs?"]
 		}		
 	}

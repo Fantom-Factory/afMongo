@@ -4,16 +4,14 @@ internal class Cmd {
 	private const Namespace			namespace
 
 	private [Str:Obj?] 	cmd	:= Str:Obj?[:] { ordered = true }
-	private [Str:Obj?]?	writeConcern
-	private Bool 		checkForErrs
+	private Bool 		checkForWriteErrs
 	private Str? 		when
 	private Str? 		what
 	
-	new make(ConnectionManager conMgr, Namespace namespace, Str? action, [Str:Obj?]? writeConcern := null) {
-		this.conMgr			= conMgr
-		this.namespace 		= namespace
-		this.writeConcern	= writeConcern
-		this.checkForErrs	= action != null
+	new make(ConnectionManager conMgr, Namespace namespace, Str? action) {
+		this.conMgr				= conMgr
+		this.namespace 			= namespace
+		this.checkForWriteErrs	= action != null
 		
 		switch (action) {
 			case null:
@@ -67,17 +65,16 @@ internal class Cmd {
 	Str:Obj? query() { cmd }
 	
 	Str:Obj? run() {
-		if (checkForErrs && writeConcern != null && !cmd.containsKey("writeConcern"))
-			cmd["writeConcern"] = writeConcern
+		// when checking for write errs, we'll also check for okay
+		errIfNotOkay := !checkForWriteErrs
+		
+		doc := (Str:Obj?) conMgr.leaseConnection |con->Str:Obj?| {
+			Operation(con).runCommand("${namespace.databaseName}.\$cmd", cmd, errIfNotOkay)
+		}
 
-		return checkForWriteErrs(conMgr.leaseConnection |con->Obj?| {
-			Operation(con).runCommand("${namespace.databaseName}.\$cmd", cmd)			
-		})
-	}
-	
-	private Str:Obj? checkForWriteErrs(Str:Obj? doc) {
-		if (!checkForErrs) return doc
+		if (errIfNotOkay) return doc
 
+		// check for write errs before we throw a generic 'Not Ok' err
 		errs := [Str:Obj?][,]
 		if (doc.containsKey("writeErrors"))
 			errs.addAll((Obj?[]) doc["writeErrors"])
@@ -86,9 +83,17 @@ internal class Cmd {
 		if (!errs.isEmpty)
 			throw MongoCmdErr(ErrMsgs.cmd_writeErrs(when, namespace.qname, errs))
 		
-		// it's handy that null != 0, means we don't blow up if 'n' doesn't exist
+		if (doc["ok"] != 1f && doc["ok"] != 1) {
+			// attempt to work out the cmd, usually the first key in the given doc
+			cname := cmd.keys.first
+			throw MongoCmdErr(ErrMsgs.operation_cmdFailed(cname, doc["errmsg"] ?: doc))
+		}
+
+		// TODO: have a 'checked' variable?
+		// it's handy that null != 0, means we don't blow up if 'n' doesn't exist!
 		if (doc["n"]?->toInt == 0)
-			// TODO: have a 'checked' variable?
+			throw MongoErr(ErrMsgs.cmd_nothingHappened(what, doc))
+		if (doc["nModified"]?->toInt == 0)
 			throw MongoErr(ErrMsgs.cmd_nothingHappened(what, doc))
 
 		return doc

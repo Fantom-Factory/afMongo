@@ -24,13 +24,13 @@ class Operation {
 	}
 
 	** Runs the given Mongo command and returns the reply document.
-	Str:Obj? runCommand(Str qname, Str:Obj? cmd) {
+	Str:Obj? runCommand(Str qname, Str:Obj? cmd, Bool checked := true) {
 		if (cmd.size > 1 && !cmd.ordered)
 			throw ArgErr(ErrMsgs.operation_cmdNotOrdered(qname, cmd))
 		
 		doc := query(qname, cmd, -1).document
 
-		if (doc["ok"] != 1f && doc["ok"] != 1) {
+		if (checked && (doc["ok"] != 1f && doc["ok"] != 1)) {
 			// attempt to work out the cmd, usually the first key in the given doc
 			cname := cmd.keys.first
 			throw MongoCmdErr(ErrMsgs.operation_cmdFailed(cname, doc["errmsg"] ?: doc))
