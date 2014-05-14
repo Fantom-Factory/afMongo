@@ -9,10 +9,6 @@ Authentication
 
 
 
-BSON -> put eval Code example in Code obj
-Code("function (x) { return x + y; }", ["y":2])
-
-
 default write concerns
 { w: 1, wtimeout: 0 }
 
@@ -31,10 +27,15 @@ GridFs
  - http://docs.mongodb.org/manual/applications/gridfs
  - http://docs.mongodb.org/manual/reference/gridfs/
 
+Tidy up ConnectionManagerPooled, make clients wait for a free connection.
+
 Automatically connect to proper server, and failover, when connecting to a replica set
 http://docs.mongodb.org/meta-driver/latest/legacy/connect-driver-to-replica-set/
+http://api.mongodb.org/java/2.10.0/index.html?com/mongodb/MongoClient.html
 
-When writing, maybe convert MongoMaps into Document Objs that cache the size?
+When writing, maybe convert MongoMaps into Document Objs that cache the size? For speed!
+
+
 
 For Future
 ----------

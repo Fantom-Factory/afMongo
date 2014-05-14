@@ -2,6 +2,8 @@ using afConcurrent
 using inet
 
 ** Manages connections to a MongoDB instance.
+** 
+** @see `ConnectionManagerPooled`
 const mixin ConnectionManager {
 	
 	** Makes a connection available to the given function.
@@ -11,21 +13,4 @@ const mixin ConnectionManager {
 	abstract Void shutdown()
 }
 
-const class ConnectionManagerSingleThread : ConnectionManager {
-	private const LocalRef connectionRef	:= LocalRef("afMongo.connection")
-	
-	new make(Connection connection) {
-		connectionRef.val = connection
-	}
-	
-	override Obj? leaseConnection(|Connection->Obj?| c) {
-		// TODO: throw Err if connection doesn't exist in this thread
-		c(connectionRef.val)
-	}
-	
-	override Void shutdown() {
-		(connectionRef.val as Connection)?.close
-		connectionRef.cleanUp
-	}
-}
 

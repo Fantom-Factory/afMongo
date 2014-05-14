@@ -22,10 +22,15 @@ const class Collection {
 		private set { }
 	}
 	
+	** The [write concern]`http://docs.mongodb.org/manual/reference/write-concern/` to use for 
+	** collection writes.
+	const [Str:Obj?] writeConcern	:= MongoConstants.defaultWriteConcern
+
 	** Creates a 'Collection' with the given qualified (dot separated) name.
 	** 
 	** Note this just instantiates the Fantom object, it does not create anything in the database. 
-	new makeFromQname(ConnectionManager conMgr, Str qname) {
+	new makeFromQname(ConnectionManager conMgr, Str qname, |This|? f := null) {
+		f?.call(this)
 		this.conMgr		= conMgr
 		this.namespace 	= Namespace(qname)
 	}
@@ -33,12 +38,14 @@ const class Collection {
 	** Creates a 'Collection' with the given name under the database.
 	** 
 	** Note this just instantiates the Fantom object, it does not create anything in the database. 
-	new makeFromDatabase(Database database, Str name) {
+	new makeFromDatabase(Database database, Str name, |This|? f := null) {
+		f?.call(this)
 		this.conMgr 	= database.conMgr
 		this.namespace 	= Namespace(database.name, name)
 	}
 
-	internal new makeFromNamespace(ConnectionManager conMgr, Namespace namespace) {
+	internal new makeFromNamespace(ConnectionManager conMgr, Namespace namespace, |This|? f := null) {
+		f?.call(this)
 		this.conMgr		= conMgr
 		this.namespace 	= namespace
 	}
@@ -145,7 +152,9 @@ const class Collection {
 	** 
 	** If 'sort' is a Str it should the name of an index to use as a hint. 
 	** If 'sort' is a '[Str:Obj?]' map, it should be a sort document with field names as keys. 
-	** Values may either be the standard Mongo '1' and '-1' for ascending / descending or the strings 'ASC' / 'DESC'.
+	** Values may either be the standard Mongo '1' and '-1' for ascending / descending or the 
+	** strings 'ASC' / 'DESC'.
+	** 
 	** The 'sort' map, should it contain more than 1 entry, must be ordered.
 	** 
 	** @see `Cursor.toList`
@@ -184,8 +193,8 @@ const class Collection {
 	** Returns the number of documents deleted.
 	** 
 	** @see `http://docs.mongodb.org/manual/reference/command/insert/`
-	Int insert(Str:Obj? document) {
-		insertMulti([document], null)["n"]->toInt
+	Int insert(Str:Obj? document, [Str:Obj?]? writeConcern := null) {
+		insertMulti([document], null, writeConcern)["n"]->toInt
 	}
 
 	** Inserts many documents.
@@ -197,7 +206,7 @@ const class Collection {
 			.add("insert",			name)
 			.add("documents",		inserts)
 			.add("ordered",			ordered)
-			.add("writeConcern",	writeConcern)
+			.add("writeConcern",	writeConcern ?: this.writeConcern)
 			.run
 	}
 
@@ -208,11 +217,11 @@ const class Collection {
 	** only the first match will be deleted.
 	** 
 	** @see `http://docs.mongodb.org/manual/reference/command/delete/`
-	Int delete(Str:Obj? query, Bool deleteAll := false) {
+	Int delete(Str:Obj? query, Bool deleteAll := false, [Str:Obj?]? writeConcern := null) {
 		cmd := cmd
 			.add("q",		query)
 			.add("limit",	deleteAll ? 0 : 1)
-		return deleteMulti([cmd.query], null)["n"]->toInt
+		return deleteMulti([cmd.query], null, writeConcern)["n"]->toInt
 	}
 
 	** Executes many delete queries.
@@ -224,7 +233,7 @@ const class Collection {
 			.add("delete",			name)
 			.add("deletes",			deletes)
 			.add("ordered",			ordered)
-			.add("writeConcern",	writeConcern)
+			.add("writeConcern",	writeConcern ?: this.writeConcern)
 			.run
 	}
 
@@ -233,13 +242,14 @@ const class Collection {
 	** 
 	** @see `http://docs.mongodb.org/manual/reference/command/update/`
 	// TODO: we loose any returned upserted id...?
-	Int update(Str:Obj? query, Str:Obj? updateCmd, Bool? multi := false, Bool? upsert := false) {
+	// TODO: check if nModified > 0 ??
+	Int update(Str:Obj? query, Str:Obj? updateCmd, Bool? multi := false, Bool? upsert := false, [Str:Obj?]? writeConcern := null) {
 		cmd := cmd
 			.add("q",		query)
 			.add("u",		updateCmd)
 			.add("upsert",	upsert)
 			.add("multi",	multi)
-		return updateMulti([cmd.query], null)["nModified"]->toInt
+		return updateMulti([cmd.query], null, writeConcern)["nModified"]->toInt
 	}
 
 	** Runs multiple update queries.
@@ -251,7 +261,7 @@ const class Collection {
 			.add("update",			name)
 			.add("updates",			updates)
 			.add("ordered",			ordered)
-			.add("writeConcern",	writeConcern)
+			.add("writeConcern",	writeConcern ?: this.writeConcern)
 			.run
 	}
 

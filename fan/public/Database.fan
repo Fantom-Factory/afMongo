@@ -7,10 +7,15 @@ const class Database {
 	** The name of the database.
 	const Str name
 
+	** This [write concern]`http://docs.mongodb.org/manual/reference/write-concern/` is passed down 
+	** to all 'Collection' and 'User' instances created by this 'Database'.
+	const [Str:Obj?] writeConcern	:= MongoConstants.defaultWriteConcern
+
 	** Creates a 'Database' with the given name.
 	** 
 	** Note this just instantiates the Fantom object, it does not create anything in the database. 
-	new makeWithName(ConnectionManager connectionManager, Str name) {
+	new makeWithName(ConnectionManager connectionManager, Str name, |This|? f := null) {
+		f?.call(this)
 		this.conMgr = connectionManager
 		this.name = Namespace.validateDatabaseName(name)
 	}
@@ -26,9 +31,12 @@ const class Database {
 		return this
 	}
 	
-	** Runs the given command against this database.
+	** **For Power Users!**
+	** 
+	** Runs any arbitrary command against this database.
+	** 
+	** Note you must set the write concern yourself, should the command take one. 
 	[Str:Obj?] runCmd(Str:Obj? cmd) {
-		// don't pass in a writeConcern, leave it up to the user
 		this.cmd("cmd").addAll(cmd).run
 	}
 
@@ -68,7 +76,7 @@ const class Database {
 			Operation(connection).runCommand("${name}.\$cmd", cmd)			
 	
 			try {
-				cm := ConnectionManagerSingleThread(connection)
+				cm := ConnectionManagerLocal(connection)
 				db := Database(cm, name)
 				return func.call(db)
 			
@@ -101,7 +109,7 @@ const class Database {
 	** 
 	** Note this just instantiates the Fantom object, it does not create anything in the database. 
 	Collection collection(Str collectionName) {
-		Collection(this, collectionName)
+		Collection(this, collectionName) { it.writeConcern = this.writeConcern }
 	}
 
 	** Convenience / shorthand notation for 'collection(name)'
@@ -122,7 +130,7 @@ const class Database {
 	** 
 	** Note this just instantiates the Fantom object, it does not create anything in the database. 
 	User user(Str userName) {
-		User(conMgr, name, userName)
+		User(conMgr, name, userName) { it.writeConcern = this.writeConcern }
 	}
 	
 	** Drops ALL users from this database. *Be careful!*

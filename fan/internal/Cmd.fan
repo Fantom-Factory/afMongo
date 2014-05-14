@@ -59,6 +59,10 @@ internal class Cmd {
 		cmd[key] = val
 		return this
 	}	
+
+	Bool containsKey(Str key) {
+		return cmd.containsKey(key)
+	}	
 	
 	Str:Obj? query() { cmd }
 	

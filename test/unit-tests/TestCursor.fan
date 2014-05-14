@@ -56,5 +56,30 @@ internal class TestCursor : MongoTest {
 		verifyErrMsg(MongoErr#, ErrMsgs.oneShotLock_violation("Query has been sent to MongoDB")) {
 			cursor.flags = OpQueryFlags.slaveOk
 		}		
+
+		t = cursor.hint
+		verifyErrMsg(MongoErr#, ErrMsgs.oneShotLock_violation("Query has been sent to MongoDB")) {
+			cursor.hint = "wotever"
+		}		
+
+		t = cursor.orderBy
+		verifyErrMsg(MongoErr#, ErrMsgs.oneShotLock_violation("Query has been sent to MongoDB")) {
+			cursor.orderBy = ["wot":"ever"]
+		}		
+
+		t = cursor.orderBy["wot"]
+		verifyErrMsg(MongoErr#, ErrMsgs.oneShotLock_violation("Query has been sent to MongoDB")) {
+			cursor.orderBy["wot"] = ["drugs?"]
+		}		
+
+		t = cursor.special
+		verifyErrMsg(MongoErr#, ErrMsgs.oneShotLock_violation("Query has been sent to MongoDB")) {
+			cursor.special = ["wot":"ever"]
+		}
+
+		t = cursor.special["wot"]
+		verifyErrMsg(MongoErr#, ErrMsgs.oneShotLock_violation("Query has been sent to MongoDB")) {
+			cursor.special["wot"] = ["drugs?"]
+		}		
 	}
 }

@@ -1,19 +1,26 @@
 using concurrent
 using inet
 
+** A MongoDB client.
 const class MongoClient {
 	
 	private const ConnectionManager conMgr
 
-	** Creates a 'MongoClient'.
-	new make(ConnectionManager connectionManager) {
+	** This [write concern]`http://docs.mongodb.org/manual/reference/write-concern/` is passed down 
+	** to all 'Database' instances created from this client.
+	const [Str:Obj?] writeConcern	:= MongoConstants.defaultWriteConcern
+	
+	** Creates a 'MongoClient' with the given 'ConnectionManager'. 
+	** This is the preferred ctor.
+	new make(ConnectionManager connectionManager, |This|? f := null) {
+		f?.call(this)
 		this.conMgr = connectionManager
 	}
 	
-	** A convenience ctor - creates a 'LocalConnectionManager' just to get you started.
-	new makeFromIpAddr(Str address := "127.0.0.1", Int port := 27017) {
-//		this.conMgr = ConnectionManagerSingleThread(TcpConnection(IpAddr(address), port))
-		this.conMgr = ConnectionManagerPool(ActorPool(), IpAddr(address), port)
+	** A convenience ctor - just to get you started!
+	new makeFromIpAddr(Str address := "127.0.0.1", Int port := 27017, |This|? f := null) {
+		f?.call(this)
+		this.conMgr = ConnectionManagerPooled(ActorPool(), IpAddr(address), port)
 	}
 	
 	// ---- Diagnostics ---------------------------------------------------------------------------
@@ -64,7 +71,7 @@ const class MongoClient {
 	** 
 	** Note this just instantiates the Fantom object, it does not create anything in the database. 
 	Database db(Str dbName) {
-		Database(conMgr, dbName)
+		Database(conMgr, dbName) { it.writeConcern = this.writeConcern }
 	}
 
 	** Convenience / shorthand notation for 'db(name)'

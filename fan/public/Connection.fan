@@ -1,6 +1,10 @@
 using inet
 
 ** Represents a connection to a MongoDB instance.
+** All connections on creation should be connected to a MongoDB instance and ready to go.
+** 
+** @see `TcpConnection` 
+// TODO: maybe connections should know if they're connected to a master, and who they're authenticated as? 
 mixin Connection {
 	
 	** Data *from* Mongo.
@@ -11,9 +15,18 @@ mixin Connection {
 	
 	** Closes the connection.
 	abstract Void		close()	
+	
+	** Return 'true' if this socket is closed. 
+	abstract Bool		isClosed()
+	
+	** Creates a TCP Connection to the given IP address.
+	static Connection makeTcpConnection(IpAddr address := IpAddr("127.0.0.1"), Int port := 27017, SocketOptions? options := null) {
+		TcpConnection(address, port, options)
+	}
 }
 
-** Connects to MongoDB via a 'TcpSocket'.
+** Connects to MongoDB via an 'inet::TcpSocket'.
+@NoDoc
 class TcpConnection : Connection {
 	TcpSocket socket
 	
@@ -28,8 +41,9 @@ class TcpConnection : Connection {
 		this.socket = socket
 	}
 
-	override InStream	in()	{ socket.in		}
-	override OutStream	out()	{ socket.out	}
-	override Void		close()	{ socket.close	}
+	override InStream	in()		{ socket.in			}
+	override OutStream	out()		{ socket.out		}
+	override Void		close()		{ socket.close		}
+	override Bool		isClosed()	{ socket.isClosed	}
 }
 
