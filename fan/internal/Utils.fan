@@ -10,6 +10,7 @@ internal const mixin Utils {
 		return keyType.fits(Str#) ? Map.make(mapType) { caseInsensitive = true } : Map.make(mapType) { ordered = true }
 	}
 	
+	** private static const Log log	:= Utils.getLog(Wotever#)
 	static Log getLog(Type type) {
 //		Log.get(type.pod.name + "." + type.name)
 		type.pod.log

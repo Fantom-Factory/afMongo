@@ -8,18 +8,11 @@ Commands
 Authentication
 
 
-
-On connection, check the mongo version, assert it's >= 2.6
+SHOUT 2.6.0!!!
 
 explain this:
 the plan is to give a basic level of support, so should the mongo API grow (as it has been doing) then this driver doesn't get outdated.
 
-     Alien-Factory
- _____ ___ ___ ___ ___ 
-|     | . |   | . | . |
-|_|_|_|___|_|_|_  |___|
-              |___|0.0.2
-               
 
 For v1.0
 --------
