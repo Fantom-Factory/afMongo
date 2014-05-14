@@ -2,9 +2,11 @@ using concurrent
 using afConcurrent
 using inet
 
-** Manages a pool of connections.
+** Manages a pool of connections. 
 ** 
 ** Connections are created on-demand and kept in a pool when idle. 
+** 
+** Note this connection manager is safe for multi-threaded / web-application use.
 //** Once the pool is exhausted, any operation requiring a connection will block (for 'maxWaitTime') 
 //** waiting for an available connection.
 const class ConnectionManagerPooled : ConnectionManager {

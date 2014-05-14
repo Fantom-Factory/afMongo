@@ -15,11 +15,21 @@ const class Index {
 	** The name of this index. 
 	const Str	name
 	
-	internal new make(ConnectionManager conMgr, Namespace namespace, Str name) {
+	** Creates an 'Index' with the given details.
+	new make(ConnectionManager conMgr, Str collectionQname, Str indexName, |This|? f := null) {
+		f?.call(this)
+		this.conMgr	= conMgr
+		this.colNs	= Namespace(collectionQname)
+		this.idxNs	= colNs.withCollection("system.indexes")
+		this.name	= indexName
+	}
+
+	internal new makeWithNs(ConnectionManager conMgr, Namespace namespace, Str indexName, |This|? f := null) {
+		f?.call(this)
 		this.conMgr	= conMgr
 		this.colNs	= namespace
 		this.idxNs	= colNs.withCollection("system.indexes")
-		this.name	= name
+		this.name	= indexName
 	}
 
 	** Returns index info.
@@ -99,6 +109,7 @@ const class Index {
 	
 	// ---- Obj Overrides -------------------------------------------------------------------------
 	
+	@NoDoc
 	override Str toStr() {
 		"${idxNs.databaseName}::${name}"
 	}

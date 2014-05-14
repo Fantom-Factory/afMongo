@@ -1,19 +1,24 @@
 Overview [#overview]
 ********************
-A Fantom driver for MongoDB
+'Mongo' is a pure Fantom driver for [MongoDB]`http://www.mongodb.org/`.
 
-Features
+'Mongo' driver features:
 
-Collections:
- - Standard queries: create, insert, update, delete & drop
- - Optomised queries for findOne() and findAll()
- - Cursor support for large queries
- - Capped collections
+ - Standard and capped collections
+ - Write commands: 'insert()', 'update()', 'delete()' and 'findAndModify()' (v2.6+)
+ - Write concern support (v2.6+)
+ - Optomised queries for 'findOne()' and 'findAll()'
+ - Cursor support
+ - Aggregation commands: 'aggregate()', 'distinct()', 'group()' and 'mapReduce()'
+ - Index support: 'create()', 'ensure()' and 'drop()'
+ - User support: 'create()', 'drop()', 'grant()' and 'revoke()' roles
+ - Database authentication
+ - Server side 'eval()' commands
+ - Pooled connection manager for multi-threaded use
 
-Indexes:
- -
+'Mongo' driver has been written specifically for MongoDB v2.6.0, released on 8th April 2014, or newer.
 
-The Alien-Factoy MongoDB driver was inspired by [fantomongo]`https://bitbucket.org/liamstask/fantomongo` by Liam Staskawicz.
+Many features, including ALL write commands, will **NOT** work with older MongoDB versions.
 
 
 
@@ -37,15 +42,83 @@ Full API & fandocs are available on the [Status302 repository]`http://repo.statu
 
 Quick Start [#quickStart]
 *************************
+1). Start up an instance of MongoDB:
 pre>
-  Example here
+C:\> mongod
+
+MongoDB starting
+db version v2.6.0
+waiting for connections on port 27017
 <pre
+
+2). Create a text file called 'Example.fan':
+pre>
+using afBson
+using afMongo
+using concurrent
+
+class Example {
+
+    Void main() {
+        mongoDbase := MongoClient(ActorPool(), "127.0.0.1", 27017)
+        collection := mongoDbase.db("friends").collection("birds")
+
+        documentIn := [
+            "_id"   : ObjectId(),
+            "name"  : "Emma",
+            "score" : 9
+        ]
+
+        collection.insert(documentIn)
+        documentOut := collection.findAll.first
+
+        echo(documentOut)
+    }
+}
+<pre
+
+3). Run 'Example.fan' as a Fantom script from the command line:
+pre>
+C:\> fan Example.fan
+
+     Alien-Factory
+ _____ ___ ___ ___ ___
+|     | . |   | . | . |
+|_|_|_|___|_|_|_  |___|
+              |___|0.0.2
+
+Connected to MongoDB v2.6.0
+
+[_id:5373acbda8000b3491000001, name:Emma, score:9]
+<pre
+
+
+
+Usage [#usage]
+**************
+All operations with MongoDB are done through the main classes `MongoClient`, `Database`, `Collection`, `Index` and `User`.
+They are arrnaged in the following hierarchy:
+
+pre>
+MongoClient
+ `-- Database
+      +-- Collection
+      |    `-- Index
+      `-- Users
+<pre
+
+'MongoClient' is created with a `ConnectionManager`, which manages all connections to MongoDB.
+The 'ConnectionManager' (and the default 'writeConcern') is passed down to, and used by, all created child objects.
+
+
+Remarks [#remarks]
+==================
+The Alien-Factoy MongoDB driver was inspired by [fantomongo]`https://bitbucket.org/liamstask/fantomongo` by Liam Staskawicz.
 
 
 
 Release Notes [#releaseNotes]
 *****************************
-
 v0.0.2 [#v0.0.2]
 ----------------
  - New: Preview Release

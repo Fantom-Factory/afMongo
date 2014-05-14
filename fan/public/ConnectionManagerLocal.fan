@@ -1,6 +1,6 @@
 using afConcurrent
 
-@NoDoc
+@NoDoc	// Should be internal, but it might prove useful.
 const class ConnectionManagerLocal : ConnectionManager {
 	private const LocalRef connectionRef	:= LocalRef("afMongo.connection")
 	

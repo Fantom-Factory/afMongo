@@ -1,3 +1,4 @@
+using concurrent
 
 internal class MongoDbTest : MongoTest {
 	
@@ -5,7 +6,7 @@ internal class MongoDbTest : MongoTest {
 	Database?	 db
 	
 	override Void setup() {
-		mc = MongoClient()
+		mc = MongoClient(ActorPool())
 		db = mc["afMongoTest"]
 		// not dropping the DB makes the test x10 faster!
 		db.collectionNames.each { db[it].drop }

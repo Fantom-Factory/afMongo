@@ -344,6 +344,7 @@ class Cursor {
 
 	// ---- Obj Overrides -------------------------------------------------------------------------
 	
+	@NoDoc
 	override Str toStr() {
 		nsCol.qname
 	}

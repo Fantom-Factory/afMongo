@@ -1,17 +1,29 @@
 
 ** Represents a MongoDB user.
 ** 
-** http://docs.mongodb.org/manual/reference/built-in-roles/
-** Built in roles are:
+** To enable authentication, ensure MongoDB was started in *secure* mode:
+** 
+**   C:\> mongod --auth
+** 
+** If you don't then all users have access to all databases.
+** 
+** Users are assigned *roles*. [Built-in roles]`http://docs.mongodb.org/manual/reference/built-in-roles/` 
+** for all databases are:
+** 
 **  - read
 **  - readWrite
 **  - dbAdmin
 **  - dbOwner
 **  - userAdmin
+**
+** Built in roles for the admin database are:
 ** 
 **  - readWriteAnyDatabase
 **  - userAdminAnyDatabase
 **  - dbAdminAnyDatabase
+** 
+** To create a [superuser]`http://stackoverflow.com/questions/20117104/mongodb-root-user`, or root 
+** user, grant her ALL of the above admin database roles. (It's always handy to have one!)
 ** 
 ** Note in this API all user roles are bound to the containing database.
 const class User {
@@ -26,7 +38,8 @@ const class User {
 	** user writes.
 	const [Str:Obj?] writeConcern	:= MongoConstants.defaultWriteConcern
 
-	internal new make(ConnectionManager conMgr, Str dbName, Str userName, |This|? f := null) {
+	** Creates a 'User' with the given details.
+	new make(ConnectionManager conMgr, Str dbName, Str userName, |This|? f := null) {
 		f?.call(this)
 		this.conMgr		= conMgr
 		this.userNs		= Namespace(dbName, "system.users")
@@ -108,6 +121,7 @@ const class User {
 
 	// ---- Obj Overrides -------------------------------------------------------------------------
 	
+	@NoDoc
 	override Str toStr() {
 		"${userNs.databaseName}::${name}"
 	}

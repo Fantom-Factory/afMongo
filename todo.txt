@@ -8,10 +8,9 @@ Commands
 Authentication
 
 
-SHOUT 2.6.0!!!
-
 explain this:
 the plan is to give a basic level of support, so should the mongo API grow (as it has been doing) then this driver doesn't get outdated.
+
 
 
 For v1.0
@@ -28,6 +27,8 @@ http://docs.mongodb.org/meta-driver/latest/legacy/connect-driver-to-replica-set/
 http://api.mongodb.org/java/2.10.0/index.html?com/mongodb/MongoClient.html
 
 When writing, maybe convert MongoMaps into Document Objs that cache the size? For speed!
+
+Connect as a default user.
 
 
 

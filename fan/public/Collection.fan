@@ -242,7 +242,6 @@ const class Collection {
 	** 
 	** @see `http://docs.mongodb.org/manual/reference/command/update/`
 	// TODO: we loose any returned upserted id...?
-	// TODO: check if nModified > 0 ??
 	Int update(Str:Obj? query, Str:Obj? updateCmd, Bool? multi := false, Bool? upsert := false, [Str:Obj?]? writeConcern := null) {
 		cmd := cmd
 			.add("q",		query)
@@ -420,6 +419,7 @@ const class Collection {
 	
 	// ---- Obj Overrides -------------------------------------------------------------------------
 	
+	@NoDoc
 	override Str toStr() {
 		namespace.qname
 	}

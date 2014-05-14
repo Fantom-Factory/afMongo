@@ -41,6 +41,10 @@ const class Database {
 	}
 
 	** Evaluates a JavaScript function on the database server.
+	**  
+	**   scope := ["y":2]
+	**   func  := Code("function (x) { return x + y; }", scope)
+	**   xy    := db.eval(func, [3f])  // --> 5.0
 	** 
 	** @see `http://docs.mongodb.org/manual/reference/command/eval/`
 	Obj? eval(Code func, Obj?[] args := [,], Bool noLock := false) {
@@ -52,11 +56,11 @@ const class Database {
 
 	** Executes the given function passing in a database (connection) that has been authenticated 
 	** with the given user. Within the function, the authenticated database may be used as often 
-	** as you wish.   
+	** as you wish.
 	** 
-	**   wibble := db.authenticate("ZeroCool", "password") |authDb -> Obj?| {
+	**   data := db.authenticate("ZeroCool", "password") |authDb -> Obj?| {
 	** 
-	**       return authDb["collection"].findOne(["wibble": true])
+	**       return authDb["top-secret"].findAll
 	**   }
 	** 
 	** All Mongo objects ( 'Collection', 'Index', 'User', etc...) created from the authenticated
@@ -150,6 +154,7 @@ const class Database {
 	
 	// ---- Obj Overrides -------------------------------------------------------------------------
 	
+	@NoDoc
 	override Str toStr() {
 		name
 	}
