@@ -14,6 +14,7 @@ Code("function (x) { return x + y; }", ["y":2])
 
 
 default write concerns
+{ w: 1, wtimeout: 0 }
 
 Give DB objs some nice toStr
 
@@ -31,6 +32,7 @@ GridFs
  - http://docs.mongodb.org/manual/reference/gridfs/
 
 Automatically connect to proper server, and failover, when connecting to a replica set
+http://docs.mongodb.org/meta-driver/latest/legacy/connect-driver-to-replica-set/
 
 When writing, maybe convert MongoMaps into Document Objs that cache the size?
 
@@ -40,7 +42,7 @@ Role Commands (new in 2.6)
 Query Plan Cache Commands (new in 2.6)
 Geospatial Commands
 Tailable Cursors
-
+Parse a connection string
 
 
 Bad fantomongo

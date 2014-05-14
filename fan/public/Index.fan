@@ -45,10 +45,11 @@ const class Index {
 		// there's no createIndexMulti 'cos I figure no novice will need to create multiple indexes at once!
 		if (unique != null)	options.set("unique", unique)
 		cmd	.add("createIndexes", colNs.collectionName)
-			.add("indexes", 	[ [Str:Obj?][:] { it.ordered = true }
+			.add("indexes", 	[cmd
 				.add("key",		Utils.convertAscDesc(key))
 				.add("name",	name)
 				.addAll(options)
+				.query
 			])
 			.run
 		// [createdCollectionAutomatically:false, numIndexesBefore:1, numIndexesAfter:2, ok:1.0]

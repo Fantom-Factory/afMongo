@@ -4,15 +4,16 @@ using inet
 const class MongoClient {
 	
 	private const ConnectionManager conMgr
-	
-	** A convenience ctor
-	new makeWithTcpDetails(Str address := "127.0.0.1", Int port := 27017) {
-//		this.conMgr = ConnectionManagerSingleThread(TcpConnection(IpAddr(address), port))
-		this.conMgr = ConnectionManagerPool(ActorPool(), IpAddr(address), port)
+
+	** Creates a 'MongoClient'.
+	new make(ConnectionManager connectionManager) {
+		this.conMgr = connectionManager
 	}
 	
-	new makeWithConnectionManager(ConnectionManager connectionManager) {
-		this.conMgr = connectionManager
+	** A convenience ctor - creates a 'LocalConnectionManager' just to get you started.
+	new makeFromIpAddr(Str address := "127.0.0.1", Int port := 27017) {
+//		this.conMgr = ConnectionManagerSingleThread(TcpConnection(IpAddr(address), port))
+		this.conMgr = ConnectionManagerPool(ActorPool(), IpAddr(address), port)
 	}
 	
 	// ---- Diagnostics ---------------------------------------------------------------------------

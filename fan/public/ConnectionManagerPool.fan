@@ -2,6 +2,8 @@ using concurrent
 using afConcurrent
 using inet
 
+// Those connections will be kept in a pool when idle. Once the pool is exhausted, any operation requiring a connection will block waiting for an available connection. Default is 10.
+//maxWaitTime- The maximum wait time in ms that a thread may wait for a connection to become available. Default is 120,000. 
 const class ConnectionManagerPool : ConnectionManager {
 	private const SynchronizedState connectionState
 	private const OneShotLock		shutdownLock

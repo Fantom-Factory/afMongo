@@ -1,13 +1,19 @@
 using inet
 
-@NoDoc
+** Represents a connection to a MongoDB instance.
 mixin Connection {
+	
+	** Data *from* Mongo.
 	abstract InStream 	in()
+	
+	** Data *to* Mongo.
 	abstract OutStream	out()
+	
+	** Closes the connection.
 	abstract Void		close()	
 }
 
-@NoDoc
+** Connects to MongoDB via a 'TcpSocket'.
 class TcpConnection : Connection {
 	TcpSocket socket
 	
