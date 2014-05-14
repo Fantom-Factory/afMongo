@@ -17,7 +17,6 @@
 const class User {
 
 	private const ConnectionManager conMgr
-	private const Namespace	adminNs
 	private const Namespace	userNs
 	
 	** The name of this user.
@@ -30,7 +29,6 @@ const class User {
 	internal new make(ConnectionManager conMgr, Str dbName, Str userName, |This|? f := null) {
 		f?.call(this)
 		this.conMgr		= conMgr
-		this.adminNs	= Namespace("admin", "system.users")
 		this.userNs		= Namespace(dbName, "system.users")
 		this.name		= userName
 	}	
@@ -106,5 +104,12 @@ const class User {
 	
 	private Cmd cmd(Str? action := null) {
 		return Cmd(conMgr, userNs, action)
-	}	
+	}
+
+	// ---- Obj Overrides -------------------------------------------------------------------------
+	
+	override Str toStr() {
+		"${userNs.databaseName}::${name}"
+	}
+
 }

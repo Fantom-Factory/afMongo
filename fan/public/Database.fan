@@ -147,4 +147,10 @@ const class Database {
 	private Cmd cmd(Str? action := null) {
 		Cmd(conMgr, Namespace(name, "wotever"), action)
 	}
+	
+	// ---- Obj Overrides -------------------------------------------------------------------------
+	
+	override Str toStr() {
+		name
+	}
 }

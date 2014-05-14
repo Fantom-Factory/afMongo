@@ -418,6 +418,12 @@ const class Collection {
 		return this
 	}
 	
+	// ---- Obj Overrides -------------------------------------------------------------------------
+	
+	override Str toStr() {
+		namespace.qname
+	}
+
 	// ---- Private Methods -----------------------------------------------------------------------
 	
 	private Cmd cmd(Str? action := null) {
