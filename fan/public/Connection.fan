@@ -7,10 +7,10 @@ using inet
 // TODO: maybe connections should know if they're connected to a master, and who they're authenticated as? 
 mixin Connection {
 	
-	** Data *from* Mongo.
+	** Data *from* MongoDB *to* the client.
 	abstract InStream 	in()
 	
-	** Data *to* Mongo.
+	** Data *to* MongoDB *from* the client.
 	abstract OutStream	out()
 	
 	** Closes the connection.
@@ -48,6 +48,7 @@ class TcpConnection : Connection {
 	
 	// ---- Obj Overrides -------------------------------------------------------------------------
 	
+	@NoDoc
 	override Str toStr() {
 		isClosed ? "Closed" : socket.remoteAddr.toStr
 	}

@@ -2,6 +2,19 @@ using concurrent
 using inet
 
 ** A MongoDB client.
+** 
+** This class is the main starting point for connecting to a MongoDB instance. 
+** 
+** Retrieving data from MongoDB can be as easy as:
+** 
+**   mongo := MongoClient(ActorPool(), "127.0.0.1", 27017)
+**   data  := mongo.db("db").collection("col").findAll
+** 
+** Or using defaults and shorthand notation:
+** 
+**   mongo := MongoClient(ActorPool())
+**   data  := mongo["db"]["col"].findAll
+** 
 const class MongoClient {
 	private static const Log 		log	:= Utils.getLog(MongoClient#)
 	private const ConnectionManager conMgr
@@ -19,9 +32,9 @@ const class MongoClient {
 	}
 	
 	** A convenience ctor - just to get you started!
-	new makeFromIpAddr(Str address := "127.0.0.1", Int port := 27017, |This|? f := null) {
+	new makeFromIpAddr(ActorPool actorPool, Str address := "127.0.0.1", Int port := 27017, |This|? f := null) {
 		f?.call(this)
-		this.conMgr = ConnectionManagerPooled(ActorPool(), IpAddr(address), port)
+		this.conMgr = ConnectionManagerPooled(actorPool, IpAddr(address), port)
 		startup()
 	}
 	

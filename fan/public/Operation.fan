@@ -7,9 +7,9 @@ using inet
 ** This is, actually, the only class you need to talk to a MongoDB instance!
 ** All other classes merely wrap calls to this. 
 ** 
-** This class, and the BSON reader / writer classes, have been optomised for memory efficiency over 
-** speed. Feel free to send your 16Mb+ documents to MongoDB for they'll be streamed straight out 
-** over the socket. 
+** This class, and the BSON reader / writer classes, have been optomised for memory efficiency. 
+** Feel free to send your 16Mb+ documents to MongoDB for they'll be streamed straight out over 
+** the socket. 
 ** 
 ** @see `http://www.mongodb.org/display/DOCS/Mongo+Wire+Protocol`
 class Operation {
@@ -38,7 +38,7 @@ class Operation {
 		return doc
 	}
 
-	** Use to query MongoDB for documents in a collection.
+	** Queries MongoDB for documents in a collection.
 	** 
 	** @see `http://docs.mongodb.org/meta-driver/latest/legacy/mongodb-wire-protocol/#op-query`
 	OpReplyResponse query(Str qname, Str:Obj? query, Int limit := 0, Int skip := 0, [Str:Obj?]? fields := null, Flag flags := OpQueryFlags.none) {
@@ -55,7 +55,7 @@ class Operation {
 		return readReply(reqId)
 	}
 
-	** Use to ask MongoDB for more documents from a query.
+	** Asks MongoDB for more documents from a query.
 	** 
 	** @see `http://docs.mongodb.org/meta-driver/latest/legacy/mongodb-wire-protocol/#op-get-more`
 	OpReplyResponse getMore(Str qname, Int limit, Int cursorId) {
@@ -70,7 +70,7 @@ class Operation {
 		return readReply(reqId)
 	}
 
-	** Use to close an active cursor in the database.
+	** Closes the given active cursors in the database.
 	** 
 	** @see `http://docs.mongodb.org/meta-driver/latest/legacy/mongodb-wire-protocol/#op-kill-cursors`
 	Void killCursors(Int[] cursorIds) {
