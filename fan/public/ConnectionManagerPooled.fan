@@ -2,15 +2,21 @@ using concurrent
 using afConcurrent
 using inet
 
-// Those connections will be kept in a pool when idle. Once the pool is exhausted, any operation requiring a connection will block waiting for an available connection. Default is 10.
-//maxWaitTime- The maximum wait time in ms that a thread may wait for a connection to become available. Default is 120,000. 
-const class ConnectionManagerPool : ConnectionManager {
+** Manages a pool of connections.
+** 
+** Connections are created on-demand and kept in a pool when idle. 
+//** Once the pool is exhausted, any operation requiring a connection will block (for 'maxWaitTime') 
+//** waiting for an available connection.
+const class ConnectionManagerPooled : ConnectionManager {
 	private const SynchronizedState connectionState
 	private const OneShotLock		shutdownLock
 	
 	** The maximum number of database connections this pool should open.
 	** Set it to the number of concurrent users you expect to use your application.
-	const Int maxNoOfConnections	:= 5
+	const Int 		maxNoOfConnections	:= 10
+
+	** The maximum time a thread may wait for a connection to become available.
+//	const Duration	maxWaitTime			:= 10sec
 	
 	new make(ActorPool actorPool, |->Connection| connectionFactory, |This|? f := null) {
 		f?.call(this)	
@@ -26,6 +32,7 @@ const class ConnectionManagerPool : ConnectionManager {
 	
 	new makeWithIpAddr(ActorPool actorPool, IpAddr ipAddr := IpAddr("127.0.0.1"), Int port := 27017, SocketOptions? options := null, |This|? f := null) : this.make(actorPool, |->Connection| { TcpConnection(ipAddr, port, options) }) { }
 	
+	@NoDoc	// nothing interesting to add here
 	override Obj? leaseConnection(|Connection->Obj?| c) {
 		connection := checkOut
 		try {
@@ -36,10 +43,11 @@ const class ConnectionManagerPool : ConnectionManager {
 		}
 	}
 
+	@NoDoc	// nothing interesting to add here
 	override Void shutdown() {
 		shutdownLock.lock
 		
-		// TODO: wait for close sockets to be checked in
+		// TODO: wait for used sockets to be checked in
 		connectionState.withState |ConnectionManagerPoolState state| {
 			state.connectionFactory = null
 			
@@ -56,13 +64,19 @@ const class ConnectionManagerPool : ConnectionManager {
 		shutdownLock.check
 		// TODO: log warning if all in use, and set timeout for max wait and re-tries
 
+//		default wait time = 200ms -> is an eternity for computers, tiny for humans. set as a public NoDoc field 
+		
 		return (Connection) connectionState.getState |ConnectionManagerPoolState state->Unsafe?| {
 			if (!state.checkedIn.isEmpty) {
 				connection := state.checkedIn.pop
 				state.checkedOut.push(connection)
 				return Unsafe(connection)
 			}
-			// TODO: check max size
+			
+			if (state.checkedOut.size >= maxNoOfConnections)
+				// TODO: return empty handed & wait for a free one
+				throw MongoErr("Argh! No more connections! All ${maxNoOfConnections} are in use!")
+			
 			connection := state.connectionFactory()
 			state.checkedOut.push(connection)
 			return Unsafe(connection)
@@ -72,9 +86,15 @@ const class ConnectionManagerPool : ConnectionManager {
 	private Void checkIn(Connection connection) {
 		unsafeConnection := Unsafe(connection)
 		connectionState.withState |ConnectionManagerPoolState state| {
-			state.checkedOut.removeSame(unsafeConnection.val)
-			state.checkedIn.push(unsafeConnection.val)
-		}.get	// call get to make sure this thread checks in before it asks for a new one
+			conn := (Connection) unsafeConnection.val
+			state.checkedOut.removeSame(conn)
+			
+			// make sure we don't save stale connections
+			if (!conn.isClosed)
+				state.checkedIn.push(conn)
+
+		// call get() to make sure this thread checks in before it asks for a new one
+		}.get	
 	}
 }
 

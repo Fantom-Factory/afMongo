@@ -15,8 +15,24 @@ internal class MockMongoConnection : Connection {
 		return mongoOut.seek(0).in
 	}
 
-	override OutStream	out()	{ mongoIn.out } 
-	override Void		close()	{ }
+	override OutStream	out()		{ mongoIn.out } 
+	override Void		close()		{ }
+	override Bool		isClosed()	{ false }
+	
+	Str:Obj? readSentDoc() {
+		// unwind the msg
+		reader := BsonReader(mongoIn.seek(0).in)
+		reader.readInteger32
+		reader.readInteger32
+		reader.readInteger32
+		reader.readInteger32
+		
+		reader.readInteger32
+		reader.readCString
+		reader.readInteger32
+		reader.readInteger32
+		return reader.readDocument
+	}
 	
 	Void reply(Str:Obj? document) {
 		replyOut.writeInteger32(-1)
@@ -29,5 +45,11 @@ internal class MockMongoConnection : Connection {
 		replyOut.writeInteger32(0)
 		replyOut.writeInteger32(1)
 		replyOut.writeDocument(document)		
+	}
+	
+	This reset() {
+		mongoIn.clear
+		mongoOut.clear
+		return this
 	}
 }

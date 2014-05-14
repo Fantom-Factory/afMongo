@@ -24,7 +24,7 @@ const class Index {
 
 	** Returns index info.
 	** 
-	** @see `http://docs.mongodb.org/manual/reference/method/db.collection.getIndexes/#db.collection.getIndexes`
+	** @see `http://docs.mongodb.org/manual/reference/method/db.collection.getIndexes/`
 	Str:Obj? info() {
 		Collection(conMgr, idxNs.qname).findOne(["ns":colNs.qname, "name":name])
 	}
@@ -36,12 +36,12 @@ const class Index {
 	
 	** Creates this index.
 	** 
-	** 'key' is a map of fields to index type, use 1 for ascending and -1 for descending.
-	** 
-	** 'unique' if not specified, defaults to 'false'.
+	** 'key' is a map of fields to index type. 
+	** Values may either be the standard Mongo '1' and '-1' for ascending / descending or the 
+	** strings 'ASC' / 'DESC'.
 	** 
 	** @see `http://docs.mongodb.org/manual/reference/command/createIndexes/`
-	This create(Str:Obj key, Bool? unique := null, Str:Obj options := [:]) {
+	This create(Str:Obj key, Bool? unique := false, Str:Obj options := [:]) {
 		// there's no createIndexMulti 'cos I figure no novice will need to create multiple indexes at once!
 		if (unique != null)	options.set("unique", unique)
 		cmd	.add("createIndexes", colNs.collectionName)

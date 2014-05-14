@@ -22,8 +22,13 @@ const class User {
 	
 	** The name of this user.
 	const Str name
+	
+	** The [write concern]`http://docs.mongodb.org/manual/reference/write-concern/` to use for 
+	** user writes.
+	const [Str:Obj?] writeConcern	:= MongoConstants.defaultWriteConcern
 
-	internal new make(ConnectionManager conMgr, Str dbName, Str userName) {
+	internal new make(ConnectionManager conMgr, Str dbName, Str userName, |This|? f := null) {
+		f?.call(this)
 		this.conMgr		= conMgr
 		this.adminNs	= Namespace("admin", "system.users")
 		this.userNs		= Namespace(dbName, "system.users")
@@ -45,12 +50,13 @@ const class User {
 	** Creates the user with the given credentials. 
 	**
 	** @see `http://docs.mongodb.org/manual/reference/command/createUser/`
-	This create(Str password, Str[] roles, [Str:Obj?]? customData := null) {
+	This create(Str password, Str[] roles, [Str:Obj?]? customData := null, [Str:Obj?]? writeConcern := null) {
 		cmd("insert")	// has writeConcern
-			.add("createUser",	name)
-			.add("pwd",			password)
-			.add("customData",	customData)
-			.add("roles",		roles)
+			.add("createUser",		name)
+			.add("pwd",				password)
+			.add("customData",		customData)
+			.add("roles",			roles)
+			.add("writeConcern",	writeConcern ?: this.writeConcern)
 			.run
 		// [ok:1.0]
 		return this
@@ -73,10 +79,11 @@ const class User {
 	** Grants roles to the user.
 	**
 	** @see `http://docs.mongodb.org/manual/reference/command/grantRolesToUser/`
-	This grantRoles(Str[] roles) {
+	This grantRoles(Str[] roles, [Str:Obj?]? writeConcern := null) {
 		cmd("update")	// has writeConcern
-			.add("grantRolesToUser", name)
-			.add("roles", roles)
+			.add("grantRolesToUser", 	name)
+			.add("roles", 				roles)
+			.add("writeConcern",		writeConcern ?: this.writeConcern)
 			.run
 		// [ok:1.0]
 		return this
@@ -85,10 +92,11 @@ const class User {
 	** Revokes roles from the user.
 	**
 	** @see `http://docs.mongodb.org/manual/reference/command/revokeRolesFromUser/`
-	This revokeRoles(Str[] roles) {
+	This revokeRoles(Str[] roles, [Str:Obj?]? writeConcern := null) {
 		cmd("update")	// has writeConcern
 			.add("revokeRolesFromUser", name)
-			.add("roles", roles)
+			.add("roles", 				roles)
+			.add("writeConcern",		writeConcern ?: this.writeConcern)
 			.run
 		// [ok:1.0]
 		return this
@@ -97,6 +105,6 @@ const class User {
 	// ---- Private Methods -----------------------------------------------------------------------
 	
 	private Cmd cmd(Str? action := null) {
-		Cmd(conMgr, userNs, action)
+		return Cmd(conMgr, userNs, action)
 	}	
 }

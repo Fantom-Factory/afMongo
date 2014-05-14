@@ -11,6 +11,7 @@ const class MongoOpErr : MongoErr {
 
 @NoDoc
 const class MongoCmdErr : MongoErr {
+	
 	new make(Str msg := "", Err? cause := null) : super(msg, cause) { }
 }
 
