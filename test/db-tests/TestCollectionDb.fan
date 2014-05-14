@@ -11,7 +11,6 @@ internal class TestCollectionDb : MongoDbTest {
 
 	
 	Void testDiagnostics() {
-		Env.cur.err.printLine(collection.stats(3))
 		verifyEq(collection.stats(3)["ns"], collection.qname)
 	}
 
