@@ -3,7 +3,7 @@ using inet
 
 ** A MongoDB client.
 const class MongoClient {
-	
+	private static const Log 		log	:= Utils.getLog(MongoClient#)
 	private const ConnectionManager conMgr
 
 	** This [write concern]`http://docs.mongodb.org/manual/reference/write-concern/` is passed down 
@@ -15,12 +15,14 @@ const class MongoClient {
 	new make(ConnectionManager connectionManager, |This|? f := null) {
 		f?.call(this)
 		this.conMgr = connectionManager
+		startup()
 	}
 	
 	** A convenience ctor - just to get you started!
 	new makeFromIpAddr(Str address := "127.0.0.1", Int port := 27017, |This|? f := null) {
 		f?.call(this)
 		this.conMgr = ConnectionManagerPooled(ActorPool(), IpAddr(address), port)
+		startup()
 	}
 	
 	// ---- Diagnostics ---------------------------------------------------------------------------
@@ -58,7 +60,7 @@ const class MongoClient {
 	** @see `http://docs.mongodb.org/manual/reference/command/serverStatus/`
 	[Str:Obj?] serverStatus() {
 		runAdminCmd(["serverStatus": 1])
-	}	
+	}
 	
 	// ---- Database ------------------------------------------------------------------------------
 
@@ -90,5 +92,29 @@ const class MongoClient {
 	** Convenience for 'connectionManager.shutdown'.
 	Void shutdown() {
 		conMgr.shutdown
+	}
+	
+	private Void startup() {
+		minVersion	 := Version("2.6.0")
+		buildVersion := buildInfo["version"]
+		mongoVersion := Version.fromStr(buildVersion, false)
+		log.info("\n" + logo + "\nConnected to MongoDB v${buildVersion}\n")
+
+		if (mongoVersion < minVersion) {
+			msg := "** WARNING: This driver is ONLY compatible with MongoDB v${minVersion} or greater **"
+			log.warn(Str.defVal.padl(msg.size, '*'))
+			log.warn(msg)
+			log.warn(Str.defVal.padl(msg.size, '*'))
+		}
+	}
+	
+	private Str logo() {
+		"
+		      Alien-Factory     
+		  _____ ___ ___ ___ ___ 
+		 |     | . |   | . | . |
+		 |_|_|_|___|_|_|_  |___|
+		               |___|${Pod.of(this).version}
+		 "
 	}
 }

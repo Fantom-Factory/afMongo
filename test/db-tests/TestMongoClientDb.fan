@@ -2,6 +2,7 @@
 internal class TestMongoClientDb : MongoDbTest {
 	
 	Void testTestDiagnostics() {
+
 		verify(mc.listDatabases.size > 1)
 		
 		verify(mc.databaseNames.contains("admin"))

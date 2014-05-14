@@ -10,6 +10,7 @@ internal class TestWriteConcern : MongoTest {
 	}
 	
 	Void testDefaultWriteConcernPropagatesToAll() {
+		mmc.reply(["ok":1.0f, "version":"2.6.0"])
 		mc := MongoClient(conMgr) { it.writeConcern = ["cream":"pies"] }	// not your usual concern!!!
 		user := mc["any"].user("0-kool")
 		coll := mc["any"].collection("zero")
@@ -19,7 +20,7 @@ internal class TestWriteConcern : MongoTest {
 
 		// ---- Users -----------------------------------------------------------------------------
 		
-		mmc.reply(["ok":1.0f])
+		mmc.reset.reply(["ok":1.0f])
 		user.create("poo", [,])
 		verifyWc(cream)
 		
@@ -71,6 +72,7 @@ internal class TestWriteConcern : MongoTest {
 	}
 	
 	Void testWriteConcernFail() {
+		mmc.reply(["ok":1.0f, "version":"2.6.0"])		
 		mc := MongoClient(conMgr) { it.writeConcern = ["cream":"pies"] }	// not your usual concern!!!
 		user := mc["any"].user("0-kool")
 		coll := mc["any"].collection("zero")
