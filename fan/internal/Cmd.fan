@@ -89,12 +89,15 @@ internal class Cmd {
 			throw MongoCmdErr(ErrMsgs.operation_cmdFailed(cname, doc["errmsg"] ?: doc))
 		}
 
-		// TODO: have a 'checked' variable?
-		// it's handy that null != 0, means we don't blow up if 'n' doesn't exist!
-		if (doc["n"]?->toInt == 0)
-			throw MongoErr(ErrMsgs.cmd_nothingHappened(what, doc))
-		if (doc["nModified"]?->toInt == 0)
-			throw MongoErr(ErrMsgs.cmd_nothingHappened(what, doc))
+		// After some deliberation I decided not to check these results. 
+		// For updates at least, it means each doc would need a 'dirty' flag
+		// - which is always tricky to implement.
+		
+//		// it's handy that null != 0, means we don't blow up if 'n' doesn't exist!
+//		if (doc["n"]?->toInt == 0)
+//			throw MongoErr(ErrMsgs.cmd_nothingHappened(what, doc))
+//		if (doc["nModified"]?->toInt == 0)
+//			throw MongoErr(ErrMsgs.cmd_nothingHappened(what, doc))
 
 		return doc
 	}
