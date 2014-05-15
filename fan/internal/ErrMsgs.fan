@@ -77,9 +77,9 @@ internal const mixin ErrMsgs {
 		"Errors ${what} '${colName}' - " + ((errs.size == 1) ? errs.first.toStr : errs.toStr)
 	}
 	
-	static Str cmd_nothingHappened(Str what, [Str:Obj?] response) {
-		"Nothing ${what}! ${response}"
-	}
+//	static Str cmd_nothingHappened(Str what, [Str:Obj?] response) {
+//		"Nothing ${what}! ${response}"
+//	}
 	
 //	static Str collection_nameReserved(Str name) {
 //		"Collection names beginning with 'system.' are reserved: ${name}"

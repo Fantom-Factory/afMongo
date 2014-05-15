@@ -108,11 +108,13 @@ const class Collection {
 	// ---- Cursor Queries ------------------------------------------------------------------------
 
 	** Creates a `Cursor` over the given 'query' allowing you to iterate over results.
+	** Documents are downloaded from MongoDB in batches behind the scene as and when required. 
+	** Use 'find()' to optomise iterating over a *massive* result set. 
 	** 
 	** Returns what is returned from the given cursor function.
 	** 
 	** pre>
-	** second := collection.find([:]) |cursor| {
+	** second := collection.find([:]) |cursor->Obj?| {
 	**     first  := cursor.next
 	**     second := cursor.next
 	**     return second
@@ -173,11 +175,9 @@ const class Collection {
 	** Returns the number of documents that would be returned by the given 'query'.
 	** 
 	** @see `Cursor.count`
-	Int findCount(Str:Obj? query, Int skip := 0, Int? limit := null) {
+	Int findCount(Str:Obj? query) {
 		find(query) |cur->Int| {
-			cur.skip  = skip
-			cur.limit = limit
-			return cur.count 
+			cur.count
 		}
 	}
 	
@@ -190,7 +190,7 @@ const class Collection {
 	// ---- Write Operations ----------------------------------------------------------------------
 
 	** Inserts the given document,
-	** Returns the number of documents deleted.
+	** Returns the number of documents inserted.
 	** 
 	** @see `http://docs.mongodb.org/manual/reference/command/insert/`
 	Int insert(Str:Obj? document, [Str:Obj?]? writeConcern := null) {
@@ -237,7 +237,7 @@ const class Collection {
 			.run
 	}
 
-	** Runs the given 'updateCmd' against documents returned by the given 'query'.
+	** Runs the given 'updateCmd' against documents returned by 'query'.
 	** Returns the number of documents modified.
 	** 
 	** @see `http://docs.mongodb.org/manual/reference/command/update/`

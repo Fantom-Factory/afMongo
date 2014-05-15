@@ -1,18 +1,4 @@
 
-
-Basic Operation
-
-Commands
- - a lot of MongoDB functionalirt can be accompilshed through the use of commands. Commnads are run against a database
-
-Authentication
-
-
-explain this:
-the plan is to give a basic level of support, so should the mongo API grow (as it has been doing) then this driver doesn't get outdated.
-
-
-
 For v1.0
 --------
 GridFs 
@@ -25,8 +11,6 @@ Tidy up ConnectionManagerPooled, make clients wait for a free connection.
 Automatically connect to proper server, and failover, when connecting to a replica set
 http://docs.mongodb.org/meta-driver/latest/legacy/connect-driver-to-replica-set/
 http://api.mongodb.org/java/2.10.0/index.html?com/mongodb/MongoClient.html
-
-When writing, maybe convert MongoMaps into Document Objs that cache the size? For speed!
 
 Connect as a default user.
 
