@@ -23,25 +23,3 @@ Query Plan Cache Commands (new in 2.6)
 Geospatial Commands
 Tailable Cursors
 Parse a connection string
-
-
-Bad fantomongo
-==============
-
-Fixed ObjectId:
- - ObjectId had no notion of pid
-
-Fixed BsonReader:
- - BSON Timestamps were incorrectly converted to Fantom DateTime objects
- - BSON strings could not be read if they contain non-ASCII characters (byte vs char issue) 
- - Reading unsigned Ints when they should be signed Ints
- - Reading Regex's messed up the bytes read count -> warning
- - Reading Binary types lost the subtype
- - No support for BSON CODE
-
-Fixed BsonWriter:
- - No support for BSON CODE
- - Incorrect length written for non-ASCII strings (byte vs char issue)
-
-Had no Timestamp obj
-Only ObjectId was Fantom serialisable 

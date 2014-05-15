@@ -10,7 +10,7 @@ class Build : BuildPod {
 		meta = [
 			"proj.name"		: "Mongo",
 			"tags"			: "database",
-			"repo.private"	: "true"
+			"repo.private"	: "false"
 		]
 
 		depends = [
@@ -21,7 +21,7 @@ class Build : BuildPod {
 			"afConcurrent 1.0.2+",
 			"afBson 1.0.0+"
 		]
-		
+
 		srcDirs = [`test/`, `test/utils/`, `test/unit-tests/`, `test/db-tests/`, `fan/`, `fan/public/`, `fan/public/util/`, `fan/internal/`]
 		resDirs = [,]
 
