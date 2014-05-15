@@ -177,7 +177,7 @@ All documents held in a collection need a unique id, held in a field named `_id`
 
 Note that `_id` does not need to an `ObjectId`, it can be any BSON type. It just needs to be unique in the collection.
 
-Like [marmite](http://www.ilovemarmite.com/), people tend to have a love / hate relationship with the `ObjectId`. It has a natural sort that (roughly) corresponds to creation time. But in *humongous* collections it eats up precious extra bytes which means the [index can't fit in RAM](http://docs.mongodb.org/manual/tutorial/ensure-indexes-fit-ram/).
+Like [marmite](http://www.ilovemarmite.com/), people tend to have a love / hate relationship with the `ObjectId`. The good comments revolve around it having a natural sort that (roughly) corresponds to creation time. The bad is that in *humongous* collections it eats up precious bytes which means the [index can't fit into RAM](http://docs.mongodb.org/manual/tutorial/ensure-indexes-fit-ram/).
 
 ### Remarks 
 
