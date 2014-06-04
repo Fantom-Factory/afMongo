@@ -1,5 +1,5 @@
 
-internal const mixin ErrMsgs {
+internal const class ErrMsgs {
 
 	static Str opCode_unknownId(Int id) {
 		"Could not find OpCode for id '${id}'"
@@ -84,6 +84,26 @@ internal const mixin ErrMsgs {
 //	static Str collection_nameReserved(Str name) {
 //		"Collection names beginning with 'system.' are reserved: ${name}"
 //	}
+	
+	static Str connectionManager_badScheme(Uri mongoUri) {
+		"Mongo connection URIs must start with the scheme 'mongodb://' - ${mongoUri}"
+	}
+	
+	static Str connectionManager_badUsernamePasswordCombo(Str? username, Str? password, Uri mongoUri) {
+		"Either both the username and password should be provided, or neither. username=$username, password=$password, uri=$mongoUri"
+	}
+	
+	static Str connectionManager_badMinConnectionSize(Int min, Uri mongoUri) {
+		"Minimum number of connections must not be less than zero! min=$min, uri=$mongoUri"
+	}
+	
+	static Str connectionManager_badMaxConnectionSize(Int max, Uri mongoUri) {
+		"Maximum number of connections must not be less than one! max=$max, uri=$mongoUri"
+	}
+	
+	static Str connectionManager_badMinMaxConnectionSize(Int min, Int max, Uri mongoUri) {
+		"Minimum number of connections must not be greater than the maximum! min=$min, max=$max, uri=$mongoUri"
+	}
 	
 	static Str stripSys(Str str) {
 		str.replace("sys::", "")

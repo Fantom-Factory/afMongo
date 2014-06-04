@@ -6,7 +6,7 @@ internal
 class Example {
 	
 	Void main() {
-		mongoDbase := MongoClient(ActorPool(), "127.0.0.1", 27017)
+		mongoDbase := MongoClient(ActorPool(), `mongodb://localhost:27017`)
 		collection := mongoDbase.db("friends").collection("birds")
 		
 		documentIn := [

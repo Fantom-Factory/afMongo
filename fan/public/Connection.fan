@@ -19,10 +19,6 @@ mixin Connection {
 	** Return 'true' if this socket is closed. 
 	abstract Bool		isClosed()
 	
-	** Creates a TCP Connection to the given IP address.
-	static Connection makeTcpConnection(IpAddr address := IpAddr("127.0.0.1"), Int port := 27017, SocketOptions? options := null) {
-		TcpConnection(address, port, options)
-	}
 }
 
 ** Connects to MongoDB via an 'inet::TcpSocket'.

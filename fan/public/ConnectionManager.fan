@@ -9,8 +9,11 @@ const mixin ConnectionManager {
 	** Makes a connection available to the given function.
 	abstract Obj? leaseConnection(|Connection->Obj?| c)
 	
+	** Opens up the minimum number of connections.
+	abstract This startup()
+	
 	** Closes all MongoDB connections.
-	abstract Void shutdown()
+	abstract This shutdown()
 }
 
 
