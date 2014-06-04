@@ -16,7 +16,7 @@ Overview [#overview]
  - Server side 'eval()' commands
  - Pooled connection manager for multi-threaded use
 
-'Mongo' driver has been written specifically for MongoDB v2.6.0, released on 8th April 2014, or newer.
+'Mongo' driver has been written specifically for MongoDB v2.6.0 released on 8th April 2014, or newer.
 
 Many features, including ALL write commands, will **NOT** work with older MongoDB versions.
 
@@ -36,7 +36,7 @@ To use in a [Fantom]`http://fantom.org/` project, add a dependency to 'build.fan
 
 Documentation [#documentation]
 ******************************
-Full API & fandocs are available on the [Status302 repository]`http://repo.status302.com/doc/@{pod.name}/#overview`.
+Full API & fandocs are available on the [Status302 repository]`http://repo.status302.com/doc/@{pod.name}/`.
 
 
 
@@ -128,9 +128,9 @@ pre>
 
 Connected to MongoDB v2.4.9
 
-[warn] [afMongo] ****************************************************************************
-[warn] [afMongo] ** WARNING: This driver is ONLY compatible with MongoDB v2.6.0 or greater **
-[warn] [afMongo] ****************************************************************************
+[warn] ****************************************************************************
+[warn] ** WARNING: This driver is ONLY compatible with MongoDB v2.6.0 or greater **
+[warn] ****************************************************************************
 <pre
 
 Ooops! As you can see, we have an old MongoDB running. And true enough, when we run the [QuickStart example]`#quickStart` we get:
@@ -154,7 +154,8 @@ Using the 'friends' database in the [QuickStart Example]`#quickStart` we could d
 pre>
 syntax: fantom
 
-collection.findOne( ["name":"Emma"] )       // --> return the doc where 'name == Emma' ('Emma' must be unique)
+collection.findOne( ["name":"Emma"] )       // --> return the doc where 'name == Emma'
+                                            //     ('Emma' must be unique)
 
 collection.findAll                          // --> return ALL docs in the collection
 collection.findAll( ["name":"Emma"] )       // --> return all docs where 'name == Emma'
@@ -196,7 +197,7 @@ By default 'Mongo' will throw a 'MongoErr' should a write error occur.
 
 
 
-ObjectId [#ObjectId]
+ObjectId [#objectId]
 ====================
 All documents held in a collection need a unique id, held in a field named '_id'.
 If the '_id' field does not exist, MongoDB will create one for you of type [ObjectId]`afBson::ObjectId`.

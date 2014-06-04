@@ -26,15 +26,15 @@ const class MongoClient {
 	** Creates a 'MongoClient' with the given 'ConnectionManager'. 
 	** This is the preferred ctor.
 	new make(ConnectionManager connectionManager, |This|? f := null) {
-		f?.call(this)
 		this.conMgr = connectionManager
+		f?.call(this)
 		startup()
 	}
 	
 	** A convenience ctor - just to get you started!
-	new makeFromIpAddr(ActorPool actorPool, Str address := "127.0.0.1", Int port := 27017, |This|? f := null) {
+	new makeFromUri(ActorPool actorPool, Uri mongoUri := `mongodb://localhost:27017`, |This|? f := null) {
+		this.conMgr = ConnectionManagerPooled(actorPool, mongoUri)
 		f?.call(this)
-		this.conMgr = ConnectionManagerPooled(actorPool, IpAddr(address), port)
 		startup()
 	}
 	
@@ -108,6 +108,8 @@ const class MongoClient {
 	}
 	
 	private Void startup() {
+		conMgr.startup
+		
 		minVersion	 := Version("2.6.0")
 		buildVersion := buildInfo["version"]
 		mongoVersion := Version.fromStr(buildVersion, false)
