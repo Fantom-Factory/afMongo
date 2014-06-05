@@ -1,6 +1,6 @@
 Overview [#overview]
 ********************
-'Mongo' is a pure Fantom driver for [MongoDB]`http://www.mongodb.org/`.
+'Mongo' is a pure Fantom driver for [MongoDB]`http://www.mongodb.org/` v2.6+.
 
 'Mongo' driver features:
 
@@ -62,7 +62,7 @@ using concurrent
 class Example {
 
     Void main() {
-        mongoClient := MongoClient(ActorPool(), "127.0.0.1", 27017)
+        mongoClient := MongoClient(ActorPool(), `mongodb://localhost:27017`)
         collection  := mongoClient.db("friends").collection("birds")
 
         documentIn  := [
@@ -87,9 +87,9 @@ C:\> fan Example.fan
  _____ ___ ___ ___ ___
 |     | . |   | . | . |
 |_|_|_|___|_|_|_  |___|
-              |___|0.0.2
+              |___|0.0.4
 
-Connected to MongoDB v2.6.0
+Connected to MongoDB v2.6.0 (at mongodb://localhost:27017)
 
 [_id:5373acbda8000b3491000001, name:Emma, score:9]
 <pre
@@ -114,7 +114,7 @@ Connecting [#connecting]
 'MongoClient' is created with a `ConnectionManager`, which manages your connections to MongoDB.
 Use `ConnectionManagerPooled` for normal multi-threaded use:
 
-    conMgr := ConnectionManagerPooled(ActorPool(), IpAddr("localhost"), 27017)
+    conMgr := ConnectionManagerPooled(ActorPool(), `mongodb://localhost:27017`)
     client := MongoClient(conMgr)
 
 When you create a 'MongoClient' it immediately connects to MongoDB and verifies it is the correct version:
@@ -124,7 +124,7 @@ pre>
  _____ ___ ___ ___ ___
 |     | . |   | . | . |
 |_|_|_|___|_|_|_  |___|
-              |___|0.0.2
+              |___|0.0.4
 
 Connected to MongoDB v2.4.9
 

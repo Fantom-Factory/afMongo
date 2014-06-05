@@ -16,11 +16,11 @@ const class ConnectionManagerLocal : ConnectionManager {
 		c(connectionRef.val)
 	}
 	
-	override This startup() {
+	override ConnectionManager startup() {
 		return this
 	}
 
-	override This shutdown() {
+	override ConnectionManager shutdown() {
 		(connectionRef.val as Connection)?.close
 		connectionRef.cleanUp
 		return this
