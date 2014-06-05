@@ -125,7 +125,7 @@ const class ConnectionManagerPooled : ConnectionManager {
 	}
 	
 	** Creates the initial pool and establishes 'minPoolSize' connections with the server.
-	override This startup() {
+	override ConnectionManager startup() {
 		if (startupLock.locked)
 			return this
 		startupLock.lock
@@ -137,7 +137,7 @@ const class ConnectionManagerPooled : ConnectionManager {
 	}
 
 	** Closes all connections.
-	override This shutdown() {
+	override ConnectionManager shutdown() {
 		shutdownLock.lock
 		
 		// TODO: wait for used sockets to be checked in
