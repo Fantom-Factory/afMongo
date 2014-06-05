@@ -1,7 +1,7 @@
 using afBson
 
 internal class MockMongoConnection : Connection {
-	
+	override Str:Str	authentications	:= [:]
 	Buf mongoIn			:= Buf()
 	Buf mongoOut		:= Buf()
 	BsonWriter replyOut	:= BsonWriter(mongoOut.out)

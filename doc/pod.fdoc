@@ -218,6 +218,11 @@ The Alien-Factoy MongoDB driver was inspired by [fantomongo]`https://bitbucket.o
 
 Release Notes [#releaseNotes]
 *****************************
+v0.0.4 [#v0.0.4]
+----------------
+ - New: 'ConnectionManagerPooled' instances are created with a [Mongo Connection URI]`http://docs.mongodb.org/manual/reference/connection-string/`.
+ - New: 'ConnectionManagerPooled' accepts default database and user credentails to initially authenticate all leased connections with.
+
 v0.0.2 [#v0.0.2]
 ----------------
  - New: Preview Release
