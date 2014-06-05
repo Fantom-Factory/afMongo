@@ -67,34 +67,19 @@ const class Database {
 	** database will inherit the user credentials.
 	Obj? authenticate(Str userName, Str password, |Database db->Obj?| func) {
 		// run outside the closure so we only ever lease one connection at a time
-		authCmd := authCmd(userName, password)
 		return conMgr.leaseConnection |connection->Obj?| {
-			Operation(connection).runCommand("${name}.\$cmd", authCmd)
+			connection.authenticate(name, userName, password)
 			try {
 				cm := ConnectionManagerLocal(connection)
 				db := Database(cm, name)
 				return func.call(db)
 			
 			} finally {
-				Operation(connection).runCommand("${name}.\$cmd", ["logout": 1])
+				// don't interfere with any other exception in progress
+				// the connection is closed on Err anyway, so nothing to worry about if this fails.
+				connection.logout(name, false)
 			}
 		}
-	}
-	
-	** Advanced API usage only. 
-	** Creates an authentication command to be run against the database with the following code:
-	** 
-	**   Operation(connection).runCommand("${dbName}.\$cmd", authCmd)
-	@NoDoc
-	Str:Obj? authCmd(Str userName, Str password) {
-		nonce 	:= (Str) cmd.add("getnonce", 1).run["nonce"]
-		passdig	:= "${userName}:mongo:${password}".toBuf.toDigest("MD5").toHex
-		digest	:=  ( nonce + userName + passdig ).toBuf.toDigest("MD5").toHex
-		return Str:Obj?[:] { ordered = true }
-			.add("authenticate", 1)
-			.add("user", 		 userName)
-			.add("nonce", 		 nonce)
-			.add("key", 		 digest)
 	}
 	
 	// ---- Diagnostics  --------------------------------------------------------------------------

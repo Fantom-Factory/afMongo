@@ -17,30 +17,27 @@ const class ConnectionManagerPooled : ConnectionManager {
 	** The URI used to connect to MongoDB.
 	** 
 	**   `mongodb://username:password@example1.com/puppies?maxPoolSize=50`
-	const Uri		mongoUri
+	const Uri	mongoUri
 	
 	** The minimum number of database connections this pool should keep open.
-	** They are opened on 'startup()'.
-	const Int 		minNoOfConnections	:= 0
+	** They are initially created during 'startup()'.
+	const Int 	minPoolSize	:= 0
 
 	** The maximum number of database connections this pool should open.
 	** Set it to the number of concurrent users you expect to use your application.
-	const Int 		maxNoOfConnections	:= 10
+	const Int 	maxPoolSize	:= 10
 
+	** The default database connections are authenticated against.
+	const Str?	defaultDatabase
+	
+	** The default username connections are authenticated with.
+	const Str?	defaultUsername
+	
+	** The default password connections are authenticated with.
+	const Str?	defaultPassword
+	
 	** The maximum time a thread may wait for a connection to become available.
 //	const Duration	maxWaitTime			:= 10sec
-	
-//	** Ctor for advanced usage.
-//	new make(ActorPool actorPool, |->Connection| connectionFactory, |This|? f := null) {
-//		f?.call(this)	
-//		this.connectionState 	= SynchronizedState(actorPool, ConnectionManagerPoolState#)
-//		
-//		// given it's only ever going to be used inside the state thread, it should be safe to unsafe it over
-//		sFactory := Unsafe(connectionFactory).toImmutable
-//		connectionState.withState |ConnectionManagerPoolState state| {
-//			state.connectionFactory = sFactory.val
-//		}.get
-//	}
 
 	** Create a 'ConnectionManager' from a [Mongo Connection URI]`http://docs.mongodb.org/manual/reference/connection-string/`.
 	** If user credentials are supplied, they are used as default authentication for each connection.
@@ -63,83 +60,83 @@ const class ConnectionManagerPooled : ConnectionManager {
 			throw ArgErr(ErrMsgs.connectionManager_badScheme(mongoConnectionUri))
 		
 		this.mongoUri			= mongoConnectionUri
-		this.connectionState 	= SynchronizedState(actorPool, ConnectionManagerPoolState#)
-		this.minNoOfConnections = mongoUri.query["minPoolSize"]?.toInt ?: minNoOfConnections
-		this.maxNoOfConnections = mongoUri.query["maxPoolSize"]?.toInt ?: maxNoOfConnections
+		this.connectionState	= SynchronizedState(actorPool, ConnectionManagerPoolState#)
+		this.minPoolSize 		= mongoUri.query["minPoolSize"]?.toInt ?: minPoolSize
+		this.maxPoolSize 		= mongoUri.query["maxPoolSize"]?.toInt ?: maxPoolSize
 		
-		username := mongoUri.userInfo?.split(':')?.getSafe(0) ?: Str.defVal
-		password := mongoUri.userInfo?.split(':')?.getSafe(1) ?: Str.defVal
+		if (minPoolSize < 0)
+			throw ArgErr(ErrMsgs.connectionManager_badMinConnectionSize(minPoolSize, mongoUri))
+		if (maxPoolSize < 1)
+			throw ArgErr(ErrMsgs.connectionManager_badMaxConnectionSize(maxPoolSize, mongoUri))
+		if (minPoolSize > maxPoolSize)
+			throw ArgErr(ErrMsgs.connectionManager_badMinMaxConnectionSize(minPoolSize, maxPoolSize, mongoUri))		
+
 		address	 := mongoUri.host ?: "127.0.0.1"
 		port	 := mongoUri.port ?: 27017
-		database := mongoUri.pathOnly.toStr as Str	// implicit cast to Str?
+		database := trimToNull(mongoUri.pathOnly.toStr)
+		username := trimToNull(mongoUri.userInfo?.split(':')?.getSafe(0))
+		password := trimToNull(mongoUri.userInfo?.split(':')?.getSafe(1))
 		
-		if (database.startsWith("/"))
-			database = database[1..-1]
-		if (database.isEmpty)
+		if ((username == null).xor(password == null))
+			throw ArgErr(ErrMsgs.connectionManager_badUsernamePasswordCombo(username, password, mongoUri))
+
+		if (database != null && database.startsWith("/"))
+			database = trimToNull(database[1..-1])
+		if (username != null && password != null && database == null)
+			database = "admin"
+		if (username == null && password == null)	// a default database has no meaning without credentials
 			database = null
 		
-		if ((username.isEmpty).xor(password.isEmpty))
-			throw ArgErr(ErrMsgs.connectionManager_badUsernamePasswordCombo(username, password, mongoUri))
-		
-		conFactory := |->Connection| {
-			connection 	:= TcpConnection(IpAddr(address), port)
-			
-			// perform some default database authentication
-			if (!username.isEmpty && password.isEmpty) {
-				authDb	:= Database(this, database ?: "admin")
-				authCmd := authDb.authCmd(username, password)
-				Operation(connection).runCommand("${authDb.name}.\$cmd", authCmd)
-			}
-			
-			return connection
-		}
-		
-		// given it's only ever going to be used inside the state thread, it should be safe to unsafe it over
-		sFactory := Unsafe(conFactory).toImmutable
+		defaultDatabase = database
+		defaultUsername = username
+		defaultPassword = password
 		connectionState.withState |ConnectionManagerPoolState state| {
-			state.connectionFactory = sFactory.val
+			state.connectionFactory = |->Connection| {
+				TcpConnection(IpAddr(address), port)
+			}
 		}.get
 	}
 	
-	@NoDoc	// nothing interesting to add here
+	** Makes a connection available to the given function.
+	** 
+	** All leased connections are authenticated against the default credentials.
 	override Obj? leaseConnection(|Connection->Obj?| c) {
 		connection := checkOut
 		try {
-			obj := c(connection)
-			return obj
+			return c(connection)
+
+		} catch (Err err) {
+			// if something dies, kill the connection.
+			// we may have died part way through talking with the server meaning our communication 
+			// protocols are out of sync - rendering any future use of the connection useless.
+			connection.close
+			throw err
+			
 		} finally {
-			// FIXME: need to re-authenticate with default user
 			checkIn(connection)
 		}
 	}
 	
-	@NoDoc	// nothing interesting to add here
+	** Creates the initial pool and establishes 'minPoolSize' connections with the server.
 	override This startup() {
 		if (startupLock.locked)
 			return this
 		startupLock.lock
 
-		if (minNoOfConnections < 0)
-			throw ArgErr(ErrMsgs.connectionManager_badMinConnectionSize(minNoOfConnections, mongoUri))
-		if (maxNoOfConnections < 1)
-			throw ArgErr(ErrMsgs.connectionManager_badMaxConnectionSize(maxNoOfConnections, mongoUri))
-		if (minNoOfConnections > maxNoOfConnections)
-			throw ArgErr(ErrMsgs.connectionManager_badMinMaxConnectionSize(minNoOfConnections, maxNoOfConnections, mongoUri))
-		
 		// connect x times
-		(1..minNoOfConnections).toList.map { checkOut }.each { checkIn(it) }
+		(1..minPoolSize).toList.map { checkOut }.each { checkIn(it) }
 		
 		return this
 	}
 
-	@NoDoc	// nothing interesting to add here
+	** Closes all connections.
 	override This shutdown() {
 		shutdownLock.lock
 		
 		// TODO: wait for used sockets to be checked in
 		connectionState.withState |ConnectionManagerPoolState state| {
 			state.connectionFactory = null
-			
+
 			state.checkedIn.each { it.close }
 			state.checkedIn.clear
 
@@ -157,21 +154,28 @@ const class ConnectionManagerPooled : ConnectionManager {
 
 //		default wait time = 200ms -> is an eternity for computers, tiny for humans. set as a public NoDoc field 
 		
-		return (Connection) connectionState.getState |ConnectionManagerPoolState state->Unsafe?| {
+		connection := (Connection) connectionState.getState |ConnectionManagerPoolState state->Unsafe?| {
 			if (!state.checkedIn.isEmpty) {
 				connection := state.checkedIn.pop
 				state.checkedOut.push(connection)
 				return Unsafe(connection)
 			}
 			
-			if (state.checkedOut.size >= maxNoOfConnections)
+			if (state.checkedOut.size >= maxPoolSize)
 				// TODO: return empty handed & wait for a free one
-				throw MongoErr("Argh! No more connections! All ${maxNoOfConnections} are in use!")
+				throw MongoErr("Argh! No more connections! All ${maxPoolSize} are in use!")
 			
 			connection := state.connectionFactory()
 			state.checkedOut.push(connection)
 			return Unsafe(connection)
 		}?->val
+		
+		// ensure all connections are initially leased authenticated as the default user
+		// specifically do the check here so you can always *brute force* an authentication on a connection
+		if (defaultDatabase != null && connection.authentications[defaultDatabase] != defaultUsername)
+			connection.authenticate(defaultDatabase, defaultUsername, defaultPassword)
+		
+		return connection
 	}
 
 	private Void checkIn(Connection connection) {
@@ -186,6 +190,10 @@ const class ConnectionManagerPooled : ConnectionManager {
 
 		// call get() to make sure this thread checks in before it asks for a new one
 		}.get	
+	}
+	
+	private Str? trimToNull(Str? str) {
+		(str?.trim?.isEmpty ?: true) ? null : str.trim
 	}
 }
 
