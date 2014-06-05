@@ -6,7 +6,7 @@ internal class TestWriteConcern : MongoTest {
 	
 	override Void setup() {
 		mmc 	= MockMongoConnection()
-		conMgr	= ConnectionManagerLocal(mmc)
+		conMgr	= ConnectionManagerLocal(mmc, ``)
 	}
 	
 	Void testDefaultWriteConcernPropagatesToAll() {

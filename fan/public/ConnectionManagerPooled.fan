@@ -14,10 +14,13 @@ const class ConnectionManagerPooled : ConnectionManager {
 	private const OneShotLock		shutdownLock	:= OneShotLock("Connection Pool has been shutdown")
 	private const SynchronizedState connectionState
 	
-	** The URI used to connect to MongoDB.
+	** The host name of the MongoDB server this 'ConnectionManager' connects to.
+	override const Uri mongoUri
+	
+	** The URI this 'ConnectionManager' was configured with.
 	** 
 	**   `mongodb://username:password@example1.com/puppies?maxPoolSize=50`
-	const Uri	mongoUri
+	const Uri	connectionUri
 	
 	** The minimum number of database connections this pool should keep open.
 	** They are initially created during 'startup()'.
@@ -55,11 +58,12 @@ const class ConnectionManagerPooled : ConnectionManager {
 	**   `mongodb://example2.com?minPoolSize=10&maxPoolSize=50`
 	** 
 	** @see `http://docs.mongodb.org/manual/reference/connection-string/`
-	new makeFromUri(ActorPool actorPool, Uri mongoConnectionUri) {
-		if (mongoConnectionUri.scheme != "mongodb")
-			throw ArgErr(ErrMsgs.connectionManager_badScheme(mongoConnectionUri))
+	new makeFromUri(ActorPool actorPool, Uri connectionUri) {
+		if (connectionUri.scheme != "mongodb")
+			throw ArgErr(ErrMsgs.connectionManager_badScheme(connectionUri))
 		
-		this.mongoUri			= mongoConnectionUri
+		this.mongoUri			= connectionUri
+		this.connectionUri		= connectionUri
 		this.connectionState	= SynchronizedState(actorPool, ConnectionManagerPoolState#)
 		this.minPoolSize 		= mongoUri.query["minPoolSize"]?.toInt ?: minPoolSize
 		this.maxPoolSize 		= mongoUri.query["maxPoolSize"]?.toInt ?: maxPoolSize
@@ -95,6 +99,9 @@ const class ConnectionManagerPooled : ConnectionManager {
 				TcpConnection(IpAddr(address), port)
 			}
 		}.get
+		
+		// remove user credentials and other crud from the uri
+		mongoUri = `mongodb://${address}:${port}`
 	}
 	
 	** Makes a connection available to the given function.
