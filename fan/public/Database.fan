@@ -70,7 +70,7 @@ const class Database {
 		return conMgr.leaseConnection |connection->Obj?| {
 			connection.authenticate(name, userName, password)
 			try {
-				cm := ConnectionManagerLocal(connection)
+				cm := ConnectionManagerLocal(connection, conMgr.mongoUri)
 				db := Database(cm, name)
 				return func.call(db)
 			

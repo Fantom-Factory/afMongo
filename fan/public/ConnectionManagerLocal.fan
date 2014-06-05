@@ -4,8 +4,11 @@ using afConcurrent
 const class ConnectionManagerLocal : ConnectionManager {
 	private const LocalRef connectionRef	:= LocalRef("afMongo.connection")
 	
-	new make(Connection connection) {
-		connectionRef.val = connection
+	override const Uri mongoUri	
+	
+	new make(Connection connection, Uri mongoUri) {
+		this.mongoUri = mongoUri
+		this.connectionRef.val = connection
 	}
 	
 	override Obj? leaseConnection(|Connection->Obj?| c) {

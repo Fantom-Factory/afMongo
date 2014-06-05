@@ -6,7 +6,7 @@ using inet
 ** @see `TcpConnection` 
 // TODO: maybe connections should know if they're connected to a master? 
 mixin Connection {
-	
+
 	** Data *from* MongoDB *to* the client.
 	abstract InStream 	in()
 	
@@ -63,7 +63,7 @@ class TcpConnection : Connection {
 	new makeWithSocket(TcpSocket socket) {
 		this.socket = socket
 	}
-
+	
 	override InStream	in()		{ socket.in			}
 	override OutStream	out()		{ socket.out		}
 	override Void		close()		{ socket.close		}
