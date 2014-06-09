@@ -13,14 +13,14 @@ const mixin ConnectionManager {
 	** Makes a connection available to the given function.
 	abstract Obj? leaseConnection(|Connection->Obj?| c)
 	
-	// Can't return this because of Plastic Proxies.
+	// Can't return 'This' because of Plastic Proxies.
 	** Does what ever the 'ConnectionManager' needs to do to initialise itself.
 	** 
 	** Often this would be create database connections or other network related activity that it 
 	** may not wish to do inside a ctor.
 	abstract ConnectionManager startup()
 	
-	// Can't return this because of Plastic Proxies.
+	// Can't return 'This' because of Plastic Proxies.
 	** Closes all MongoDB connections.
 	abstract ConnectionManager shutdown()
 }

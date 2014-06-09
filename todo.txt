@@ -7,15 +7,12 @@ GridFs
  - http://docs.mongodb.org/manual/reference/gridfs/
 
 Tidy up ConnectionManagerPooled, make clients wait for a free connection.
+ - write concern
 
 Automatically connect to proper server, and failover, when connecting to a replica set
 http://docs.mongodb.org/meta-driver/latest/legacy/connect-driver-to-replica-set/
 http://api.mongodb.org/java/2.10.0/index.html?com/mongodb/MongoClient.html
 http://docs.mongodb.org/manual/reference/connection-string/
-
-Connect as a default user.
-
-Parse a connection string
 
 
 

@@ -181,7 +181,7 @@ const class Collection {
 		}
 	}
 	
-	** Convenience / shorthand notation for 'findOne(["_id" : id], true)'
+	** Convenience / shorthand notation for 'findOne(["_id" : id], checked)'
 	@Operator
 	[Str:Obj?]? get(Obj id, Bool checked := true) {
 		findOne(["_id" : id], checked)
@@ -189,7 +189,7 @@ const class Collection {
 
 	// ---- Write Operations ----------------------------------------------------------------------
 
-	** Inserts the given document,
+	** Inserts the given document.
 	** Returns the number of documents inserted.
 	** 
 	** @see `http://docs.mongodb.org/manual/reference/command/insert/`
@@ -282,7 +282,7 @@ const class Collection {
 			.run["value"]
 	}
 
-	** Updates and returns a single document.
+	** Deletes and returns a single document.
 	** 
 	**   Options  Type  
 	**   -------  ----  
