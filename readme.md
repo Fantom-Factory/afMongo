@@ -1,6 +1,6 @@
 ## Overview 
 
-`Mongo` is a pure Fantom driver for [MongoDB](http://www.mongodb.org/).
+`Mongo` is a pure Fantom driver for [MongoDB](http://www.mongodb.org/) v2.6+.
 
 `Mongo` driver features:
 
@@ -16,7 +16,7 @@
 - Server side `eval()` commands
 - Pooled connection manager for multi-threaded use
 
-`Mongo` driver has been written specifically for MongoDB v2.6.0, released on 8th April 2014, or newer.
+`Mongo` driver has been written specifically for MongoDB v2.6.0 released on 8th April 2014, or newer.
 
 Many features, including ALL write commands, will **NOT** work with older MongoDB versions.
 
@@ -32,7 +32,7 @@ To use in a [Fantom](http://fantom.org/) project, add a dependency to `build.fan
 
 ## Documentation 
 
-Full API & fandocs are available on the [Status302 repository](http://repo.status302.com/doc/afMongo/#overview).
+Full API & fandocs are available on the [Status302 repository](http://repo.status302.com/doc/afMongo/).
 
 ## Quick Start 
 
@@ -56,7 +56,7 @@ using concurrent
 class Example {
 
     Void main() {
-        mongoClient := MongoClient(ActorPool(), "127.0.0.1", 27017)
+        mongoClient := MongoClient(ActorPool(), `mongodb://localhost:27017`)
         collection  := mongoClient.db("friends").collection("birds")
 
         documentIn  := [
@@ -82,9 +82,9 @@ C:\> fan Example.fan
  _____ ___ ___ ___ ___
 |     | . |   | . | . |
 |_|_|_|___|_|_|_  |___|
-              |___|0.0.2
+              |___|0.0.4
 
-Connected to MongoDB v2.6.0
+Connected to MongoDB v2.6.0 (at mongodb://localhost:27017)
 
 [_id:5373acbda8000b3491000001, name:Emma, score:9]
 ```
@@ -105,7 +105,7 @@ MongoClient
 
 `MongoClient` is created with a [ConnectionManager](http://repo.status302.com/doc/afMongo/ConnectionManager.html), which manages your connections to MongoDB. Use [ConnectionManagerPooled](http://repo.status302.com/doc/afMongo/ConnectionManagerPooled.html) for normal multi-threaded use:
 
-    conMgr := ConnectionManagerPooled(ActorPool(), IpAddr("localhost"), 27017)
+    conMgr := ConnectionManagerPooled(ActorPool(), `mongodb://localhost:27017`)
     client := MongoClient(conMgr)
 
 When you create a `MongoClient` it immediately connects to MongoDB and verifies it is the correct version:
@@ -115,13 +115,13 @@ When you create a `MongoClient` it immediately connects to MongoDB and verifies 
  _____ ___ ___ ___ ___
 |     | . |   | . | . |
 |_|_|_|___|_|_|_  |___|
-              |___|0.0.2
+              |___|0.0.4
 
 Connected to MongoDB v2.4.9
 
-[warn] [afMongo] ****************************************************************************
-[warn] [afMongo] ** WARNING: This driver is ONLY compatible with MongoDB v2.6.0 or greater **
-[warn] [afMongo] ****************************************************************************
+[warn] ****************************************************************************
+[warn] ** WARNING: This driver is ONLY compatible with MongoDB v2.6.0 or greater **
+[warn] ****************************************************************************
 ```
 
 Ooops! As you can see, we have an old MongoDB running. And true enough, when we run the [QuickStart example](http://repo.status302.com/doc/afMongo/#quickStart.html) we get:
@@ -139,7 +139,8 @@ Installing a fresh MongoDB of version 2.6.0 or greater will get you back on trac
 A MongoDB database stores documents in collections. Use the `find()` methods to query a collection. Using the `friends` database in the [QuickStart Example](http://repo.status302.com/doc/afMongo/#quickStart.html) we could do:
 
 ```
-collection.findOne( ["name":"Emma"] )       // --> return the doc where 'name == Emma' ('Emma' must be unique)
+collection.findOne( ["name":"Emma"] )       // --> return the doc where 'name == Emma'
+                                            //     ('Emma' must be unique)
 
 collection.findAll                          // --> return ALL docs in the collection
 collection.findAll( ["name":"Emma"] )       // --> return all docs where 'name == Emma'
