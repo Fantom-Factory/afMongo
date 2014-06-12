@@ -20,7 +20,7 @@ Overview [#overview]
 
 Many features, including ALL write commands, will **NOT** work with older MongoDB versions.
 
-> **ALIEN-AID:** See [Morphia]`pod::afMorphia` for a complete Fantom to MongoDB object mapping library!
+> **ALIEN-AID:** See [Morphia]`pod:afMorphia` for a complete Fantom to MongoDB object mapping library!
 
 
 
