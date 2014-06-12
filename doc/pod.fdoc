@@ -20,6 +20,8 @@ Overview [#overview]
 
 Many features, including ALL write commands, will **NOT** work with older MongoDB versions.
 
+> **ALIEN-AID:** See [Morphia]`pod::afMorphia` for a complete Fantom to MongoDB object mapping library!
+
 
 
 Install [#Install]
@@ -145,8 +147,6 @@ Queries [#queries]
 'Mongo' and MongoDB work with documents, they are used throughout the 'Mongo' API.
 A MongoDB document is represented in Fantom as a Map of type '[Str:Obj?]'.
 All document keys must be strings. Document values can be any valid [BSON]`pod:afBson` type.
-
-> **ALIEN-AID:** See the upcoming Alien-Factory Morphia library for complete Fantom to MongoDB object mapping!
 
 A MongoDB database stores documents in collections. Use the 'find()' methods to query a collection.
 Using the 'friends' database in the [QuickStart Example]`#quickStart` we could do:
