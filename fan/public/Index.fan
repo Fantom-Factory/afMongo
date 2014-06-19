@@ -92,8 +92,7 @@ const class Index {
 			return true
 		}
 		// if null or false, unique does not appear in the index info map
-//		if (unique == true)	options.set("unique", unique)
-		if (unique != null)	options.set("unique", unique)
+		if (unique == true)	options.set("unique", unique)
 		
 		info := info
 		oldKeyMap := (Str:Obj?) info["key"]
