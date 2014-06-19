@@ -218,6 +218,10 @@ The Alien-Factoy MongoDB driver was inspired by [fantomongo]`https://bitbucket.o
 
 Release Notes [#releaseNotes]
 *****************************
+v0.0.6 [#v0.0.6]
+----------------
+ - Bug: 'Index.ensure()' when comparing indexes did not respect 'unique:false'.
+
 v0.0.4 [#v0.0.4]
 ----------------
  - New: 'ConnectionManagerPooled' instances are created with a [Mongo Connection URI]`http://docs.mongodb.org/manual/reference/connection-string/`.
