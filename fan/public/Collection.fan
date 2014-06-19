@@ -266,14 +266,18 @@ const class Collection {
 
 	** Updates and returns a single document.
 	** 
+	** If 'returnModified' is 'true' then the document is returned *after* the updates have been applied. 
+	** 
 	**   Options  Type  
 	**   -------  ----  
 	**   upsert   Bool  
 	**   sort     Doc   
 	**   fields   Doc
 	** 
+	** Returns 'null' if no document was found.
+	** 
 	** @see `http://docs.mongodb.org/manual/reference/command/findAndModify/`
-	[Str:Obj?] findAndUpdate(Str:Obj? query, Str:Obj? updateCmd, Bool returnModified, [Str:Obj?]? options := null) {
+	[Str:Obj?]? findAndUpdate(Str:Obj? query, Str:Obj? updateCmd, Bool returnModified, [Str:Obj?]? options := null) {
 		cmd	.add("findAndModify",	name)
 			.add("query", 			query)
 			.add("update", 			updateCmd)

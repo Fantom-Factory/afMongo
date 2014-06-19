@@ -34,4 +34,12 @@ internal class TestIndexDb : MongoDbTest {
 		
 		collection.dropAllIndexes
 	}
+	
+	Void testEnsureRespectUniqueEqFalse() {
+		indat := collection.index("_data_")
+		indat.create(["data":1], false)
+		verifyEq(indat.exists, true)
+		
+		verifyEq(indat.ensure(["data":1], false), false)
+	}
 }
