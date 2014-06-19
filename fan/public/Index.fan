@@ -50,6 +50,17 @@ const class Index {
 	** Values may either be the standard Mongo '1' and '-1' for ascending / descending or the 
 	** strings 'ASC' / 'DESC'.
 	** 
+	** Options are numerous, see the MongoDB documentation for details. Common options are:
+	** 
+	**   Name               Type   Desc
+	**   ----------------------------------------------------------------------------
+	**   background         Bool  Builds the index in the background so it does 
+	**                            not block other database activities.
+	**   sparse             Bool  Only reference documents with the specified field. 
+	**                            Uses less space but behave differently in sorts.
+	**   expireAfterSeconds Int   Specifies a Time To Live (TTL) in seconds that 
+	**                            controls how long documents are retained.
+	** 
 	** @see `http://docs.mongodb.org/manual/reference/command/createIndexes/`
 	This create(Str:Obj key, Bool? unique := false, Str:Obj options := [:]) {
 		// there's no createIndexMulti 'cos I figure no novice will need to create multiple indexes at once!
@@ -70,14 +81,18 @@ const class Index {
 	** If the index does not exist, it is created. 
 	** If it exists but with a different key / options, it is dropped and re-created.
 	** 
-	** 'unique' if not specified, defaults to 'false'.
+	** Returns 'true' if the index was (re)-created, 'false' if nothing changed.
 	** 
-	** Returns 'true' if the index was (re)-created, 'false' if nothing changed. 
-	Bool ensure(Str:Obj key, Bool? unique := null, Str:Obj options := [:]) {
+	** @See `create` for option details.
+	**  
+	** @see `http://docs.mongodb.org/manual/reference/command/createIndexes/`
+	Bool ensure(Str:Obj key, Bool? unique := false, Str:Obj options := [:]) {
 		if (!exists) {
 			create(key, unique, options)
 			return true
 		}
+		// if null or false, unique does not appear in the index info map
+//		if (unique == true)	options.set("unique", unique)
 		if (unique != null)	options.set("unique", unique)
 		
 		info := info
