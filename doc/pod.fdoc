@@ -218,6 +218,10 @@ The Alien-Factoy MongoDB driver was inspired by [fantomongo]`https://bitbucket.o
 
 Release Notes [#releaseNotes]
 *****************************
+v0.0.8 [#v0.0.8]
+----------------
+ - Chg: Better Err msg if could not connect to MongoDB.
+
 v0.0.6 [#v0.0.6]
 ----------------
  - Bug: 'Index.ensure()' when comparing indexes did not respect 'unique:false'.
