@@ -57,7 +57,10 @@ class TcpConnection : Connection {
 		this.socket = TcpSocket()
 		if (options != null)
 			this.socket.options.copyFrom(options)
-		socket.connect(address, port)
+		try {
+			socket.connect(address, port)
+		} catch (Err err)
+			throw IOErr(ErrMsgs.connection_couldNot(address.toStr, err.msg))
 	}
 	
 	new makeWithSocket(TcpSocket socket) {
