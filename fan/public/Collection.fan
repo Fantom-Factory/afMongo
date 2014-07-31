@@ -121,7 +121,8 @@ const class Collection {
 	** }
 	** <pre
 	** 
-	** @see `Cursor`
+	**  - @see `Cursor`
+	**  - @see `http://docs.mongodb.org/manual/reference/operator/query/`
 	Obj? find(Str:Obj? query, |Cursor->Obj?| func) {
 		conMgr.leaseConnection |con->Obj?| {
 			cursor := Cursor(con, namespace, query)
@@ -136,7 +137,9 @@ const class Collection {
 	** An (optomised) method to return one document from the given 'query'.
 	** 
 	** Throws 'MongoErr' if no documents are found and 'checked' is true, returns 'null' otherwise.
-	** Always throws 'MongoErr' if the query returns more than one document. 
+	** Always throws 'MongoErr' if the query returns more than one document.
+	**  
+	** @see `http://docs.mongodb.org/manual/reference/operator/query/`
 	[Str:Obj?]? findOne(Str:Obj? query, Bool checked := true) {
 		// findOne() is optomised to NOT call count() on a successful call 
 		find(query) |cursor| {
@@ -159,7 +162,8 @@ const class Collection {
 	** 
 	** The 'sort' map, should it contain more than 1 entry, must be ordered.
 	** 
-	** @see `Cursor.toList`
+	** - @see `Cursor.toList`
+	** - @see `http://docs.mongodb.org/manual/reference/operator/query/`
 	[Str:Obj?][] findAll(Str:Obj? query := [:], Obj? sort := null, Int skip := 0, Int? limit := null) {
 		find(query) |Cursor cursor->[Str:Obj?][]| {
 			cursor.skip  = skip
