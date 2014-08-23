@@ -8,6 +8,9 @@ const mixin ConnectionManager {
 	
 	** Basic details of where this 'ConnectionManager' connects to, for debugging purposes.
 	** It *should not* contain any user credentials and *should* be safe to log. 
+	abstract Uri mongoUrl()
+	
+	@NoDoc @Deprecated { msg="Use mongoUrl() instead" }
 	abstract Uri mongoUri()
 	
 	** Makes a connection available to the given function.

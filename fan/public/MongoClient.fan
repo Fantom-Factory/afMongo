@@ -113,7 +113,7 @@ const class MongoClient {
 		minVersion	 := Version("2.6.0")
 		buildVersion := buildInfo["version"]
 		mongoVersion := Version.fromStr(buildVersion, false)
-		log.info("\n" + logo + "\nConnected to MongoDB v${buildVersion} (at ${conMgr.mongoUri})\n")
+		log.info("\n" + logo + "\nConnected to MongoDB v${buildVersion} (at ${conMgr.mongoUrl})\n")
 
 		if (mongoVersion < minVersion) {
 			msg := "** WARNING: This driver is ONLY compatible with MongoDB v${minVersion} or greater **"

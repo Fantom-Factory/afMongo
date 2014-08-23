@@ -4,10 +4,14 @@ using afConcurrent
 const class ConnectionManagerLocal : ConnectionManager {
 	private const LocalRef connectionRef	:= LocalRef("afMongo.connection")
 	
-	override const Uri mongoUri	
+	override const Uri mongoUrl	
+
+	override Uri mongoUri() {
+		mongoUrl
+	}
 	
-	new make(Connection connection, Uri mongoUri) {
-		this.mongoUri = mongoUri
+	new make(Connection connection, Uri mongoUrl) {
+		this.mongoUrl = mongoUrl
 		this.connectionRef.val = connection
 	}
 	
