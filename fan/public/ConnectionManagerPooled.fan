@@ -54,9 +54,9 @@ const class ConnectionManagerPooled : ConnectionManager {
 	** TODO: socketTimeoutMS
 	** TODO: Write Concern Options
 	** 
-	** URI examples:
-	**   `mongodb://username:password@example1.com/database?maxPoolSize=50`
-	**   `mongodb://example2.com?minPoolSize=10&maxPoolSize=50`
+	** URL examples:
+	**  - 'mongodb://username:password@example1.com/database?maxPoolSize=50'
+	**  - 'mongodb://example2.com?minPoolSize=10&maxPoolSize=50'
 	** 
 	** @see `http://docs.mongodb.org/manual/reference/connection-string/`
 	new makeFromUri(ActorPool actorPool, Uri connectionUrl) {
