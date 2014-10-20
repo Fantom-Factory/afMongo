@@ -101,9 +101,9 @@ class Cursor {
 		set { querySent.check; special["\$hint"] = it }
 	}
 
-	** Use to sort the query results in ascending or descending order.
+	** Use to order the query results in ascending or descending order.
 	** 
-	** If 'sort' is a '[Str:Obj?]' map, it should be a sort document with field names as keys. 
+	** If 'orderBy' is a '[Str:Obj?]' map, it should be a document with field names as keys. 
 	** Values may either be the standard Mongo '1' and '-1' for ascending / descending or the 
 	** strings 'ASC' / 'DESC'.
 	** Should 'orderBy' contain more than 1 entry, it must be ordered.
