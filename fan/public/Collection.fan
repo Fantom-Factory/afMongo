@@ -59,6 +59,9 @@ const class Collection {
 	
 	** Creates a new collection explicitly.
 	** 
+	** There is no no need to call this unless you wish to disable the (default) auto indexing of 
+	** IDs or disable the (default) power of 2 allocation strategy.
+	**  
 	** @see `http://docs.mongodb.org/manual/reference/command/create/`
 	This create(Bool? autoIndexId := true, Bool? usePowerOf2Sizes := true) {
 		flags := (usePowerOf2Sizes == null) ? null : (usePowerOf2Sizes ? 1 : 0) 
@@ -243,6 +246,10 @@ const class Collection {
 
 	** Runs the given 'updateCmd' against documents returned by 'query'.
 	** Returns the number of documents modified.
+	** 
+	** If 'multi' is 'true' then the multiple documents may be updated, otherwise the update is limited to one.
+	** 
+	** If 'upsert' is 'true' and no documents are updated, then one is inserted.
 	** 
 	** @see `http://docs.mongodb.org/manual/reference/command/update/`
 	// TODO: we loose any returned upserted id...?
