@@ -245,7 +245,8 @@ const class Collection {
 	}
 
 	** Runs the given 'updateCmd' against documents returned by 'query'.
-	** Returns the number of documents modified.
+	** Returns the number of documents modified. 
+	** Note this does *not* throw an Err should the query not match any documents.
 	** 
 	** If 'multi' is 'true' then the multiple documents may be updated, otherwise the update is limited to one.
 	** 
