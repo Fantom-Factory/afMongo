@@ -50,6 +50,10 @@ const class Index {
 	** Values may either be the standard Mongo '1' and '-1' for ascending / descending or the 
 	** strings 'ASC' / 'DESC'.
 	** 
+  	**   index.create(["dateAdded" : Index.ASC])
+	** 
+	** Note that should 'key' contain more than 1 entry, it must be ordered.
+	** 
 	** Options are numerous, see the MongoDB documentation for details. Common options are:
 	** 
 	**   Name               Type   Desc
@@ -63,6 +67,9 @@ const class Index {
 	** 
 	** @see `http://docs.mongodb.org/manual/reference/command/createIndexes/`
 	This create(Str:Obj key, Bool? unique := false, Str:Obj options := [:]) {
+		if (key.size > 1 && key.ordered == false)
+			throw ArgErr(ErrMsgs.cursor_mapNotOrdered(key))
+
 		// there's no createIndexMulti 'cos I figure no novice will need to create multiple indexes at once!
 		if (unique != null)	options.set("unique", unique)
 		cmd	.add("createIndexes", colNs.collectionName)
@@ -82,11 +89,18 @@ const class Index {
 	** If it exists but with a different key / options, it is dropped and re-created.
 	** 
 	** Returns 'true' if the index was (re)-created, 'false' if nothing changed.
+	**
+	**   index.ensure(["dateAdded" : Index.ASC])
+	**  
+ 	** Note that should 'key' contain more than 1 entry, it must be ordered.
 	** 
 	** @See `create` for option details.
 	**  
 	** @see `http://docs.mongodb.org/manual/reference/command/createIndexes/`
 	Bool ensure(Str:Obj key, Bool? unique := false, Str:Obj options := [:]) {
+		if (key.size > 1 && key.ordered == false)
+			throw ArgErr(ErrMsgs.cursor_mapNotOrdered(key))
+
 		if (!exists) {
 			create(key, unique, options)
 			return true
