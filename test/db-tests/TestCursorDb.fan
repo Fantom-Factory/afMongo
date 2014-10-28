@@ -136,13 +136,13 @@ internal class TestCursorDb : MongoDbTest {
 		cursor = Cursor(connection, Namespace(col.qname), [:])
 		cursor.skip = 2
 		verifyEq(cursor.index, 2)
-		verifyEq(cursor.count, 10)
+		verifyEq(cursor.count, 8)
 		verifyEq(cursor.hasNext, true)
 		verifyEq(cursor.next["data"], 3)
 		
 		cursor = Cursor(connection, Namespace(col.qname), [:])
 		cursor.skip = 20
-		verifyEq(cursor.count, 10)
+		verifyEq(cursor.count, 0)
 		verifyEq(cursor.index, 20)
 		verifyEq(cursor.hasNext, false)
 

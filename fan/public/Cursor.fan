@@ -3,16 +3,16 @@
 **
 ** @see `http://docs.mongodb.org/manual/core/cursors/`
 class Cursor {
-	private static const Log	log			:= Utils.getLog(Cursor#)
-	private OneShotLock			querySent	:= OneShotLock("Query has been sent to MongoDB")
-	private OneShotLock			deadCursor	:= OneShotLock("Cursor has been killed")
-	private Connection			connection
-	private Namespace			nsCol
-	private Int					cursorId
-	private [Str:Obj?][]?		results
-	private Int 				resultIndex
-	private Int 				downloaded
-	private Int 				indexLocal
+	private static const Log	_log			:= Utils.getLog(Cursor#)
+	private OneShotLock			_querySent	:= OneShotLock("Query has been sent to MongoDB")
+	private OneShotLock			_deadCursor	:= OneShotLock("Cursor has been killed")
+	private Connection			_connection
+	private Namespace			_nsCol
+	private Int					_cursorId
+	private [Str:Obj?][]?		_results
+	private Int 				_resultIndex
+	private Int 				_downloaded
+	private Int 				_indexLocal
 
 	** Use in 'orderBy' maps to denote sort order.
 	static const Int ASC		:= 1
@@ -31,7 +31,7 @@ class Cursor {
 	** 
 	** This value can not be changed once a query has been sent to the server.
 	Int? batchSize {
-		set { querySent.check; &batchSize = it }
+		set { _querySent.check; &batchSize = it }
 	}
 	
 	** The maximum number of documents this cursor will read.
@@ -40,7 +40,7 @@ class Cursor {
 	** 
 	** This value can not be changed once a query has been sent to the server.
 	Int? limit {
-		set { querySent.check; &limit = it }		
+		set { _querySent.check; &limit = it }		
 	}
 	
 	** The number of documents to omit, when returning the result of the query.
@@ -49,7 +49,7 @@ class Cursor {
 	** 
 	** This value can not be changed once the query has been sent to the server.
 	Int skip {
-		set { querySent.check; &skip = it; &index = it }
+		set { _querySent.check; &skip = it; &index = it }
 	}
 	
 	** The names of the fields to be returned in the query results.
@@ -58,7 +58,7 @@ class Cursor {
 	** 
 	** This value can not be changed once the query has been sent to the server.
 	Str[]? fieldNames {
-		set { querySent.check; &fieldNames = it }		
+		set { _querySent.check; &fieldNames = it }		
 	}
 	
 	** Optional flags to set in the query. 
@@ -67,7 +67,7 @@ class Cursor {
 	** 
 	** @see `OpQueryFlags`
 	Flag flags {
-		set { querySent.check; &flags = it }		
+		set { _querySent.check; &flags = it }		
 	}
 	
 	** A zero based index into the documents returned by the query.
@@ -87,8 +87,8 @@ class Cursor {
 	** 
 	** @see `http://docs.mongodb.org/manual/reference/operator/query-modifier/`
 	[Str:Obj?] special {
-		get { querySent.locked ? &special.ro : &special}
-		set { querySent.check  ; &special = it }
+		get { _querySent.locked ? &special.ro : &special}
+		set { _querySent.check  ; &special = it }
 	}
 
 	** The name of the index to use for sorting.
@@ -98,7 +98,7 @@ class Cursor {
 	** @see `http://docs.mongodb.org/manual/reference/operator/meta/hint/`
 	Str? hint {
 		get { special["\$hint"] }		
-		set { querySent.check; special["\$hint"] = it }
+		set { _querySent.check; special["\$hint"] = it }
 	}
 
 	** Use to order the query results in ascending or descending order.
@@ -116,10 +116,10 @@ class Cursor {
 	** 
 	** @see `http://docs.mongodb.org/manual/reference/operator/meta/orderby/`
 	[Str:Obj?]? orderBy {
-		get { querySent.locked ? (([Str:Obj?]?) special["\$orderby"])?.ro : special["\$orderby"] }
+		get { _querySent.locked ? (([Str:Obj?]?) special["\$orderby"])?.ro : special["\$orderby"] }
 		// convert here with no check, 'cos what is invalid today maybe valid tomorrow. 
 		set {
-			querySent.check
+			_querySent.check
 			if (it.size > 1 && it.ordered == false)
 				throw ArgErr(ErrMsgs.cursor_mapNotOrdered(it))
 			special["\$orderby"] = Utils.convertAscDesc(it) 
@@ -127,24 +127,24 @@ class Cursor {
 	}
 	
 	internal new make(Connection connection, Namespace namespace, Str:Obj? query) {
-		this.connection = connection		
-		this.nsCol		= namespace
+		this._connection = connection		
+		this._nsCol		= namespace
 		this.query		= query
 		this.flags		= OpQueryFlags.none
-		this.special	= cmd
+		this.special	= _cmd
 	}
 
 	** Used from Collection.aggregate()
 	internal new makeFromId(Connection connection, Namespace namespace, Str:Obj? query, Int cursorId, [Str:Obj?][] results) {
-		this.connection = connection		
-		this.nsCol		= namespace
+		this._connection = connection		
+		this._nsCol		= namespace
 		this.query		= query
 		this.flags		= OpQueryFlags.none
-		this.special	= cmd
+		this.special	= _cmd
 		
-		this.querySent.lock
-		this.cursorId	= cursorId
-		this.results	= results
+		this._querySent.lock
+		this._cursorId	= cursorId
+		this._results	= results
 	}
 	
 	** Returns the next document from the query.
@@ -161,18 +161,18 @@ class Cursor {
 	** thrown, else 'null' is returned.
 	[Str:Obj?]? next(Bool checked := true) {
 		// leave it to 'getSome' and 'getMore' to do the dead cursor check
-		if (results == null)
+		if (_results == null)
 			getSome
-		else if (resultIndex >= results.size) {
-			if (deadCursor.locked)
+		else if (_resultIndex >= _results.size) {
+			if (_deadCursor.locked)
 				return null ?: (checked ? throw MongoCursorErr(ErrMsgs.cursor_noMoreData) : null)
-			getMore(false)
+			_getMore(false)
 		}
-		if (resultIndex >= results.size)
+		if (_resultIndex >= _results.size)
 			return null ?: (checked ? throw MongoCursorErr(ErrMsgs.cursor_noMoreData) : null)
-		result := results[resultIndex++]
+		result := _results[_resultIndex++]
 		index++
-		indexLocal++
+		_indexLocal++
 		return result
 	}
 
@@ -186,7 +186,7 @@ class Cursor {
 	** }
 	** <pre
 	Bool hasNext() {
-		indexLocal < maxDownload
+		_indexLocal < _maxDownload
 	}
 	
 	** Return all *remaining* and unread documents as a List.
@@ -201,31 +201,36 @@ class Cursor {
 	** <pre
 	[Str:Obj?][] toList() {
 		// if nothing has been returned, ask for some data
-		if (!querySent.locked) {
+		if (!_querySent.locked) {
 			flags += OpQueryFlags.exhaust
 			batchSize = null
 			getSome
 		}
 
 		// if all the results have been read, then just return a (subset) of results
-		if (querySent.locked && !isAlive)
-			return (resultIndex == 0) ? results : results[resultIndex..-1]
+		if (_querySent.locked && !isAlive)
+			return (_resultIndex == 0) ? _results : _results[_resultIndex..-1]
 
 		// we're in the middle of iterating, so...
 		// cull any document already seen
-		results = results[resultIndex..-1]
+		_results = _results[_resultIndex..-1]
 		
 		// read the rest
-		getMore(true)
-		return results
+		_getMore(true)
+		return _results
 	}
 	
 	** Returns the maximum number of documents this query can return. 
-	** 'count' is constant for any given query and is not affected by 'skip' or 'limit'. 
+	** 'count' is constant for any given query and *is* affected by 'skip' or 'limit'. 
+	** 
+	** @see `http://docs.mongodb.org/manual/reference/command/count/`
 	once Int count() {
-		runCmd(cmd
-			.add("count", nsCol.collectionName)
-			.add("query", compileQuery)
+		_runCmd(_cmd
+			.add("count", _nsCol.collectionName)
+			.add("query", query)
+			.add("hint", orderBy ?: hint)
+			.add("limit", limit)
+			.add("skip", skip)
 		)["n"]->toInt
 	}
 
@@ -233,7 +238,7 @@ class Cursor {
 	** 
 	** Note this returns 'false' if a query has not yet been sent to the server.
 	Bool isAlive() {
-		querySent.locked && cursorId != 0
+		_querySent.locked && _cursorId != 0
 	}
 
 	** Returns a query plan that describes the process and indexes used to return the query. 
@@ -249,9 +254,9 @@ class Cursor {
 
 	internal Void kill() {
 		if (isAlive) {
-			Operation(connection).killCursors([cursorId])
-			cursorId = 0
-			deadCursor.lock
+			Operation(_connection).killCursors([_cursorId])
+			_cursorId = 0
+			_deadCursor.lock
 		}
 	}
 
@@ -259,8 +264,8 @@ class Cursor {
 		// drain isn't passed in, 'cos it may be user set
 		drain	:= flags.containsAll(OpQueryFlags.exhaust)
 
-		deadCursor.check
-		fields	:= (fieldNames == null) ? null : cmd.addList(fieldNames).map { 1 }
+		_deadCursor.check
+		fields	:= (fieldNames == null) ? null : _cmd.addList(fieldNames).map { 1 }
 		
 		// we want to limit the no. of returned results to the smallest, non-null value
 		qlimit := [batchSize, limit].sort.find { it != null } ?: 0
@@ -270,82 +275,82 @@ class Cursor {
 		if (qlimit == limit)
 			qlimit = -limit
 		
-		reply := Operation(connection).query(nsCol.qname, compileQuery, qlimit, skip, fields, flags)
-		querySent.lock
-		gotSome(reply, false)
+		reply := Operation(_connection).query(_nsCol.qname, _compileQuery, qlimit, skip, fields, flags)
+		_querySent.lock
+		_gotSome(reply, false)
 		
 		// if an 'exhaust' query then gulp down all the server replies
 		if (drain) {
 			while (isAlive) {
-				reply = Operation(connection).readReply(null)
-				gotSome(reply, true)
+				reply = Operation(_connection).readReply(null)
+				_gotSome(reply, true)
 			}
 		}
 	}
 
-	private Void getMore(Bool drain) {
-		deadCursor.check
+	private Void _getMore(Bool drain) {
+		_deadCursor.check
 
 		// make sure the cursor doesn't ever bring down more than 'limit'
-		qlimit := getMoreQlimit
-		reply := Operation(connection).getMore(nsCol.qname, qlimit, cursorId)
-		gotSome(reply, false)
+		qlimit := _getMoreQlimit
+		reply := Operation(_connection).getMore(_nsCol.qname, qlimit, _cursorId)
+		_gotSome(reply, false)
 		
 		if (drain) {
-			while (isAlive && (downloaded < maxDownload)) {
-				reply = Operation(connection).getMore(nsCol.qname, getMoreQlimit, cursorId)
-				gotSome(reply, true)
+			while (isAlive && (_downloaded < _maxDownload)) {
+				reply = Operation(_connection).getMore(_nsCol.qname, _getMoreQlimit, _cursorId)
+				_gotSome(reply, true)
 			}
 			// and we're spent!
 			kill
 		}
 	}
 
-	private Void gotSome(OpReplyResponse reply, Bool append) {
-		cursorId 	= reply.cursorId
-		downloaded	+= reply.documents.size
+	private Void _gotSome(OpReplyResponse reply, Bool append) {
+		_cursorId 	= reply.cursorId
+		_downloaded	+= reply.documents.size
 
 		if (append) {
-			results.addAll(reply.documents)
+			_results.addAll(reply.documents)
 		} else {
-			resultIndex	= 0			
-			results 	= reply.documents
+			_resultIndex	= 0			
+			_results 	= reply.documents
 			if (index != (reply.cursorPos + skip))
-				log.warn(LogMsgs.cursor_indexOutOfSync(index, reply.cursorPos + skip))
+				_log.warn(LogMsgs.cursor_indexOutOfSync(index, reply.cursorPos + skip))
 		}
 
 		if (!isAlive)
-			deadCursor.lock
+			_deadCursor.lock
 	}
 	
-	private Int getMoreQlimit() {
+	private Int _getMoreQlimit() {
 		qlimit := batchSize ?: 0
 		if (limit != null) {
-			qlimit = limit - downloaded
+			qlimit = limit - _downloaded
 		}
 		return qlimit
 	}
 	
-	private Int maxDownload() {
-		limit ?: count - skip
+	private Int _maxDownload() {
+		limit ?: count
 	}
 	
-	private [Str:Obj?] compileQuery() {
-		special.isEmpty ? query : cmd.add("\$query", query).addAll(special)
+	private [Str:Obj?] _compileQuery() {
+		special.isEmpty ? query : _cmd.add("\$query", query).addAll(special)
 	}
 	
-	private Str:Obj? cmd() {
+	private Str:Obj? _cmd() {
 		Str:Obj?[:] { ordered = true }
 	}	
 	
-	private Str:Obj? runCmd(Str:Obj? cmd) {
-		Operation(connection).runCommand("${nsCol.databaseName}.\$cmd", cmd)
+	private Str:Obj? _runCmd(Str:Obj? cmd) {
+		Operation(_connection).runCommand("${_nsCol.databaseName}.\$cmd", cmd)
 	}
 
 	// ---- Obj Overrides -------------------------------------------------------------------------
 	
 	@NoDoc
 	override Str toStr() {
-		nsCol.qname
+		_nsCol.qname
 	}
 }
