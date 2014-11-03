@@ -34,10 +34,6 @@ const class User {
 	** The name of this user.
 	const Str name
 	
-	** The [write concern]`http://docs.mongodb.org/manual/reference/write-concern/` to use for 
-	** user writes.
-	const [Str:Obj?] writeConcern	:= MongoConstants.defaultWriteConcern
-
 	** Creates a 'User' with the given details.
 	new make(ConnectionManager conMgr, Str dbName, Str userName, |This|? f := null) {
 		f?.call(this)
@@ -67,7 +63,7 @@ const class User {
 			.add("pwd",				password)
 			.add("customData",		customData)
 			.add("roles",			roles)
-			.add("writeConcern",	writeConcern ?: this.writeConcern)
+			.add("writeConcern",	writeConcern ?: conMgr.writeConcern)
 			.run
 		// [ok:1.0]
 		return this
@@ -94,7 +90,7 @@ const class User {
 		cmd("update")	// has writeConcern
 			.add("grantRolesToUser", 	name)
 			.add("roles", 				roles)
-			.add("writeConcern",		writeConcern ?: this.writeConcern)
+			.add("writeConcern",		writeConcern ?: conMgr.writeConcern)
 			.run
 		// [ok:1.0]
 		return this
@@ -107,7 +103,7 @@ const class User {
 		cmd("update")	// has writeConcern
 			.add("revokeRolesFromUser", name)
 			.add("roles", 				roles)
-			.add("writeConcern",		writeConcern ?: this.writeConcern)
+			.add("writeConcern",		writeConcern ?: conMgr.writeConcern)
 			.run
 		// [ok:1.0]
 		return this

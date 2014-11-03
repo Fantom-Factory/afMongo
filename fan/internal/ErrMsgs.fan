@@ -101,6 +101,10 @@ internal const class ErrMsgs {
 		"Minimum number of connections must not be greater than the maximum! min=$min, max=$max, url=$mongoUrl"
 	}
 	
+	static Str connectionManager_noConnectionInThread() {
+		"No connection is available in this thread!?"
+	}
+	
 	static Str connection_couldNot(Str ipAddr, Str errMsg) {
 		"Mongo could not connect to DB at `${ipAddr}` - ${errMsg}"
 	}

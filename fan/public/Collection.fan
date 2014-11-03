@@ -22,10 +22,6 @@ const class Collection {
 		private set { }
 	}
 	
-	** The [write concern]`http://docs.mongodb.org/manual/reference/write-concern/` to use for 
-	** collection writes.
-	const [Str:Obj?] writeConcern	:= MongoConstants.defaultWriteConcern
-
 	** Creates a 'Collection' with the given qualified (dot separated) name.
 	** 
 	** Note this just instantiates the Fantom object, it does not create anything in the database. 
@@ -213,7 +209,7 @@ const class Collection {
 			.add("insert",			name)
 			.add("documents",		inserts)
 			.add("ordered",			ordered)
-			.add("writeConcern",	writeConcern ?: this.writeConcern)
+			.add("writeConcern",	writeConcern ?: conMgr.writeConcern)
 			.run
 	}
 
@@ -240,7 +236,7 @@ const class Collection {
 			.add("delete",			name)
 			.add("deletes",			deletes)
 			.add("ordered",			ordered)
-			.add("writeConcern",	writeConcern ?: this.writeConcern)
+			.add("writeConcern",	writeConcern ?: conMgr.writeConcern)
 			.run
 	}
 
@@ -272,7 +268,7 @@ const class Collection {
 			.add("update",			name)
 			.add("updates",			updates)
 			.add("ordered",			ordered)
-			.add("writeConcern",	writeConcern ?: this.writeConcern)
+			.add("writeConcern",	writeConcern ?: conMgr.writeConcern)
 			.run
 	}
 

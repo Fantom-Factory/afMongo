@@ -18,10 +18,6 @@ using inet
 const class MongoClient {
 	private static const Log 		log	:= Utils.getLog(MongoClient#)
 	private const ConnectionManager conMgr
-
-	** This [write concern]`http://docs.mongodb.org/manual/reference/write-concern/` is passed down 
-	** to all 'Database' instances created from this client.
-	const [Str:Obj?] writeConcern	:= MongoConstants.defaultWriteConcern
 	
 	** Creates a 'MongoClient' with the given 'ConnectionManager'. 
 	** This is the preferred ctor.
@@ -86,7 +82,7 @@ const class MongoClient {
 	** 
 	** Note this just instantiates the Fantom object, it does not create anything in the database. 
 	Database db(Str dbName) {
-		Database(conMgr, dbName) { it.writeConcern = this.writeConcern }
+		Database(conMgr, dbName)
 	}
 
 	** Convenience / shorthand notation for 'db(name)'
