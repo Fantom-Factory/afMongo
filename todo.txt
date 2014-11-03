@@ -24,6 +24,10 @@ GridFs
  - http://docs.mongodb.org/manual/applications/gridfs
  - http://docs.mongodb.org/manual/reference/gridfs/
 ReplicaSets
- - set a read preference - http://api.mongodb.org/java/2.10.0/com/mongodb/ReadPreference.html
+ - set a read preference
+    - http://docs.mongodb.org/manual/reference/connection-string/#read-preference-options
+ 	- http://api.mongodb.org/java/2.10.0/com/mongodb/ReadPreference.html
  - have reading failover to other hosts
- - Connection.leaseReadConnection()
+ - maybe have Connection.leaseReadConnection() && Connection.leaseWriteConnection() ?
+ 
+ mongodb://db1.example.net,db2.example.net:2500/test?replicaSet=test

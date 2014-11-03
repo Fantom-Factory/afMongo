@@ -5,7 +5,7 @@ Overview [#overview]
 'Mongo' driver features:
 
  - Standard and capped collections
- - Write commands: 'insert()', 'update()', 'delete()' and 'findAndModify()' (v2.6+)
+ - Write commands: 'insert()', 'update()', 'delete()' and 'findAndModify()'
  - Write concern support (v2.6+)
  - Optimised queries for 'findOne()' and 'findAll()'
  - Cursor support
@@ -212,18 +212,22 @@ The bad is that in *humongous* collections it eats up precious bytes which means
 
 Remarks [#remarks]
 ==================
-The Alien-Factoy MongoDB driver was inspired by [fantomongo]`https://bitbucket.org/liamstask/fantomongo` by Liam Staskawicz.
+The Alien-Factory MongoDB driver was inspired by [fantomongo]`https://bitbucket.org/liamstask/fantomongo` by Liam Staskawicz.
 
 
 
 Release Notes [#releaseNotes]
 *****************************
-v0.0.8 [#v0.0.8]
+v1.0.0 [#v1.0.0]
 ----------------
- - Chg: Better Err msg if could not connect to MongoDB.
- - Chg: Renamed 'ConnectionManager.mongoUri' -> 'ConnectionManager.mongoUrl'.
+ - New: Support for 'waitQueueTimeoutMS' Mongo URL connection option with a truncated binary exponential backoff algorithm to wait for available connections.
+ - New: Support for write concern options in the Mongo connection URL.
+ - New: Support for 'connectTimeoutMS' and 'socketTimeoutMS' Mongo URL connection options.
+ - Chg: The default write concern has moved out of MongoClient / Database / Collection / User and into the ConnectionManager.
  - Chg: 'Cursor.count' now takes into account 'skip' and 'limit'.
+ - Chg: Renamed 'ConnectionManager.mongoUri' -> 'ConnectionManager.mongoUrl'.
  - Chg: Index keys must be ordered if they contain more than one entry.
+ - Chg: Better Err msg if could not connect to MongoDB.
  - Bug: 'Cursor.count' threw an Err if the query was ordered.
 
 v0.0.6 [#v0.0.6]

@@ -6,12 +6,14 @@ internal class TestWriteConcern : MongoTest {
 	
 	override Void setup() {
 		mmc 	= MockMongoConnection()
-		conMgr	= ConnectionManagerLocal(mmc, ``)
+		conMgr	= ConnectionManagerLocal(mmc, ``) {
+			it.writeConcern = ["cream":"pies"]	// not your usual concern!!!	
+		}
 	}
 	
 	Void testDefaultWriteConcernPropagatesToAll() {
 		mmc.reply(["ok":1.0f, "version":"2.6.0"])
-		mc := MongoClient(conMgr) { it.writeConcern = ["cream":"pies"] }	// not your usual concern!!!
+		mc := MongoClient(conMgr)	
 		user := mc["any"].user("0-kool")
 		coll := mc["any"].collection("zero")
 		
@@ -73,7 +75,7 @@ internal class TestWriteConcern : MongoTest {
 	
 	Void testWriteConcernFail() {
 		mmc.reply(["ok":1.0f, "version":"2.6.0"])		
-		mc := MongoClient(conMgr) { it.writeConcern = ["cream":"pies"] }	// not your usual concern!!!
+		mc := MongoClient(conMgr)
 		user := mc["any"].user("0-kool")
 		coll := mc["any"].collection("zero")
 		

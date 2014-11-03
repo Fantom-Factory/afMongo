@@ -7,10 +7,6 @@ const class Database {
 	** The name of the database.
 	const Str name
 
-	** This [write concern]`http://docs.mongodb.org/manual/reference/write-concern/` is passed down 
-	** to all 'Collection' and 'User' instances created by this 'Database'.
-	const [Str:Obj?] writeConcern	:= MongoConstants.defaultWriteConcern
-
 	** Creates a 'Database' with the given name.
 	** 
 	** Note this just instantiates the Fantom object, it does not create anything in the database. 
@@ -105,7 +101,7 @@ const class Database {
 	** 
 	** Note this just instantiates the Fantom object, it does not create anything in the database. 
 	Collection collection(Str collectionName) {
-		Collection(this, collectionName) { it.writeConcern = this.writeConcern }
+		Collection(this, collectionName)
 	}
 
 	** Convenience / shorthand notation for 'collection(name)'
@@ -126,7 +122,7 @@ const class Database {
 	** 
 	** Note this just instantiates the Fantom object, it does not create anything in the database. 
 	User user(Str userName) {
-		User(conMgr, name, userName) { it.writeConcern = this.writeConcern }
+		User(conMgr, name, userName)
 	}
 	
 	** Drops ALL users from this database. *Be careful!*

@@ -18,6 +18,14 @@ const class ConnectionManagerPooled : ConnectionManager {
 	** The host name of the MongoDB server this 'ConnectionManager' connects to.
 	override const Uri mongoUrl
 
+	** The default write concern that all write operations use if none supplied.
+	** 
+	** Defaults to '["w": 1, "wtimeout": 0, "journal": false]'
+	**  - write operations are acknowledged,
+	**  - write operations never time out,
+	**  - write operations need not be committed to the journal.
+	override const Str:Obj? writeConcern := ["w": 1, "wtimeout": 0, "journal": false]
+	
 	** The default database connections are authenticated against.
 	** 
 	** Set via the `#connectionUrl`.
@@ -33,7 +41,8 @@ const class ConnectionManagerPooled : ConnectionManager {
 	** Set via the `#connectionUrl`.
 	const Str?	defaultPassword
 	
-	** The URI this 'ConnectionManager' was configured with.
+	** The original URL this 'ConnectionManager' was configured with.
+	** May contain authentication details.
 	** 
 	**   mongodb://username:password@example1.com/puppies?maxPoolSize=50
 	const Uri	connectionUrl
@@ -93,7 +102,7 @@ const class ConnectionManagerPooled : ConnectionManager {
 	internal const |Range->Int|	randomFunc	:= |Range r->Int| { r.random }
 	internal const |Duration| 	sleepFunc	:= |Duration napTime| { Actor.sleep(napTime) }
 	
-	** Create a 'ConnectionManager' from a [Mongo Connection URI]`http://docs.mongodb.org/manual/reference/connection-string/`.
+	** Create a 'ConnectionManager' from a [Mongo Connection URL]`http://docs.mongodb.org/manual/reference/connection-string/`.
 	** If user credentials are supplied, they are used as default authentication for each connection.
 	** 
 	** The following Url options are supported:
@@ -102,15 +111,16 @@ const class ConnectionManagerPooled : ConnectionManager {
 	**  - [waitQueueTimeoutMS]`http://docs.mongodb.org/manual/reference/connection-string/#uri.waitQueueTimeoutMS`
 	**  - [connectTimeoutMS]`http://docs.mongodb.org/manual/reference/connection-string/#uri.connectTimeoutMS`
 	**  - [socketTimeoutMS]`http://docs.mongodb.org/manual/reference/connection-string/#uri.socketTimeoutMS`
-	** 
-	** TODO: Write Concern Options - w= -1, 0 1
+	**  - [w]`http://docs.mongodb.org/manual/reference/connection-string/#uri.w`
+	**  - [wtimeoutMS]`http://docs.mongodb.org/manual/reference/connection-string/#uri.wtimeoutMS`
+	**  - [journal]`http://docs.mongodb.org/manual/reference/connection-string/#uri.journal`
 	** 
 	** URL examples:
 	**  - 'mongodb://username:password@example1.com/database?maxPoolSize=50'
 	**  - 'mongodb://example2.com?minPoolSize=10&maxPoolSize=50'
 	** 
 	** @see `http://docs.mongodb.org/manual/reference/connection-string/`
-	new makeFromUri(ActorPool actorPool, Uri connectionUrl, |This|? f := null) {
+	new makeFromUrl(ActorPool actorPool, Uri connectionUrl, |This|? f := null) {
 		if (connectionUrl.scheme != "mongodb")
 			throw ArgErr(ErrMsgs.connectionManager_badScheme(connectionUrl))
 
@@ -122,6 +132,9 @@ const class ConnectionManagerPooled : ConnectionManager {
 		waitQueueTimeoutMs		:= mongoUrl.query["waitQueueTimeoutMS"]?.toInt
 		connectTimeoutMs		:= mongoUrl.query["connectTimeoutMS"]?.toInt
 		socketTimeoutMs 		:= mongoUrl.query["socketTimeoutMS"]?.toInt
+		w						:= mongoUrl.query["w"]
+		wtimeoutMs		 		:= mongoUrl.query["wtimeoutMS"]?.toInt
+		journal			 		:= mongoUrl.query["journal"]?.toBool
 
 		if (minPoolSize < 0)
 			throw ArgErr(ErrMsgs.connectionManager_badInt("minPoolSize", "zero", minPoolSize, mongoUrl))
@@ -135,6 +148,8 @@ const class ConnectionManagerPooled : ConnectionManager {
 			throw ArgErr(ErrMsgs.connectionManager_badInt("connectTimeoutMS", "zero", connectTimeoutMs, mongoUrl))
 		if (socketTimeoutMs != null && socketTimeoutMs < 0)
 			throw ArgErr(ErrMsgs.connectionManager_badInt("socketTimeoutMS", "zero", socketTimeoutMs, mongoUrl))
+		if (wtimeoutMs != null && wtimeoutMs < 0)
+			throw ArgErr(ErrMsgs.connectionManager_badInt("wtimeoutMS", "zero", wtimeoutMs, mongoUrl))
 
 		if (waitQueueTimeoutMs != null)
 			waitQueueTimeout = (waitQueueTimeoutMs * 1000000).toDuration
@@ -171,12 +186,24 @@ const class ConnectionManagerPooled : ConnectionManager {
 			} 
 		}.get
 		
+		writeConcern := Str:Obj?[:] { it.ordered=true }.add("w", 1).add("wtimeout", 0).add("journal", false)
+		if (w != null)
+			writeConcern["w"] = Int.fromStr(w, 10, false) != null ? w.toInt : w
+		if (wtimeoutMs != null)
+			writeConcern["wtimeout"] = wtimeoutMs
+		if (journal != null)
+			writeConcern["journal"] = journal
+		this.writeConcern = writeConcern
+
 		query := mongoUrl.query.rw
 		query.remove("minPoolSize")
 		query.remove("maxPoolSize")
 		query.remove("waitQueueTimeoutMS")
 		query.remove("connectTimeoutMS")
 		query.remove("socketTimeoutMS")
+		query.remove("w")
+		query.remove("wtimeoutMS")
+		query.remove("journal")
 		query.each |val, key| {
 			log.warn(LogMsgs.connectionManager_unknownUrlOption(key, val, mongoUrl))
 		}
@@ -196,7 +223,7 @@ const class ConnectionManagerPooled : ConnectionManager {
 		startupLock.lock
 
 		// connect x times
-		(1..minPoolSize).toList.map { checkOut }.each { checkIn(it) }
+		minPoolSize.times { checkIn(checkOut) }
 		
 		return this
 	}

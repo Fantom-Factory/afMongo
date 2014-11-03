@@ -4,7 +4,6 @@ using inet
 ** All connections on creation should be connected to a MongoDB instance and ready to go.
 ** 
 ** @see `TcpConnection` 
-// TODO: maybe connections should know if they're connected to a master? 
 mixin Connection {
 
 	** Data *from* MongoDB *to* the client.

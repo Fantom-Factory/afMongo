@@ -5,15 +5,18 @@ const class ConnectionManagerLocal : ConnectionManager {
 	private const LocalRef connectionRef	:= LocalRef("afMongo.connection")
 	
 	override const Uri mongoUrl	
+	override const Str:Obj? writeConcern := Str:Obj?[:] { it.ordered=true }.add("w", 1).add("wtimeout", 0).add("journal", false)
 
-	new make(Connection connection, Uri mongoUrl) {
+	new make(Connection connection, Uri mongoUrl, |This|? f := null) {
+		f?.call(this)
 		this.mongoUrl = mongoUrl
 		this.connectionRef.val = connection
 	}
 	
 	override Obj? leaseConnection(|Connection->Obj?| c) {
-		// TODO: throw Err if connection doesn't exist in this thread
-		c(connectionRef.val)
+		if (connectionRef.val == null)
+			throw MongoErr(ErrMsgs.connectionManager_noConnectionInThread)
+		return c(connectionRef.val)
 	}
 	
 	override ConnectionManager startup() {
