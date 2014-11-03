@@ -53,18 +53,18 @@ class TcpConnection : Connection {
 	TcpSocket socket
 	override Str:Str	authentications	:= [:]
 	
-	new makeWithIpAddr(IpAddr address := IpAddr("127.0.0.1"), Int port := 27017, SocketOptions? options := null) {
-		this.socket = TcpSocket()
-		if (options != null)
-			this.socket.options.copyFrom(options)
-		try {
-			socket.connect(address, port)
-		} catch (Err err)
-			throw IOErr(ErrMsgs.connection_couldNot(address.toStr, err.msg))
+	** Allows you to pass in a TcpSocket with options already set.
+	new make(TcpSocket? socket := null) {
+		this.socket = socket ?: TcpSocket()
 	}
 	
-	new makeWithSocket(TcpSocket socket) {
-		this.socket = socket
+	This connect(IpAddr address := IpAddr("127.0.0.1"), Int port := 27017) {
+		try {
+			socket.connect(address, port)
+			return this
+		}
+		catch (Err err)
+			throw IOErr(ErrMsgs.connection_couldNot(address.toStr, err.msg))		
 	}
 	
 	override InStream	in()		{ socket.in			}
