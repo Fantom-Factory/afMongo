@@ -1,10 +1,7 @@
 
 For v1.0
 --------
-GridFs 
- - http://docs.mongodb.org/manual/core/gridfs/
- - http://docs.mongodb.org/manual/applications/gridfs
- - http://docs.mongodb.org/manual/reference/gridfs/
+
 
 Tidy up ConnectionManagerPooled, make clients wait for a free connection.
  - write concern
@@ -22,3 +19,11 @@ Role Commands (new in 2.6)
 Query Plan Cache Commands (new in 2.6)
 Geospatial Commands
 Tailable Cursors
+GridFs 
+ - http://docs.mongodb.org/manual/core/gridfs/
+ - http://docs.mongodb.org/manual/applications/gridfs
+ - http://docs.mongodb.org/manual/reference/gridfs/
+ReplicaSets
+ - set a read preference - http://api.mongodb.org/java/2.10.0/com/mongodb/ReadPreference.html
+ - have reading failover to other hosts
+ - Connection.leaseReadConnection()

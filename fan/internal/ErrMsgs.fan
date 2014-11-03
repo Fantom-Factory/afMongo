@@ -90,7 +90,7 @@ internal const class ErrMsgs {
 	}
 	
 	static Str connectionManager_badUsernamePasswordCombo(Str? username, Str? password, Uri mongoUrl) {
-		"Either both the username and password should be provided, or neither. username=$username, password=$password, uri=$mongoUrl"
+		"Either both the username and password should be provided, or neither. username=$username, password=$password, url=$mongoUrl"
 	}
 	
 	static Str connectionManager_badInt(Str what, Str min, Int val, Uri mongoUrl) {
@@ -98,7 +98,7 @@ internal const class ErrMsgs {
 	}
 	
 	static Str connectionManager_badMinMaxConnectionSize(Int min, Int max, Uri mongoUrl) {
-		"Minimum number of connections must not be greater than the maximum! min=$min, max=$max, uri=$mongoUrl"
+		"Minimum number of connections must not be greater than the maximum! min=$min, max=$max, url=$mongoUrl"
 	}
 	
 	static Str connection_couldNot(Str ipAddr, Str errMsg) {
