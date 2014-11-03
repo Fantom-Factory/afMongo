@@ -85,24 +85,20 @@ internal const class ErrMsgs {
 //		"Collection names beginning with 'system.' are reserved: ${name}"
 //	}
 	
-	static Str connectionManager_badScheme(Uri mongoUri) {
-		"Mongo connection URIs must start with the scheme 'mongodb://' - ${mongoUri}"
+	static Str connectionManager_badScheme(Uri mongoUrl) {
+		"Mongo connection URIs must start with the scheme 'mongodb://' - ${mongoUrl}"
 	}
 	
-	static Str connectionManager_badUsernamePasswordCombo(Str? username, Str? password, Uri mongoUri) {
-		"Either both the username and password should be provided, or neither. username=$username, password=$password, uri=$mongoUri"
+	static Str connectionManager_badUsernamePasswordCombo(Str? username, Str? password, Uri mongoUrl) {
+		"Either both the username and password should be provided, or neither. username=$username, password=$password, uri=$mongoUrl"
 	}
 	
-	static Str connectionManager_badMinConnectionSize(Int min, Uri mongoUri) {
-		"Minimum number of connections must not be less than zero! min=$min, uri=$mongoUri"
+	static Str connectionManager_badInt(Str what, Str min, Int val, Uri mongoUrl) {
+		"$what must be greater than $min! val=$val, uri=$mongoUrl"
 	}
 	
-	static Str connectionManager_badMaxConnectionSize(Int max, Uri mongoUri) {
-		"Maximum number of connections must not be less than one! max=$max, uri=$mongoUri"
-	}
-	
-	static Str connectionManager_badMinMaxConnectionSize(Int min, Int max, Uri mongoUri) {
-		"Minimum number of connections must not be greater than the maximum! min=$min, max=$max, uri=$mongoUri"
+	static Str connectionManager_badMinMaxConnectionSize(Int min, Int max, Uri mongoUrl) {
+		"Minimum number of connections must not be greater than the maximum! min=$min, max=$max, uri=$mongoUrl"
 	}
 	
 	static Str connection_couldNot(Str ipAddr, Str errMsg) {

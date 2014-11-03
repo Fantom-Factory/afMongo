@@ -1,10 +1,9 @@
 using concurrent
 
 internal class TestConMgrPooled : MongoTest {
-	
-	Void testMongoUriUserCreds() {
-		pool := ActorPool()
-		
+	ActorPool pool := ActorPool()
+
+	Void testMongoUriUserCreds() {		
 		verifyErrMsg(ArgErr#, ErrMsgs.connectionManager_badScheme(`dude://wotsup?`)) {
 			conMgr := ConnectionManagerPooled(pool, `dude://wotsup?`)
 		}
@@ -33,13 +32,11 @@ internal class TestConMgrPooled : MongoTest {
 	}
 		
 	Void testMongoUriPoolSize() {
-		pool := ActorPool()
-
-		verifyErrMsg(ArgErr#, ErrMsgs.connectionManager_badMinConnectionSize(-1, `mongodb://wotever?minPoolSize=-1`)) {
+		verifyErrMsg(ArgErr#, ErrMsgs.connectionManager_badInt("minPoolSize", "zero", -1, `mongodb://wotever?minPoolSize=-1`)) {
 			conMgr := ConnectionManagerPooled(pool, `mongodb://wotever?minPoolSize=-1`)
 		}
 		
-		verifyErrMsg(ArgErr#, ErrMsgs.connectionManager_badMaxConnectionSize(0, `mongodb://wotever?maxPoolSize=0`)) {
+		verifyErrMsg(ArgErr#, ErrMsgs.connectionManager_badInt("maxPoolSize", "one", 0, `mongodb://wotever?maxPoolSize=0`)) {
 			conMgr := ConnectionManagerPooled(pool, `mongodb://wotever?maxPoolSize=0`)
 		}
 		
@@ -48,7 +45,22 @@ internal class TestConMgrPooled : MongoTest {
 		}
 		
 		conMgr := ConnectionManagerPooled(pool, `mongodb://wotever?minPoolSize=2&maxPoolSize=15`)
-		verifyEq(conMgr.minPoolSize, 2)
+		verifyEq(conMgr.minPoolSize,  2)
 		verifyEq(conMgr.maxPoolSize, 15)
+	}
+
+	Void testMongoUriConnectionOptions() {
+		verifyErrMsg(ArgErr#, ErrMsgs.connectionManager_badInt("connectTimeoutMS", "zero", -1, `mongodb://wotever?connectTimeoutMS=-1`)) {
+			conMgr := ConnectionManagerPooled(pool, `mongodb://wotever?connectTimeoutMS=-1`)
+		}
+		
+		verifyErrMsg(ArgErr#, ErrMsgs.connectionManager_badInt("socketTimeoutMS", "zero", -1, `mongodb://wotever?socketTimeoutMS=-1`)) {
+			conMgr := ConnectionManagerPooled(pool, `mongodb://wotever?socketTimeoutMS=-1`)
+		}
+		
+		conMgr := ConnectionManagerPooled(pool, `mongodb://wotever?connectTimeoutMS=2000&socketTimeoutMS=3000`)
+		verifyEq(conMgr.connectTimeout, 2sec)
+		verifyEq(conMgr.socketTimeout,  3sec)
+		
 	}
 }

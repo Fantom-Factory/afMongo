@@ -17,28 +17,64 @@ const class ConnectionManagerPooled : ConnectionManager {
 	** The host name of the MongoDB server this 'ConnectionManager' connects to.
 	override const Uri mongoUrl
 	override Uri mongoUri() { mongoUrl }
+
+	** The default database connections are authenticated against.
+	** 
+	** Set via the `#connectionUrl`.
+	const Str?	defaultDatabase
+	
+	** The default username connections are authenticated with.
+	** 
+	** Set via the `#connectionUrl`.
+	const Str?	defaultUsername
+	
+	** The default password connections are authenticated with.
+	** 
+	** Set via the `#connectionUrl`.
+	const Str?	defaultPassword
 	
 	** The URI this 'ConnectionManager' was configured with.
 	** 
-	**   `mongodb://username:password@example1.com/puppies?maxPoolSize=50`
+	**   mongodb://username:password@example1.com/puppies?maxPoolSize=50
 	const Uri	connectionUrl
 	
 	** The minimum number of database connections this pool should keep open.
 	** They are initially created during 'startup()'.
+	** 
+	** Set via the [minPoolSize]`http://docs.mongodb.org/manual/reference/connection-string/#uri.minPoolSize` connection string option.
+	** Defaults to 0.
+	** 
+	**   mongodb://example.com/puppies?minPoolSize=50
 	const Int 	minPoolSize	:= 0
 
 	** The maximum number of database connections this pool should open.
-	** Set it to the number of concurrent users you expect to use your application.
+	** This is the number of concurrent users you expect to use your application.
+	** 
+	** Set via the [maxPoolSize]`http://docs.mongodb.org/manual/reference/connection-string/#uri.maxPoolSize` connection string option.
+	** Defaults to 10.
+	** 
+	**   mongodb://example.com/puppies?maxPoolSize=10
 	const Int 	maxPoolSize	:= 10
-
-	** The default database connections are authenticated against.
-	const Str?	defaultDatabase
 	
-	** The default username connections are authenticated with.
-	const Str?	defaultUsername
+	** If specified, this is the time to attempt a connection before timing out.
+	** If 'null' (the default) then a system timeout is used.
+	** 
+	** Set via the [connectTimeoutMS]`http://docs.mongodb.org/manual/reference/connection-string/#uri.connectTimeoutMS` connection string option.
+	** 
+	**   mongodb://example.com/puppies?connectTimeoutMS=2500
+	** 
+	** Equates to `inet::SocketOptions.connectTimeout`.
+	const Duration? connectTimeout
 	
-	** The default password connections are authenticated with.
-	const Str?	defaultPassword
+	** If specified, this is the time to attempt a send or receive on a socket before the attempt times out.
+	** 'null' (the default) indicates an infinite timeout.
+	** 
+	** Set via the [socketTimeoutMS]`http://docs.mongodb.org/manual/reference/connection-string/#uri.socketTimeoutMS` connection string option.
+	** 
+	**   mongodb://example.com/puppies?socketTimeoutMS=2500
+	** 
+	** Equates to `inet::SocketOptions.receiveTimeout`.
+	const Duration? socketTimeout
 	
 	** The maximum time a thread may wait for a connection to become available.
 //	const Duration	maxWaitTime			:= 10sec
@@ -49,10 +85,11 @@ const class ConnectionManagerPooled : ConnectionManager {
 	** The following Uri options are supported:
 	**  - [minPoolSize]`http://docs.mongodb.org/manual/reference/connection-string/#uri.minPoolSize`
 	**  - [maxPoolSize]`http://docs.mongodb.org/manual/reference/connection-string/#uri.maxPoolSize`
+	**  - [connectTimeoutMS]`http://docs.mongodb.org/manual/reference/connection-string/#uri.connectTimeoutMS`
+	**  - [socketTimeoutMS]`http://docs.mongodb.org/manual/reference/connection-string/#uri.socketTimeoutMS`
 	** 
-	** TODO: connectTimeoutMS
-	** TODO: socketTimeoutMS
-	** TODO: Write Concern Options
+	** TODO: uri.waitQueueTimeoutMS
+	** TODO: Write Concern Options - w= -1, 0 1
 	** 
 	** URL examples:
 	**  - 'mongodb://username:password@example1.com/database?maxPoolSize=50'
@@ -68,13 +105,24 @@ const class ConnectionManagerPooled : ConnectionManager {
 		this.connectionState	= SynchronizedState(actorPool, ConnectionManagerPoolState#)
 		this.minPoolSize 		= mongoUri.query["minPoolSize"]?.toInt ?: minPoolSize
 		this.maxPoolSize 		= mongoUri.query["maxPoolSize"]?.toInt ?: maxPoolSize
+		connectTimeoutMs		:= mongoUri.query["connectTimeoutMS"]?.toInt
+		socketTimeoutMs 		:= mongoUri.query["socketTimeoutMS"]?.toInt
 		
 		if (minPoolSize < 0)
-			throw ArgErr(ErrMsgs.connectionManager_badMinConnectionSize(minPoolSize, mongoUri))
+			throw ArgErr(ErrMsgs.connectionManager_badInt("minPoolSize", "zero", minPoolSize, mongoUri))
 		if (maxPoolSize < 1)
-			throw ArgErr(ErrMsgs.connectionManager_badMaxConnectionSize(maxPoolSize, mongoUri))
+			throw ArgErr(ErrMsgs.connectionManager_badInt("maxPoolSize", "one", maxPoolSize, mongoUri))
 		if (minPoolSize > maxPoolSize)
 			throw ArgErr(ErrMsgs.connectionManager_badMinMaxConnectionSize(minPoolSize, maxPoolSize, mongoUri))		
+		if (connectTimeoutMs != null && connectTimeoutMs < 0)
+			throw ArgErr(ErrMsgs.connectionManager_badInt("connectTimeoutMS", "zero", connectTimeoutMs, mongoUri))
+		if (socketTimeoutMs != null && socketTimeoutMs < 0)
+			throw ArgErr(ErrMsgs.connectionManager_badInt("socketTimeoutMS", "zero", socketTimeoutMs, mongoUri))
+
+		if (connectTimeoutMs != null)
+			connectTimeout = (connectTimeoutMs * 1000000).toDuration
+		if (socketTimeoutMs != null)
+			socketTimeout = (socketTimeoutMs * 1000000).toDuration
 
 		address	 := mongoUri.host ?: "127.0.0.1"
 		port	 := mongoUri.port ?: 27017
@@ -97,12 +145,15 @@ const class ConnectionManagerPooled : ConnectionManager {
 		defaultPassword = password
 		connectionState.withState |ConnectionManagerPoolState state| {
 			state.connectionFactory = |->Connection| {
-				TcpConnection(IpAddr(address), port)
-			}
+				socket := TcpSocket()
+				socket.options.connectTimeout = connectTimeout
+				socket.options.receiveTimeout = socketTimeout
+				return TcpConnection(socket).connect(IpAddr(address), port)
+			} 
 		}.get
 		
 		// remove user credentials and other crud from the uri
-		mongoUrl = `mongodb://${address}:${port}`
+		mongoUrl = "mongodb://${address}:${port}".toUri	// F4 doesn't like Uri interpolation
 	}
 	
 	** Makes a connection available to the given function.
