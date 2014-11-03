@@ -10,9 +10,6 @@ const mixin ConnectionManager {
 	** It *should not* contain any user credentials and *should* be safe to log. 
 	abstract Uri mongoUrl()
 	
-	@NoDoc @Deprecated { msg="Use mongoUrl() instead" }
-	abstract Uri mongoUri()
-	
 	** Makes a connection available to the given function.
 	abstract Obj? leaseConnection(|Connection->Obj?| c)
 	

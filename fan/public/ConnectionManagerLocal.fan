@@ -6,10 +6,6 @@ const class ConnectionManagerLocal : ConnectionManager {
 	
 	override const Uri mongoUrl	
 
-	override Uri mongoUri() {
-		mongoUrl
-	}
-	
 	new make(Connection connection, Uri mongoUrl) {
 		this.mongoUrl = mongoUrl
 		this.connectionRef.val = connection

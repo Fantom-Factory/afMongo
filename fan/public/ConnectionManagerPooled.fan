@@ -5,18 +5,18 @@ using inet
 ** Manages a pool of connections. 
 ** 
 ** Connections are created on-demand and kept in a pool when idle. 
+** Once the pool is exhausted, any operation requiring a connection will block for (at most) 'waitQueueTimeout' 
+** waiting for an available connection.
 ** 
 ** Note this connection manager *is* safe for multi-threaded / web-application use.
-//** Once the pool is exhausted, any operation requiring a connection will block (for 'maxWaitTime') 
-//** waiting for an available connection.
 const class ConnectionManagerPooled : ConnectionManager {
+	private const Log				log				:= Utils.getLog(ConnectionManagerPooled#)
 	private const OneShotLock		startupLock		:= OneShotLock("Connection Pool has been started")
 	private const OneShotLock		shutdownLock	:= OneShotLock("Connection Pool has been shutdown")
 	private const SynchronizedState connectionState
 	
 	** The host name of the MongoDB server this 'ConnectionManager' connects to.
 	override const Uri mongoUrl
-	override Uri mongoUri() { mongoUrl }
 
 	** The default database connections are authenticated against.
 	** 
@@ -56,6 +56,14 @@ const class ConnectionManagerPooled : ConnectionManager {
 	**   mongodb://example.com/puppies?maxPoolSize=10
 	const Int 	maxPoolSize	:= 10
 	
+	** The maximum time a thread can wait for a connection to become available.
+	** 
+	** Set via the [maxPoolSize]`http://docs.mongodb.org/manual/reference/connection-string/#uri.waitQueueTimeoutMS` connection string option.
+	** Defaults to 10 seconds.
+	** 
+	**   mongodb://example.com/puppies?waitQueueTimeoutMS=10
+	const Duration	waitQueueTimeout := 10sec
+
 	** If specified, this is the time to attempt a connection before timing out.
 	** If 'null' (the default) then a system timeout is used.
 	** 
@@ -75,20 +83,26 @@ const class ConnectionManagerPooled : ConnectionManager {
 	** 
 	** Equates to `inet::SocketOptions.receiveTimeout`.
 	const Duration? socketTimeout
-	
-	** The maximum time a thread may wait for a connection to become available.
-//	const Duration	maxWaitTime			:= 10sec
 
+	** When the connection pool is shutting down, this is the amount of time to wait for all connections for close before they are forcibly closed.
+	** 
+	** Defaults to '2sec'. 
+	const Duration? shutdownTimeout	:= 2sec
+	
+	// used to test the backoff func
+	internal const |Range->Int|	randomFunc	:= |Range r->Int| { r.random }
+	internal const |Duration| 	sleepFunc	:= |Duration napTime| { Actor.sleep(napTime) }
+	
 	** Create a 'ConnectionManager' from a [Mongo Connection URI]`http://docs.mongodb.org/manual/reference/connection-string/`.
 	** If user credentials are supplied, they are used as default authentication for each connection.
 	** 
-	** The following Uri options are supported:
+	** The following Url options are supported:
 	**  - [minPoolSize]`http://docs.mongodb.org/manual/reference/connection-string/#uri.minPoolSize`
 	**  - [maxPoolSize]`http://docs.mongodb.org/manual/reference/connection-string/#uri.maxPoolSize`
+	**  - [waitQueueTimeoutMS]`http://docs.mongodb.org/manual/reference/connection-string/#uri.waitQueueTimeoutMS`
 	**  - [connectTimeoutMS]`http://docs.mongodb.org/manual/reference/connection-string/#uri.connectTimeoutMS`
 	**  - [socketTimeoutMS]`http://docs.mongodb.org/manual/reference/connection-string/#uri.socketTimeoutMS`
 	** 
-	** TODO: uri.waitQueueTimeoutMS
 	** TODO: Write Concern Options - w= -1, 0 1
 	** 
 	** URL examples:
@@ -96,42 +110,47 @@ const class ConnectionManagerPooled : ConnectionManager {
 	**  - 'mongodb://example2.com?minPoolSize=10&maxPoolSize=50'
 	** 
 	** @see `http://docs.mongodb.org/manual/reference/connection-string/`
-	new makeFromUri(ActorPool actorPool, Uri connectionUrl) {
+	new makeFromUri(ActorPool actorPool, Uri connectionUrl, |This|? f := null) {
 		if (connectionUrl.scheme != "mongodb")
 			throw ArgErr(ErrMsgs.connectionManager_badScheme(connectionUrl))
-		
+
 		this.mongoUrl			= connectionUrl
 		this.connectionUrl		= connectionUrl
 		this.connectionState	= SynchronizedState(actorPool, ConnectionManagerPoolState#)
-		this.minPoolSize 		= mongoUri.query["minPoolSize"]?.toInt ?: minPoolSize
-		this.maxPoolSize 		= mongoUri.query["maxPoolSize"]?.toInt ?: maxPoolSize
-		connectTimeoutMs		:= mongoUri.query["connectTimeoutMS"]?.toInt
-		socketTimeoutMs 		:= mongoUri.query["socketTimeoutMS"]?.toInt
-		
-		if (minPoolSize < 0)
-			throw ArgErr(ErrMsgs.connectionManager_badInt("minPoolSize", "zero", minPoolSize, mongoUri))
-		if (maxPoolSize < 1)
-			throw ArgErr(ErrMsgs.connectionManager_badInt("maxPoolSize", "one", maxPoolSize, mongoUri))
-		if (minPoolSize > maxPoolSize)
-			throw ArgErr(ErrMsgs.connectionManager_badMinMaxConnectionSize(minPoolSize, maxPoolSize, mongoUri))		
-		if (connectTimeoutMs != null && connectTimeoutMs < 0)
-			throw ArgErr(ErrMsgs.connectionManager_badInt("connectTimeoutMS", "zero", connectTimeoutMs, mongoUri))
-		if (socketTimeoutMs != null && socketTimeoutMs < 0)
-			throw ArgErr(ErrMsgs.connectionManager_badInt("socketTimeoutMS", "zero", socketTimeoutMs, mongoUri))
+		this.minPoolSize 		= mongoUrl.query["minPoolSize"]?.toInt ?: minPoolSize
+		this.maxPoolSize 		= mongoUrl.query["maxPoolSize"]?.toInt ?: maxPoolSize
+		waitQueueTimeoutMs		:= mongoUrl.query["waitQueueTimeoutMS"]?.toInt
+		connectTimeoutMs		:= mongoUrl.query["connectTimeoutMS"]?.toInt
+		socketTimeoutMs 		:= mongoUrl.query["socketTimeoutMS"]?.toInt
 
+		if (minPoolSize < 0)
+			throw ArgErr(ErrMsgs.connectionManager_badInt("minPoolSize", "zero", minPoolSize, mongoUrl))
+		if (maxPoolSize < 1)
+			throw ArgErr(ErrMsgs.connectionManager_badInt("maxPoolSize", "one", maxPoolSize, mongoUrl))
+		if (minPoolSize > maxPoolSize)
+			throw ArgErr(ErrMsgs.connectionManager_badMinMaxConnectionSize(minPoolSize, maxPoolSize, mongoUrl))		
+		if (waitQueueTimeoutMs != null && waitQueueTimeoutMs < 0)
+			throw ArgErr(ErrMsgs.connectionManager_badInt("waitQueueTimeoutMS", "zero", waitQueueTimeoutMs, mongoUrl))
+		if (connectTimeoutMs != null && connectTimeoutMs < 0)
+			throw ArgErr(ErrMsgs.connectionManager_badInt("connectTimeoutMS", "zero", connectTimeoutMs, mongoUrl))
+		if (socketTimeoutMs != null && socketTimeoutMs < 0)
+			throw ArgErr(ErrMsgs.connectionManager_badInt("socketTimeoutMS", "zero", socketTimeoutMs, mongoUrl))
+
+		if (waitQueueTimeoutMs != null)
+			waitQueueTimeout = (waitQueueTimeoutMs * 1000000).toDuration
 		if (connectTimeoutMs != null)
 			connectTimeout = (connectTimeoutMs * 1000000).toDuration
 		if (socketTimeoutMs != null)
 			socketTimeout = (socketTimeoutMs * 1000000).toDuration
 
-		address	 := mongoUri.host ?: "127.0.0.1"
-		port	 := mongoUri.port ?: 27017
-		database := trimToNull(mongoUri.pathOnly.toStr)
-		username := trimToNull(mongoUri.userInfo?.split(':')?.getSafe(0))
-		password := trimToNull(mongoUri.userInfo?.split(':')?.getSafe(1))
+		address	 := mongoUrl.host ?: "127.0.0.1"
+		port	 := mongoUrl.port ?: 27017
+		database := trimToNull(mongoUrl.pathOnly.toStr)
+		username := trimToNull(mongoUrl.userInfo?.split(':')?.getSafe(0))
+		password := trimToNull(mongoUrl.userInfo?.split(':')?.getSafe(1))
 		
 		if ((username == null).xor(password == null))
-			throw ArgErr(ErrMsgs.connectionManager_badUsernamePasswordCombo(username, password, mongoUri))
+			throw ArgErr(ErrMsgs.connectionManager_badUsernamePasswordCombo(username, password, mongoUrl))
 
 		if (database != null && database.startsWith("/"))
 			database = trimToNull(database[1..-1])
@@ -152,11 +171,41 @@ const class ConnectionManagerPooled : ConnectionManager {
 			} 
 		}.get
 		
-		// remove user credentials and other crud from the uri
-		mongoUrl = "mongodb://${address}:${port}".toUri	// F4 doesn't like Uri interpolation
+		query := mongoUrl.query.rw
+		query.remove("minPoolSize")
+		query.remove("maxPoolSize")
+		query.remove("waitQueueTimeoutMS")
+		query.remove("connectTimeoutMS")
+		query.remove("socketTimeoutMS")
+		query.each |val, key| {
+			log.warn(LogMsgs.connectionManager_unknownUrlOption(key, val, mongoUrl))
+		}
+		
+		// remove user credentials and other crud from the url
+		this.mongoUrl = "mongodb://${address}:${port}".toUri	// F4 doesn't like Uri interpolation
+		
+		// allow the it-block to override the default settings
+		// no validation occurs - only used for testing.
+		f?.call(this)
+	}
+	
+	** Creates the initial pool and establishes 'minPoolSize' connections with the server.
+	override ConnectionManager startup() {
+		if (startupLock.locked)
+			return this
+		startupLock.lock
+
+		// connect x times
+		(1..minPoolSize).toList.map { checkOut }.each { checkIn(it) }
+		
+		return this
 	}
 	
 	** Makes a connection available to the given function.
+	** 
+	** If all connections are currently in use, a truncated binary exponential backoff algorithm 
+	** is used to wait for one to become free. If, while waiting, the duration specified in 
+	** 'waitQueueTimeout' expires then a 'MongoErr' is thrown.
 	** 
 	** All leased connections are authenticated against the default credentials.
 	override Obj? leaseConnection(|Connection->Obj?| c) {
@@ -176,58 +225,110 @@ const class ConnectionManagerPooled : ConnectionManager {
 		}
 	}
 	
-	** Creates the initial pool and establishes 'minPoolSize' connections with the server.
-	override ConnectionManager startup() {
-		if (startupLock.locked)
-			return this
-		startupLock.lock
-
-		// connect x times
-		(1..minPoolSize).toList.map { checkOut }.each { checkIn(it) }
-		
-		return this
-	}
-
-	** Closes all connections.
+	** Closes all connections. 
+	** Initially waits for 'shutdownTimeout' for connections to finish what they're doing before 
+	** they're closed. After that, all open connections are forcibly closed regardless of whether 
+	** they're in use or not.
 	override ConnectionManager shutdown() {
 		shutdownLock.lock
 		
-		// TODO: wait for used sockets to be checked in
-		connectionState.withState |ConnectionManagerPoolState state| {
-			state.connectionFactory = null
+		closeFunc := |->Bool?| {
+			waitingOn := connectionState.getState |ConnectionManagerPoolState state -> Int| {
+				while (!state.checkedIn.isEmpty) {
+					state.checkedIn.removeAt(0).close 
+				}
+				return state.checkedOut.size
+			}
+			if (waitingOn > 0)
+				log.info(LogMsgs.connectionManager_waitingForConnectionsToClose(waitingOn))
+			return waitingOn > 0 ? null : true
+		}
+		
+		allClosed := backoffFunc(closeFunc, shutdownTimeout) ?: false
 
-			state.checkedIn.each { it.close }
-			state.checkedIn.clear
-
-			// TODO: Wait!
-			state.checkedOut.each { it.close }
-			state.checkedOut.clear
-		}.get
-
+		if (!allClosed) {
+			// too late, they've had their chance. Now everybody dies.
+			connectionState.withState |ConnectionManagerPoolState state| {
+				// just in case one or two snuck back in
+				while (!state.checkedIn.isEmpty) {
+					state.checkedIn.removeAt(0).close 
+				}
+				
+				// DIE! DIE! DIE!
+				while (!state.checkedOut.isEmpty) {
+					state.checkedOut.removeAt(0).close 
+				}
+			}.get
+		}
+		
 		return this
+	}
+	
+	** Implements a truncated binary exponential backoff algorithm. *Damn, I'm good!*
+	** Returns 'null' if the operation timed out.
+	** 
+	** @see `http://en.wikipedia.org/wiki/Exponential_backoff`
+	internal Obj? backoffFunc(|Duration totalNapTime->Obj?| func, Duration timeout) {
+		result			:= null
+		c				:= 0
+		i				:= 10
+		totalNapTime	:= 0ms
+		
+		while (result == null && totalNapTime < timeout) {
+
+			result = func.call(totalNapTime)
+
+			if (result == null) {
+				if (++c > i) c = i	// truncate the exponentiation ~ 10 secs
+				napTime := (randomFunc(0..<2.pow(c)) * 10 * 1000000).toDuration
+
+				// don't over sleep!
+				if ((totalNapTime + napTime) > timeout)
+					napTime = timeout - totalNapTime 
+
+				sleepFunc(napTime)
+				totalNapTime += napTime
+				
+				// if we're about to quit, lets have 1 more last ditch attempt!
+				if (totalNapTime >= timeout)
+					result = func.call(totalNapTime)
+			}
+		}
+		
+		return result
 	}
 	
 	private Connection checkOut() {
 		shutdownLock.check
-		// TODO: log warning if all in use, and set timeout for max wait and re-tries
-
-//		default wait time = 200ms -> is an eternity for computers, tiny for humans. set as a public NoDoc field 
 		
-		connection := (Connection) connectionState.getState |ConnectionManagerPoolState state->Unsafe?| {
-			if (!state.checkedIn.isEmpty) {
-				connection := state.checkedIn.pop
-				state.checkedOut.push(connection)
-				return Unsafe(connection)
-			}
+		connectionFunc := |Duration totalNapTime->Connection?| {
+			con := connectionState.getState |ConnectionManagerPoolState state->Unsafe?| {
+				if (!state.checkedIn.isEmpty) {
+					connection := state.checkedIn.pop
+					state.checkedOut.push(connection)
+					return Unsafe(connection)
+				}
+				
+				if (state.checkedOut.size < maxPoolSize) {
+					connection := state.connectionFactory()
+					state.checkedOut.push(connection)
+					return Unsafe(connection)
+				}
+				
+				return null
+			}?->val
 			
-			if (state.checkedOut.size >= maxPoolSize)
-				// TODO: return empty handed & wait for a free one
-				throw MongoErr("Argh! No more connections! All ${maxPoolSize} are in use!")
-			
-			connection := state.connectionFactory()
-			state.checkedOut.push(connection)
-			return Unsafe(connection)
-		}?->val
+			// let's not swamp the logs the first time we can't connect
+			// 1.5 secs gives at least 6 connection attempts
+			if (con == null && totalNapTime > 1.5sec)
+				log.warn(LogMsgs.connectionManager_waitingForConnectionsToFree(maxPoolSize))
+
+			return con
+		}
+
+		connection
+			:= (Connection?) backoffFunc(connectionFunc, waitQueueTimeout)
+			?: throw MongoErr("Argh! No more connections! All ${maxPoolSize} are in use!")
 		
 		// ensure all connections are initially leased authenticated as the default user
 		// specifically do the check here so you can always *brute force* an authentication on a connection
