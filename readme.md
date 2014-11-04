@@ -5,7 +5,7 @@
 `Mongo` driver features:
 
 - Standard and capped collections
-- Write commands: `insert()`, `update()`, `delete()` and `findAndModify()` (v2.6+)
+- Write commands: `insert()`, `update()`, `delete()` and `findAndModify()`
 - Write concern support (v2.6+)
 - Optimised queries for `findOne()` and `findAll()`
 - Cursor support
@@ -15,8 +15,9 @@
 - Database authentication
 - Server side `eval()` commands
 - Pooled connection manager for multi-threaded use
+- Support for Replica Set connection URLs
 
-`Mongo` driver has been written specifically for MongoDB v2.6.0 released on 8th April 2014, or newer.
+`Mongo` driver has been written specifically for MongoDB v2.6.0 or newer.
 
 Many features, including ALL write commands, will **NOT** work with older MongoDB versions.
 
@@ -30,7 +31,7 @@ Install `Mongo` with the Fantom Repository Manager ( [fanr](http://fantom.org/do
 
 To use in a [Fantom](http://fantom.org/) project, add a dependency to `build.fan`:
 
-    depends = ["sys 1.0", ..., "afMongo 0.0+"]
+    depends = ["sys 1.0", ..., "afMongo 1.0"]
 
 ## Documentation 
 
@@ -84,7 +85,7 @@ C:\> fan Example.fan
  _____ ___ ___ ___ ___
 |     | . |   | . | . |
 |_|_|_|___|_|_|_  |___|
-              |___|0.0.4
+              |___|1.0.0
 
 Connected to MongoDB v2.6.0 (at mongodb://localhost:27017)
 
@@ -117,7 +118,7 @@ When you create a `MongoClient` it immediately connects to MongoDB and verifies 
  _____ ___ ___ ___ ___
 |     | . |   | . | . |
 |_|_|_|___|_|_|_  |___|
-              |___|0.0.4
+              |___|1.0.0
 
 Connected to MongoDB v2.4.9
 
@@ -130,7 +131,9 @@ Ooops! As you can see, we have an old MongoDB running. And true enough, when we 
 
     afMongo::MongoCmdErr: Command 'insert' failed. MongoDB says: no such cmd: insert
 
-Installing a fresh MongoDB of version 2.6.0 or greater will get you back on track.
+Installing (and connection to) a fresh MongoDB of version 2.6.0 or greater will get you back on track.
+
+Note that `ConnectionManagerPooled` will always query the supplied MongoDB host(s) to find the primary node, on which all read and write operations are performed.
 
 ### Queries 
 
@@ -180,7 +183,9 @@ Note that `_id` does not need to an `ObjectId`, it can be any BSON type. It just
 
 Like [marmite](http://www.ilovemarmite.com/), people tend to have a love / hate relationship with the `ObjectId`. The good comments revolve around it having a natural sort that (roughly) corresponds to creation time. The bad is that in *humongous* collections it eats up precious bytes which means the [index can't fit into RAM](http://docs.mongodb.org/manual/tutorial/ensure-indexes-fit-ram/).
 
-### Remarks 
+## Remarks 
 
-The Alien-Factoy MongoDB driver was inspired by [fantomongo](https://bitbucket.org/liamstask/fantomongo) by Liam Staskawicz.
+The Alien-Factory MongoDB driver was inspired by [fantomongo](https://bitbucket.org/liamstask/fantomongo) by Liam Staskawicz.
+
+If you're looking for cross-platform MongoDB GUI client then look no further than [Robomongo](http://robomongo.org/)!
 

@@ -1,5 +1,5 @@
 
-** Iterates over database query results.
+** Iterates over database query results. See [Collection.find()]`afMongo::Collection.find`.
 **
 ** @see `http://docs.mongodb.org/manual/core/cursors/`
 class Cursor {

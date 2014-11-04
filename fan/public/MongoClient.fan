@@ -5,7 +5,7 @@ using inet
 ** 
 ** This class is the main starting point for connecting to a MongoDB instance. 
 ** 
-** Retrieving data from MongoDB can be as easy as:
+** Retrieving data from a MongoDB can be as easy as:
 ** 
 **   mongo := MongoClient(ActorPool(), "127.0.0.1", 27017)
 **   data  := mongo.db("db").collection("col").findAll
@@ -18,6 +18,9 @@ using inet
 const class MongoClient {
 	private static const Log 		log	:= Utils.getLog(MongoClient#)
 	private const ConnectionManager conMgr
+	
+	@NoDoc	// I give no guarantee how long this field will stick around for!
+	static const AtomicBool logBanner := AtomicBool(true)
 	
 	** Creates a 'MongoClient' with the given 'ConnectionManager'. 
 	** This is the preferred ctor.
@@ -93,7 +96,9 @@ const class MongoClient {
 
 	// ---- Other ---------------------------------------------------------------------------------
 	
-	** Runs a command against the admin database.
+	** Runs a command against the admin database. Convenience for:
+	** 
+	**   db("admin").runCmd(cmd)
 	[Str:Obj?] runAdminCmd(Str:Obj? cmd) {
 		db("admin").runCmd(cmd)
 	}
@@ -109,7 +114,8 @@ const class MongoClient {
 		minVersion	 := Version("2.6.0")
 		buildVersion := buildInfo["version"]
 		mongoVersion := Version.fromStr(buildVersion, false)
-		log.info("\n" + logo + "\nConnected to MongoDB v${buildVersion} (at ${conMgr.mongoUrl})\n")
+		banner		 := logBanner.val ? "\n${logo}" : "" 
+		log.info("${banner}\nConnected to MongoDB v${buildVersion} (at ${conMgr.mongoUrl})\n")
 
 		if (mongoVersion < minVersion) {
 			msg := "** WARNING: This driver is ONLY compatible with MongoDB v${minVersion} or greater **"

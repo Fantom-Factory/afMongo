@@ -313,9 +313,9 @@ const class ConnectionManagerPooled : ConnectionManager {
 	** 
 	** All leased connections are authenticated against the default credentials.
 	override Obj? leaseConnection(|Connection->Obj?| c) {
-		shutdownLock.check
 		if (!startupLock.locked)
 			throw MongoErr(ErrMsgs.connectionManager_notStarted)
+		shutdownLock.check
 
 		connection := checkOut
 		try {
@@ -372,6 +372,20 @@ const class ConnectionManagerPooled : ConnectionManager {
 		}
 		
 		return this
+	}
+	
+	** Returns the number of pooled connections currently in use.
+	Int noOfConnectionsInUse() {
+		connectionState.getState |ConnectionManagerPoolState state->Int| {
+			state.checkedOut.size
+		}		
+	}
+
+	** Returns the number of connections currently in the pool.
+	Int noOfConnectionsInPool() {
+		connectionState.getState |ConnectionManagerPoolState state->Int| {
+			state.checkedOut.size + state.checkedIn.size
+		}
 	}
 	
 	** Implements a truncated binary exponential backoff algorithm. *Damn, I'm good!*
@@ -483,7 +497,7 @@ internal class HostDetails {
 	Bool	contacted
 	Bool	isPrimary
 	Bool	isSecondary
-	Str[]	hosts	:= [,]
+	Str[]	hosts	:= Obj#.emptyList
 	Str?	primary
 	
 	new make(Str addr) {
@@ -494,15 +508,16 @@ internal class HostDetails {
 	This populate() {
 		contacted = true
 		
-		connection := TcpConnection(TcpSocket().connect(IpAddr(address), port))
+		connection := TcpConnection()
 		try {
+			connection.connect(IpAddr(address), port)
 			conMgr := ConnectionManagerLocal(connection, "mongodb://${address}:${port}".toUri)
 			details := Database(conMgr, "admin").runCmd(["ismaster":1])
 		
 			isPrimary 	= details["ismaster"]  == true	// '== true' to avoid NPEs if key doesn't exist
-			isSecondary	= details["secondary"] == true	// '== true' to avoid NPEs if key doesn't exist
-			primary		= details["primary"]
-			hosts		= details["hosts"]
+			isSecondary	= details["secondary"] == true	// '== true' to avoid NPEs if key doesn't exist in standalone instances  
+			primary		= details["primary"]					// standalone instances don't have primary information
+			hosts		= details["hosts"] ?: Obj#.emptyList	// standalone instances don't have hosts information
 			
 		} finally connection.close
 		
