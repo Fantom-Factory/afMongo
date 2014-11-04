@@ -7,8 +7,10 @@ using inet
 const mixin ConnectionManager {
 	
 	** Basic details of where this 'ConnectionManager' connects to, for debugging purposes.
+	** When connecting to replica sets, this should indicate the primary. 
+	** 
 	** It *should not* contain any user credentials and *should* be safe to log. 
-	abstract Uri mongoUrl()
+	abstract Uri? mongoUrl()
 	
 	** The default write concern that all write operations use if none supplied.
 	** 

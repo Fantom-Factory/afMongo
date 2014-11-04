@@ -101,6 +101,14 @@ internal const class ErrMsgs {
 		"Minimum number of connections must not be greater than the maximum! min=$min, max=$max, url=$mongoUrl"
 	}
 	
+	static Str connectionManager_notStarted() {
+		"ConnectionManager has not started"
+	}
+	
+	static Str connectionManager_couldNotFindPrimary(Uri mongoUrl) {
+		"Could not find the primary node with RelicaSet connection URL ${mongoUrl}"
+	}
+	
 	static Str connectionManager_noConnectionInThread() {
 		"No connection is available in this thread!?"
 	}

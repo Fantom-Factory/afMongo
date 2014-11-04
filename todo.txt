@@ -1,18 +1,4 @@
 
-For v1.0
---------
-
-
-Tidy up ConnectionManagerPooled, make clients wait for a free connection.
- - write concern
-
-Automatically connect to proper server, and failover, when connecting to a replica set
-http://docs.mongodb.org/meta-driver/latest/legacy/connect-driver-to-replica-set/
-http://api.mongodb.org/java/2.10.0/index.html?com/mongodb/MongoClient.html
-http://docs.mongodb.org/manual/reference/connection-string/
-
-
-
 For Future
 ----------
 Role Commands (new in 2.6)
@@ -28,6 +14,6 @@ ReplicaSets
     - http://docs.mongodb.org/manual/reference/connection-string/#read-preference-options
  	- http://api.mongodb.org/java/2.10.0/com/mongodb/ReadPreference.html
  - have reading failover to other hosts
+    - http://docs.mongodb.org/meta-driver/latest/legacy/connect-driver-to-replica-set/
+    - http://api.mongodb.org/java/2.10.0/index.html?com/mongodb/MongoClient.html
  - maybe have Connection.leaseReadConnection() && Connection.leaseWriteConnection() ?
- 
- mongodb://db1.example.net,db2.example.net:2500/test?replicaSet=test

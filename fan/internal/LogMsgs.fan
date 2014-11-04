@@ -9,11 +9,11 @@ internal const mixin LogMsgs {
 		"Unknown option in Mongo connection URL: ${name}=${value} - ${mongoUrl}"
 	}
 	
-	static Str connectionManager_waitingForConnectionsToClose(Int size) {
-		"Waiting for ${size} connections to close..."
+	static Str connectionManager_waitingForConnectionsToClose(Int size, Uri mongoUrl) {
+		"Waiting for ${size} connections to close on ${mongoUrl}..."
 	}
 
-	static Str connectionManager_waitingForConnectionsToFree(Int size) {
-		"All ${size} are in use, waiting for one to become free..."
+	static Str connectionManager_waitingForConnectionsToFree(Int size, Uri mongoUrl) {
+		"All ${size} are in use, waiting for one to become free on ${mongoUrl}..."
 	}
 }

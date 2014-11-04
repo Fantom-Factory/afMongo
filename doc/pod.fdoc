@@ -220,7 +220,8 @@ Release Notes [#releaseNotes]
 *****************************
 v1.0.0 [#v1.0.0]
 ----------------
- - New: Support for 'waitQueueTimeoutMS' Mongo URL connection option with a truncated binary exponential backoff algorithm to wait for available connections.
+ - New: Support for connecting to Replica Sets via multiple hosts in the Mongo connection URL. All read and write operations performed on the primary.
+ - New: Support for the 'waitQueueTimeoutMS' Mongo connection URL option with a truncated binary exponential backoff algorithm to wait for available connections.
  - New: Support for write concern options in the Mongo connection URL.
  - New: Support for 'connectTimeoutMS' and 'socketTimeoutMS' Mongo URL connection options.
  - Chg: The default write concern has moved out of MongoClient / Database / Collection / User and into the ConnectionManager.
