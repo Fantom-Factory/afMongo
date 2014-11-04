@@ -43,7 +43,7 @@ mixin Connection {
 		} catch (Err err) {
 			if (checked) throw err
 		}
-	}
+	}	
 }
 
 ** Connects to MongoDB via an 'inet::TcpSocket'.

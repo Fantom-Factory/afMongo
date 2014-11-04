@@ -8,6 +8,22 @@ using inet
 ** Once the pool is exhausted, any operation requiring a connection will block for (at most) 'waitQueueTimeout' 
 ** waiting for an available connection.
 ** 
+** This connection manager is created with the standard [Mongo Connection URL]`http://docs.mongodb.org/manual/reference/connection-string/` in the format:
+** 
+**   mongodb://[username:password@]host[:port][/[database][?options]]
+** 
+** Examples:
+** 
+**   mongodb://localhost:27017
+**   mongodb://username:password@example1.com/puppies?maxPoolSize=50
+** 
+** If connecting to a replica set then multiple hosts (with optional ports) may be specified:
+** 
+**   mongodb://db1.example.net,db2.example.net:2500/?connectTimeoutMS=30000
+** 
+** On 'startup()' the hosts are queried to find the primary / master. 
+** All read and write operations are performed on the primary node.
+** 
 ** Note this connection manager *is* safe for multi-threaded / web-application use.
 const class ConnectionManagerPooled : ConnectionManager {
 	private const Log				log				:= Utils.getLog(ConnectionManagerPooled#)
@@ -16,9 +32,14 @@ const class ConnectionManagerPooled : ConnectionManager {
 	private const SynchronizedState connectionState
 	
 	** The host name of the MongoDB server this 'ConnectionManager' connects to.
-	override const Uri mongoUrl
+	** When connecting to replica sets, this will indicate the primary.
+	** 
+	** This value is unavailable (returns 'null') until 'startup()' is called. 
+	override Uri? mongoUrl() { mongoUrlRef.val }
+	private const AtomicRef mongoUrlRef := AtomicRef(null)
 
-	** The default write concern that all write operations use if none supplied.
+	** The default write concern for all write operations. 
+	** Set by specifying the 'w', 'wtimeoutMS' and 'journal' connection string options. 
 	** 
 	** Defaults to '["w": 1, "wtimeout": 0, "journal": false]'
 	**  - write operations are acknowledged,
@@ -28,17 +49,17 @@ const class ConnectionManagerPooled : ConnectionManager {
 	
 	** The default database connections are authenticated against.
 	** 
-	** Set via the `#connectionUrl`.
+	** Set via the `connectionUrl`.
 	const Str?	defaultDatabase
 	
 	** The default username connections are authenticated with.
 	** 
-	** Set via the `#connectionUrl`.
+	** Set via the `connectionUrl`.
 	const Str?	defaultUsername
 	
 	** The default password connections are authenticated with.
 	** 
-	** Set via the `#connectionUrl`.
+	** Set via the `connectionUrl`.
 	const Str?	defaultPassword
 	
 	** The original URL this 'ConnectionManager' was configured with.
@@ -105,7 +126,9 @@ const class ConnectionManagerPooled : ConnectionManager {
 	** Create a 'ConnectionManager' from a [Mongo Connection URL]`http://docs.mongodb.org/manual/reference/connection-string/`.
 	** If user credentials are supplied, they are used as default authentication for each connection.
 	** 
-	** The following Url options are supported:
+	**   conMgr := ConnectionManagerPooled(ActorPool(), `mongodb://localhost:27017`)
+	** 
+	** The following URL options are supported:
 	**  - [minPoolSize]`http://docs.mongodb.org/manual/reference/connection-string/#uri.minPoolSize`
 	**  - [maxPoolSize]`http://docs.mongodb.org/manual/reference/connection-string/#uri.maxPoolSize`
 	**  - [waitQueueTimeoutMS]`http://docs.mongodb.org/manual/reference/connection-string/#uri.waitQueueTimeoutMS`
@@ -124,7 +147,7 @@ const class ConnectionManagerPooled : ConnectionManager {
 		if (connectionUrl.scheme != "mongodb")
 			throw ArgErr(ErrMsgs.connectionManager_badScheme(connectionUrl))
 
-		this.mongoUrl			= connectionUrl
+		mongoUrl				:= connectionUrl
 		this.connectionUrl		= connectionUrl
 		this.connectionState	= SynchronizedState(actorPool, ConnectionManagerPoolState#)
 		this.minPoolSize 		= mongoUrl.query["minPoolSize"]?.toInt ?: minPoolSize
@@ -158,8 +181,6 @@ const class ConnectionManagerPooled : ConnectionManager {
 		if (socketTimeoutMs != null)
 			socketTimeout = (socketTimeoutMs * 1000000).toDuration
 
-		address	 := mongoUrl.host ?: "127.0.0.1"
-		port	 := mongoUrl.port ?: 27017
 		database := trimToNull(mongoUrl.pathOnly.toStr)
 		username := trimToNull(mongoUrl.userInfo?.split(':')?.getSafe(0))
 		password := trimToNull(mongoUrl.userInfo?.split(':')?.getSafe(1))
@@ -177,14 +198,6 @@ const class ConnectionManagerPooled : ConnectionManager {
 		defaultDatabase = database
 		defaultUsername = username
 		defaultPassword = password
-		connectionState.withState |ConnectionManagerPoolState state| {
-			state.connectionFactory = |->Connection| {
-				socket := TcpSocket()
-				socket.options.connectTimeout = connectTimeout
-				socket.options.receiveTimeout = socketTimeout
-				return TcpConnection(socket).connect(IpAddr(address), port)
-			} 
-		}.get
 		
 		writeConcern := Str:Obj?[:] { it.ordered=true }.add("w", 1).add("wtimeout", 0).add("journal", false)
 		if (w != null)
@@ -208,26 +221,90 @@ const class ConnectionManagerPooled : ConnectionManager {
 			log.warn(LogMsgs.connectionManager_unknownUrlOption(key, val, mongoUrl))
 		}
 		
-		// remove user credentials and other crud from the url
-		this.mongoUrl = "mongodb://${address}:${port}".toUri	// F4 doesn't like Uri interpolation
-		
 		// allow the it-block to override the default settings
 		// no validation occurs - only used for testing.
 		f?.call(this)
 	}
 	
 	** Creates the initial pool and establishes 'minPoolSize' connections with the server.
+	** 
+	** If a connection URL to a replica set is given (a connection URL with multiple hosts) then 
+	** the hosts are queried to find the primary. The primary is currently used for all read and 
+	** write operations. 
 	override ConnectionManager startup() {
+		shutdownLock.check
 		if (startupLock.locked)
 			return this
 		startupLock.lock
+		
+		hg :=  connectionUrl.host.split(',')
+		hostList := (HostDetails[]) hg.map { HostDetails(it) }
+		hostList.last.port = connectionUrl.port ?: 27017
+		hosts := Str:HostDetails[:] { it.ordered=true }.addList(hostList) { it.host }
+		
+		// default to the first host
+		primary	:= (HostDetails?) null
+		
+		// let's play hunt the primary! Always check, even if only 1 host is supplied, it may still 
+		// be part of a replica set
+		// first, check the list of supplied hosts
+		primary = hostList.eachWhile |hd->HostDetails?| {
+			// Is it? Is it!?
+			if (hd.populate.isPrimary)
+				return hd
+
+			// now lets contact what it thinks is the primary, to double check
+			// assume if it's been contacted, it's not the primary - cos we would have returned it already
+			if (hd.primary != null && hosts[hd.primary]?.contacted != true) {
+				if (hosts[hd.primary] == null) 
+					hosts[hd.primary] = HostDetails(hd.primary)
+				if (hosts[hd.primary].populate.isPrimary)
+					return hosts[hd.primary]
+			}
+
+			// keep looking!
+			return null
+		}
+
+		// the above should have flushed out the primary, but if not, check *all* the returned hosts
+		if (primary == null) {
+			// add all the hosts to our map
+			hostList.each |hd| {
+				hd.hosts.each {
+					if (hosts[it] == null)
+						hosts[it] = HostDetails(it)
+				}
+			}
+
+			// loop through them all
+			primary = hosts.find { !it.contacted && it.populate.isPrimary }
+		}
+
+		// Bugger!
+		if (primary == null)
+			throw MongoErr(ErrMsgs.connectionManager_couldNotFindPrimary(connectionUrl))
+
+		primaryAddress	:= primary.address
+		primaryPort		:= primary.port
+		
+		// remove user credentials and other crud from the url
+		mongoUrlRef.val = "mongodb://${primaryAddress}:${primaryPort}".toUri	// F4 doesn't like Uri interpolation
+
+		connectionState.withState |ConnectionManagerPoolState state| {
+			state.connectionFactory = |->Connection| {
+				socket := TcpSocket()
+				socket.options.connectTimeout = connectTimeout
+				socket.options.receiveTimeout = socketTimeout
+				return TcpConnection(socket).connect(IpAddr(primaryAddress), primaryPort)
+			} 
+		}.get
 
 		// connect x times
 		minPoolSize.times { checkIn(checkOut) }
 		
 		return this
 	}
-	
+
 	** Makes a connection available to the given function.
 	** 
 	** If all connections are currently in use, a truncated binary exponential backoff algorithm 
@@ -236,6 +313,10 @@ const class ConnectionManagerPooled : ConnectionManager {
 	** 
 	** All leased connections are authenticated against the default credentials.
 	override Obj? leaseConnection(|Connection->Obj?| c) {
+		shutdownLock.check
+		if (!startupLock.locked)
+			throw MongoErr(ErrMsgs.connectionManager_notStarted)
+
 		connection := checkOut
 		try {
 			return c(connection)
@@ -257,6 +338,8 @@ const class ConnectionManagerPooled : ConnectionManager {
 	** they're closed. After that, all open connections are forcibly closed regardless of whether 
 	** they're in use or not.
 	override ConnectionManager shutdown() {
+		if (!startupLock.locked)
+			return this
 		shutdownLock.lock
 		
 		closeFunc := |->Bool?| {
@@ -267,7 +350,7 @@ const class ConnectionManagerPooled : ConnectionManager {
 				return state.checkedOut.size
 			}
 			if (waitingOn > 0)
-				log.info(LogMsgs.connectionManager_waitingForConnectionsToClose(waitingOn))
+				log.info(LogMsgs.connectionManager_waitingForConnectionsToClose(waitingOn, mongoUrl))
 			return waitingOn > 0 ? null : true
 		}
 		
@@ -326,8 +409,6 @@ const class ConnectionManagerPooled : ConnectionManager {
 	}
 	
 	private Connection checkOut() {
-		shutdownLock.check
-		
 		connectionFunc := |Duration totalNapTime->Connection?| {
 			con := connectionState.getState |ConnectionManagerPoolState state->Unsafe?| {
 				if (!state.checkedIn.isEmpty) {
@@ -348,7 +429,7 @@ const class ConnectionManagerPooled : ConnectionManager {
 			// let's not swamp the logs the first time we can't connect
 			// 1.5 secs gives at least 6 connection attempts
 			if (con == null && totalNapTime > 1.5sec)
-				log.warn(LogMsgs.connectionManager_waitingForConnectionsToFree(maxPoolSize))
+				log.warn(LogMsgs.connectionManager_waitingForConnectionsToFree(maxPoolSize, mongoUrl))
 
 			return con
 		}
@@ -382,10 +463,53 @@ const class ConnectionManagerPooled : ConnectionManager {
 	private Str? trimToNull(Str? str) {
 		(str?.trim?.isEmpty ?: true) ? null : str.trim
 	}
+	
+	static Void main() {
+		conmgr := ConnectionManagerPooled(ActorPool(), `mongodb://Sulaco:27018,Sulaco:27019,Sulaco:27017`)
+		conmgr.startup
+		conmgr.shutdown
+	}
 }
 
 internal class ConnectionManagerPoolState {
 	Connection[]	checkedOut	:= [,]
 	Connection[]	checkedIn	:= [,]
 	|->Connection|?	connectionFactory
+}
+
+internal class HostDetails {
+	Str		address
+	Int		port
+	Bool	contacted
+	Bool	isPrimary
+	Bool	isSecondary
+	Str[]	hosts	:= [,]
+	Str?	primary
+	
+	new make(Str addr) {
+		this.address	= addr.split(':').getSafe(0) ?: "127.0.0.1"
+		this.port 		= addr.split(':').getSafe(1)?.toInt ?: 27017
+	}
+	
+	This populate() {
+		contacted = true
+		
+		connection := TcpConnection(TcpSocket().connect(IpAddr(address), port))
+		try {
+			conMgr := ConnectionManagerLocal(connection, "mongodb://${address}:${port}".toUri)
+			details := Database(conMgr, "admin").runCmd(["ismaster":1])
+		
+			isPrimary 	= details["ismaster"]  == true	// '== true' to avoid NPEs if key doesn't exist
+			isSecondary	= details["secondary"] == true	// '== true' to avoid NPEs if key doesn't exist
+			primary		= details["primary"]
+			hosts		= details["hosts"]
+			
+		} finally connection.close
+		
+		return this
+	}
+	
+	Str host() { "${address}:${port}" }
+
+	override Str toStr() { host }
 }
