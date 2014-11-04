@@ -113,8 +113,8 @@ internal const class ErrMsgs {
 		"No connection is available in this thread!?"
 	}
 	
-	static Str connection_couldNot(Str ipAddr, Str errMsg) {
-		"Mongo could not connect to DB at `${ipAddr}` - ${errMsg}"
+	static Str connection_couldNot(Str ipAddr, Int port, Str errMsg) {
+		"Could not connect to MongoDB at `${ipAddr}:${port}` - ${errMsg}"
 	}
 	
 	static Str stripSys(Str str) {

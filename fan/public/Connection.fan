@@ -63,7 +63,7 @@ class TcpConnection : Connection {
 			return this
 		}
 		catch (Err err)
-			throw IOErr(ErrMsgs.connection_couldNot(address.toStr, err.msg))		
+			throw IOErr(ErrMsgs.connection_couldNot(address.toStr, port, err.msg))		
 	}
 	
 	override InStream	in()		{ socket.in			}
