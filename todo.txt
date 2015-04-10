@@ -17,3 +17,5 @@ ReplicaSets
     - http://docs.mongodb.org/meta-driver/latest/legacy/connect-driver-to-replica-set/
     - http://api.mongodb.org/java/2.10.0/index.html?com/mongodb/MongoClient.html
  - maybe have Connection.leaseReadConnection() && Connection.leaseWriteConnection() ?
+Explain Cmd in v3.x 
+ - http://docs.mongodb.org/manual/reference/command/explain/#dbcmd.explain

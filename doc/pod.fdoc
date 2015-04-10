@@ -1,12 +1,13 @@
 Overview [#overview]
 ********************
-'Mongo' is a pure Fantom driver for [MongoDB]`http://www.mongodb.org/` v2.6+.
+'Mongo' is a pure Fantom driver for [MongoDB]`http://www.mongodb.org/`.
 
 'Mongo' driver features:
 
+ - Compatible with MongoDB v2.6 / 3.x+
  - Standard and capped collections
  - Write commands: 'insert()', 'update()', 'delete()' and 'findAndModify()'
- - Write concern support (v2.6+)
+ - Write concern support
  - Optimised queries for 'findOne()' and 'findAll()'
  - Cursor support
  - Aggregation commands: 'aggregate()', 'distinct()', 'group()' and 'mapReduce()'
@@ -92,7 +93,7 @@ C:\> fan Example.fan
 |_|_|_|___|_|_|_  |___|
               |___|1.0.0
 
-Connected to MongoDB v2.6.0 (at mongodb://localhost:27017)
+Connected to MongoDB v2.6.5 (at mongodb://localhost:27017)
 
 [_id:5373acbda8000b3491000001, name:Emma, score:9]
 <pre
@@ -122,7 +123,7 @@ Use `ConnectionManagerPooled` for normal multi-threaded use:
     conMgr := ConnectionManagerPooled(ActorPool(), `mongodb://localhost:27017`)
     client := MongoClient(conMgr)
 
-When you create a 'MongoClient' it immediately connects to MongoDB and verifies it is the correct version:
+When you create a 'MongoClient' it immediately connects to MongoDB and verifies the version:
 
 pre>
 .    Alien-Factory
@@ -131,18 +132,8 @@ pre>
 |_|_|_|___|_|_|_  |___|
               |___|1.0.0
 
-Connected to MongoDB v2.4.9
-
-[warn] ****************************************************************************
-[warn] ** WARNING: This driver is ONLY compatible with MongoDB v2.6.0 or greater **
-[warn] ****************************************************************************
+Connected to MongoDB v2.6.5
 <pre
-
-Ooops! As you can see, we have an old MongoDB running. And true enough, when we run the [QuickStart example]`#quickStart` we get:
-
-  afMongo::MongoCmdErr: Command 'insert' failed. MongoDB says: no such cmd: insert
-
-Installing (and connection to) a fresh MongoDB of version 2.6.0 or greater will get you back on track.
 
 Note that 'ConnectionManagerPooled' will always query the supplied MongoDB host(s) to find the primary node, on which all read and write operations are performed.
 
@@ -227,13 +218,14 @@ If you're looking for cross-platform MongoDB GUI client then look no further tha
 Release Notes [#releaseNotes]
 *****************************
 v1.0.2 [#v1.0.2]
-----------------
+================
+ - New: Updated for MongoDB 3.x.
  - Chg: Added 'fieldNames' parameter to 'findAll()' - see [Issue #1]`https://bitbucket.org/AlienFactory/afmongo/issue/1/limit-fields-to-return-from-a-query`.
  - Chg: Made the 'deleteMulti()', 'insertMulti()' and 'updateMulti()' methods in 'Collection' public.
  - Chg: Documented some 'options' parameters.
 
 v1.0.0 [#v1.0.0]
-----------------
+================
  - New: Support for connecting to Replica Sets via multiple hosts in the Mongo connection URL. All read and write operations performed on the primary.
  - New: Support for the 'waitQueueTimeoutMS' Mongo connection URL option with a truncated binary exponential backoff algorithm to wait for available connections.
  - New: Support for write concern options in the Mongo connection URL.
@@ -246,15 +238,15 @@ v1.0.0 [#v1.0.0]
  - Bug: 'Cursor.count' threw an Err if the query was ordered.
 
 v0.0.6 [#v0.0.6]
-----------------
+================
  - Bug: 'Index.ensure()' when comparing indexes did not respect 'unique:false'.
 
 v0.0.4 [#v0.0.4]
-----------------
+================
  - New: 'ConnectionManagerPooled' instances are created with a [Mongo Connection URI]`http://docs.mongodb.org/manual/reference/connection-string/`.
  - New: 'ConnectionManagerPooled' accepts default database and user credentails to initially authenticate all leased connections with.
 
 v0.0.2 [#v0.0.2]
-----------------
+================
  - New: Preview Release
 
