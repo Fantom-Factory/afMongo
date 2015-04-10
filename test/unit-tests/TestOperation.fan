@@ -14,7 +14,7 @@ internal class TestOperation : MongoTest {
 		mmc.replyOut.writeInteger32(-1)
 		mmc.replyOut.writeInteger32(42)
 
-		verifyErrMsg(MongoErr#, ErrMsgs.operation_resOpCodeInvalid(42)) {
+		verifyErrMsg(MongoOpErr#, ErrMsgs.operation_resOpCodeInvalid(42)) {
 			Operation(mmc).readReply(-1)
 		}
 	}
@@ -25,7 +25,7 @@ internal class TestOperation : MongoTest {
 		mmc.replyOut.writeInteger32(42)
 		mmc.replyOut.writeInteger32(OpCode.OP_REPLY.id)
 
-		verifyErrMsg(MongoErr#, ErrMsgs.operation_resIdMismatch(41, 42)) {
+		verifyErrMsg(MongoOpErr#, ErrMsgs.operation_resIdMismatch(41, 42)) {
 			Operation(mmc).readReply(41)
 		}		
 	}
@@ -41,7 +41,7 @@ internal class TestOperation : MongoTest {
 		mmc.replyOut.writeInteger32(-1)
 		mmc.replyOut.writeInteger32(0)
 				
-		verifyErrMsg(MongoErr#, ErrMsgs.operation_queryFailure(null)) {
+		verifyErrMsg(MongoOpErr#, ErrMsgs.operation_queryFailure(null)) {
 			Operation(mmc).readReply(42)
 		}		
 	}
@@ -58,7 +58,7 @@ internal class TestOperation : MongoTest {
 		mmc.replyOut.writeInteger32(1)
 		mmc.replyOut.writeDocument(["\$err":"You Mong!"])
 				
-		verifyErrMsg(MongoErr#, ErrMsgs.operation_queryFailure("You Mong!")) {
+		verifyErrMsg(MongoOpErr#, ErrMsgs.operation_queryFailure("You Mong!")) {
 			Operation(mmc).readReply(42)
 		}		
 	}
@@ -75,7 +75,7 @@ internal class TestOperation : MongoTest {
 		mmc.replyOut.writeInteger32(1)
 		mmc.replyOut.writeDocument(["\$err":69])
 				
-		verifyErrMsg(MongoErr#, ErrMsgs.operation_queryFailure("69")) {
+		verifyErrMsg(MongoOpErr#, ErrMsgs.operation_queryFailure("69")) {
 			Operation(mmc).readReply(42)
 		}		
 	}
