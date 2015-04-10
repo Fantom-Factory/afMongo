@@ -226,6 +226,11 @@ If you're looking for cross-platform MongoDB GUI client then look no further tha
 
 Release Notes [#releaseNotes]
 *****************************
+v1.0.2 [#v1.0.2]
+----------------
+ - Chg: Added 'fieldNames' parameter to 'findAll()' - see [Issue #1]`https://bitbucket.org/AlienFactory/afmongo/issue/1/limit-fields-to-return-from-a-query`.
+ - Chg: Documented some 'options' parameters.
+
 v1.0.0 [#v1.0.0]
 ----------------
  - New: Support for connecting to Replica Sets via multiple hosts in the Mongo connection URL. All read and write operations performed on the primary.
@@ -251,4 +256,4 @@ v0.0.4 [#v0.0.4]
 v0.0.2 [#v0.0.2]
 ----------------
  - New: Preview Release
- 
+
