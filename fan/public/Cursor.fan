@@ -36,7 +36,7 @@ class Cursor {
 	
 	** The maximum number of documents this cursor will read.
 	** 
-	** Leave as 'null' to read all results from the query.
+	** Leave as 'null' or set to zero to read all results from the query.
 	** 
 	** This value can not be changed once a query has been sent to the server.
 	Int? limit {
@@ -229,7 +229,7 @@ class Cursor {
 			.add("count", _nsCol.collectionName)
 			.add("query", query)
 			.add("hint", orderBy ?: hint)
-			.add("limit", limit)
+			.add("limit", limit ?: 0)
 			.add("skip", skip)
 		)["n"]->toInt
 	}
@@ -243,6 +243,8 @@ class Cursor {
 
 	** Returns a query plan that describes the process and indexes used to return the query. 
 	** Useful when attempting to optimise queries.
+	** 
+	** Deprecated in MongoDB 3.x.
 	** 
 	** @see `http://docs.mongodb.org/manual/reference/operator/meta/explain/`
 	Str:Obj? explain() {
