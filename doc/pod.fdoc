@@ -229,6 +229,7 @@ Release Notes [#releaseNotes]
 v1.0.2 [#v1.0.2]
 ----------------
  - Chg: Added 'fieldNames' parameter to 'findAll()' - see [Issue #1]`https://bitbucket.org/AlienFactory/afmongo/issue/1/limit-fields-to-return-from-a-query`.
+ - Chg: Made the 'deleteMulti()', 'insertMulti()' and 'updateMulti()' methods in 'Collection' public.
  - Chg: Documented some 'options' parameters.
 
 v1.0.0 [#v1.0.0]
