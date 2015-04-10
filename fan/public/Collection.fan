@@ -161,12 +161,17 @@ const class Collection {
 	** 
 	** The 'sort' map, should it contain more than 1 entry, must be ordered.
 	** 
+	** 'fieldNames' are names of the fields to be returned in the query results.
+	** 
+	** Note that 'findAll(...)' is a convenience for calling 'find(...)' and returning the cursor as a list. 
+	** 
 	** - @see `Cursor.toList`
 	** - @see `http://docs.mongodb.org/manual/reference/operator/query/`
-	[Str:Obj?][] findAll(Str:Obj? query := [:], Obj? sort := null, Int skip := 0, Int? limit := null) {
+	[Str:Obj?][] findAll(Str:Obj? query := [:], Obj? sort := null, Int skip := 0, Int? limit := null, Str[]? fieldNames := null) {
 		find(query) |Cursor cursor->[Str:Obj?][]| {
-			cursor.skip  = skip
-			cursor.limit = limit
+			cursor.skip  		= skip
+			cursor.limit 		= limit
+			cursor.fieldNames	= fieldNames
 			if (sort is Str)	cursor.hint 	= sort
 			if (sort is Map)	cursor.orderBy  = sort
 			if (sort != null && sort isnot Str && sort isnot Map)
@@ -200,10 +205,9 @@ const class Collection {
 		insertMulti([document], null, writeConcern)["n"]->toInt
 	}
 
-	** Inserts many documents.
+	** Inserts multiple documents.
 	** 
 	** @see `http://docs.mongodb.org/manual/reference/command/insert/`
-	@NoDoc
 	[Str:Obj?] insertMulti([Str:Obj?][] inserts, Bool? ordered := null, [Str:Obj?]? writeConcern := null) {
 		cmd("insert")
 			.add("insert",			name)
@@ -227,10 +231,9 @@ const class Collection {
 		return deleteMulti([cmd.query], null, writeConcern)["n"]->toInt
 	}
 
-	** Executes many delete queries.
+	** Executes multiple delete queries.
 	** 	
 	** @see `http://docs.mongodb.org/manual/reference/command/delete/`
-	@NoDoc
 	[Str:Obj?] deleteMulti([Str:Obj?][] deletes, Bool? ordered := null, [Str:Obj?]? writeConcern := null) {
 		cmd("delete")
 			.add("delete",			name)
@@ -262,7 +265,6 @@ const class Collection {
 	** Runs multiple update queries.
 	** 
 	** @see `http://docs.mongodb.org/manual/reference/command/update/`
-	@NoDoc
 	[Str:Obj?] updateMulti([Str:Obj?][] updates, Bool? ordered := null, [Str:Obj?]? writeConcern := null) {
 		cmd("update")
 			.add("update",			name)
@@ -272,17 +274,24 @@ const class Collection {
 			.run
 	}
 
-	** Updates and returns a single document.
+	** Updates and returns a single document. 
+	** If the query returns multiple documents then the first one is updated.
 	** 
-	** If 'returnModified' is 'true' then the document is returned *after* the updates have been applied. 
-	** 
-	**   Options  Type  
-	**   -------  ----  
-	**   upsert   Bool  
-	**   sort     Doc   
-	**   fields   Doc
+	** If 'returnModified' is 'true' then the document is returned *after* the updates have been applied.
 	** 
 	** Returns 'null' if no document was found.
+	** 
+	** The 'options' parameter is merged with the Mongo command and may contain the following:
+	** 
+	**   Options  Type  Desc
+	**   -------  ----  ----
+	**   upsert   Bool  Creates a new document if no document matches the query
+	**   sort     Doc   Orders the result to determine which document to update.
+	**   fields   Doc   Defines which fields to return.
+	** 
+	** Example:
+	** 
+	**   collection.findAndUpdate(query, cmd, true, ["upsert":true, "fields": ["myEntity.myField":1]]
 	** 
 	** @see `http://docs.mongodb.org/manual/reference/command/findAndModify/`
 	[Str:Obj?]? findAndUpdate(Str:Obj? query, Str:Obj? updateCmd, Bool returnModified, [Str:Obj?]? options := null) {
@@ -295,11 +304,18 @@ const class Collection {
 	}
 
 	** Deletes and returns a single document.
+	** If the query returns multiple documents then the first one is delete.
 	** 
-	**   Options  Type  
-	**   -------  ----  
-	**   sort     Doc   
-	**   fields   Doc
+	** The 'options' parameter is merged with the Mongo command and may contain the following:
+	** 
+	**   Options  Type  Desc  
+	**   -------  ----  ----
+	**   sort     Doc   Orders the result to determine which document to delete.
+	**   fields   Doc   Defines which fields to return.
+	** 
+	** Example:
+	** 
+	**   collection.findAndDelete(query, ["fields": ["myEntity.myField":1]]
 	** 
 	** @see `http://docs.mongodb.org/manual/reference/command/findAndModify/`
 	[Str:Obj?] findAndDelete(Str:Obj? query, [Str:Obj?]? options := null) {
@@ -333,7 +349,14 @@ const class Collection {
 	** 
 	** 'key' must either be a list of field names ( 'Str[]' ) or a function that creates a 
 	** "key object" ( 'Str' ).  
+	**
+	** The 'options' parameter is merged with the Mongo command and may contain the following:
 	** 
+	**   Options   Type  Desc
+	**   -------   ----  ----
+	**   cond      Doc   Determines which documents in the collection to process.
+	**   finalize  Func  Runs on each item in the result set before the final value is returned.
+	**  
 	** @see `http://docs.mongodb.org/manual/reference/command/group/`
 	[Str:Obj?][] group(Obj key, [Str:Obj?] initial, Code reduceFunc, [Str:Obj?]? options := null) {
 		keydoc := ([Str:Obj?]?) null; keyf := (Str?) null
@@ -358,6 +381,19 @@ const class Collection {
 	** If 'out' is a Str, it specifies the name of a collection to store the results.
 	** If 'out' is a Map, it specifies the action to take. 
 	** 
+	** The 'options' parameter is merged with the Mongo command and may contain the following:
+	** 
+	**   Options   Type  Desc  
+	**   -------   ----  ----
+	**   query     Doc   The selection criteria for input documents.
+	**   sort      Doc   Sorts the input documents.
+	**   limit     Int   The maximum number of documents given to the map function.
+	**   finalize  Func  Follows the 'reduce' method and modifies the output.
+	**   scope     Doc   global variables used in the 'map', 'reduce' and 'finalize' functions.
+	**   jsMode    Bool  If 'false' (default) objects from the 'map' function are converted 
+	**                   into BSON before being handed to the 'finalize' function.
+	**   verbose   Bool  If 'true' (default) then timing information is returned in the result.
+	** 
 	** @see `http://docs.mongodb.org/manual/reference/command/mapReduce/`
 	[Str:Obj?] mapReduce(Code mapFunc, Code reduceFunc, Obj out, [Str:Obj?]? options := null) {
 		cmd	.add("mapReduce",	name)
@@ -369,6 +405,14 @@ const class Collection {
 	}
 	
 	** Performs an aggregation operation using a sequence of stage-based manipulations.
+	** 
+	** The 'options' parameter is merged with the Mongo command and may contain the following:
+	** 
+	**   Options       Type  Desc  
+	**   -------       ----  ----
+	**   explain       Bool  Returns pipeline processing information.
+	**   allowDiskUse  Bool  If 'true' allows temp data to be stored on disk.
+	**   cursor        Doc   Controls the cursor creation.
 	** 
 	** @see 
 	**  - `http://docs.mongodb.org/manual/reference/command/aggregate/`

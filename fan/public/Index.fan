@@ -54,10 +54,11 @@ const class Index {
 	** 
 	** Note that should 'key' contain more than 1 entry, it must be ordered.
 	** 
-	** Options are numerous, see the MongoDB documentation for details. Common options are:
+	** The 'options' parameter is merged with the Mongo command.
+	** Options are numerous (see the MongoDB documentation for details) but common options are:
 	** 
-	**   Name               Type   Desc
-	**   ----------------------------------------------------------------------------
+	**   Name               Type  Desc
+	**   ----               ----  ----                                              
 	**   background         Bool  Builds the index in the background so it does 
 	**                            not block other database activities.
 	**   sparse             Bool  Only reference documents with the specified field. 
@@ -94,7 +95,7 @@ const class Index {
 	**  
  	** Note that should 'key' contain more than 1 entry, it must be ordered.
 	** 
-	** @See `create` for option details.
+	** The 'options' parameter is merged with the Mongo command, see `create` for details.
 	**  
 	** @see `http://docs.mongodb.org/manual/reference/command/createIndexes/`
 	Bool ensure(Str:Obj key, Bool? unique := false, Str:Obj options := [:]) {
