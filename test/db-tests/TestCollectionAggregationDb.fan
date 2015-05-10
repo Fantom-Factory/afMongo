@@ -91,7 +91,7 @@ internal class TestCollectionAggregationDb : MongoDbTest {
 		
 		map := Code("function() { emit(this.user_id, 1); }")
 		red := Code("function(k, vals) { return 1; }")
-		res := c.mapReduce(map, red, "whoopie")
+		res := c.mapReduce(map, red, ["out":"whoopie"])
 
 		mrcoll := db[res["result"]]
 		verifyNotNull(mrcoll.findOne(["_id": 1]))
@@ -103,7 +103,7 @@ internal class TestCollectionAggregationDb : MongoDbTest {
 		c.insert(["user_id": 2])
 		c.insert(["user_id": 3])
 		
-		res = c.mapReduce(map, red, "whoopie", ["query": ["user_id": ["\$gt": 1]]])
+		res = c.mapReduce(map, red, ["out":"whoopie", "query": ["user_id": ["\$gt": 1]]])
 		mrcoll = db[res["result"]]
 		verifyEq(2, mrcoll.size)
 		verifyNull(mrcoll.get(1, false))
