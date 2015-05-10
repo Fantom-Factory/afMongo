@@ -400,7 +400,7 @@ const class Collection {
 	** 
 	** @see `http://docs.mongodb.org/manual/reference/command/mapReduce/`
 	[Str:Obj?] mapReduce(Code mapFunc, Code reduceFunc, [Str:Obj?]? options := null) {
-		opts := options.dup
+		opts := options.dup.rw
 		if (!opts.containsKey("out"))
 			opts["out"] = ["inline" : 1]
 		return cmd

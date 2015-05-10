@@ -219,7 +219,7 @@ Release Notes [#releaseNotes]
 *****************************
 v1.0.4 [#v1.0.4]
 ================
- - Chg: Changed the signature of 'Collection.mapReduce()' to make 'out' default to *inline*.
+ - Chg: Changed the signature of 'Collection.mapReduce()' to make 'out' default to *inline*. (Breaking change.)
 
 v1.0.2 [#v1.0.2]
 ================
