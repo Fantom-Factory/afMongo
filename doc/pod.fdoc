@@ -217,6 +217,10 @@ If you're looking for cross-platform MongoDB GUI client then look no further tha
 
 Release Notes [#releaseNotes]
 *****************************
+v1.0.4 [#v1.0.4]
+================
+ - Chg: Changed the signature of 'Collection.mapReduce()' to make 'out' default to *inline*.
+
 v1.0.2 [#v1.0.2]
 ================
  - New: Updated for MongoDB 3.x.
