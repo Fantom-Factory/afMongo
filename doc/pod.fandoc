@@ -1,8 +1,8 @@
-Overview [#overview]
-********************
-'Mongo' is a pure Fantom driver for [MongoDB]`http://www.mongodb.org/`.
+Overview
+********
+Mongo is a pure Fantom driver for [MongoDB]`http://www.mongodb.org/`.
 
-'Mongo' driver features:
+Mongo driver features:
 
  - Compatible with MongoDB v2.6 / 3.x+
  - Standard and capped collections
@@ -18,7 +18,7 @@ Overview [#overview]
  - Pooled connection manager for multi-threaded use
  - Support for Replica Set connection URLs
 
-'Mongo' driver has been written specifically for MongoDB v2.6.0 or newer.
+Mongo driver has been written specifically for MongoDB v2.6.0 or newer.
 
 Many features, including ALL write commands, will **NOT** work with older MongoDB versions.
 
@@ -26,82 +26,60 @@ Many features, including ALL write commands, will **NOT** work with older MongoD
 
 
 
-Install [#Install]
-******************
-Install '@{project.name}' with the Fantom Repository Manager ( [fanr]`docFanr::Tool.install` ):
-
-  C:\> fanr install -r http://repo.status302.com/fanr/ @{pod.name}
-
-To use in a [Fantom]`http://fantom.org/` project, add a dependency to 'build.fan':
-
-  depends = ["sys 1.0", ..., "@{pod.name} @{pod.version}"]
-
-
-
-Documentation [#documentation]
-******************************
-Full API & fandocs are available on the [Status302 repository]`http://repo.status302.com/doc/@{pod.name}/`.
-
-
-
 Quick Start [#quickStart]
 *************************
-1). Start up an instance of MongoDB:
-pre>
-C:\> mongod
+1. Start up an instance of MongoDB:
+    C:\> mongod
 
-MongoDB starting
-db version v2.6.0
-waiting for connections on port 27017
-<pre
+    MongoDB starting
+    db version v2.6.0
+    waiting for connections on port 27017
 
-2). Create a text file called 'Example.fan':
-pre>
-syntax: fantom
+2. Create a text file called 'Example.fan'
 
-using afBson
-using afMongo
-using concurrent
+    syntax: fantom
 
-class Example {
+    using afBson
+    using afMongo
+    using concurrent
 
-    Void main() {
-        mongoClient := MongoClient(ActorPool(), `mongodb://localhost:27017`)
-        collection  := mongoClient.db("friends").collection("birds")
+    class Example {
 
-        documentIn  := [
-            "_id"   : ObjectId(),
-            "name"  : "Emma",
-            "score" : 9
-        ]
-        collection.insert(documentIn)
+        Void main() {
+            mongoClient := MongoClient(ActorPool(), `mongodb://localhost:27017`)
+            collection  := mongoClient.db("friends").collection("birds")
 
-        echo( collection.findAll.first )
+            documentIn  := [
+                "_id"   : ObjectId(),
+                "name"  : "Emma",
+                "score" : 9
+            ]
+            collection.insert(documentIn)
 
-        mongoClient.shutdown
+            echo( collection.findAll.first )
+
+            mongoClient.shutdown
+        }
     }
-}
-<pre
 
-3). Run 'Example.fan' as a Fantom script from the command line:
-pre>
-C:\> fan Example.fan
+3. Run 'Example.fan' as a Fantom script from the command line:
 
-     Alien-Factory
- _____ ___ ___ ___ ___
-|     | . |   | . | . |
-|_|_|_|___|_|_|_  |___|
-              |___|1.0.0
+    C:\> fan Example.fan
 
-Connected to MongoDB v2.6.5 (at mongodb://localhost:27017)
+          Alien-Factory
+      _____ ___ ___ ___ ___
+     |     | . |   | . | . |
+     |_|_|_|___|_|_|_  |___|
+                  |___|1.0.0
 
-[_id:5373acbda8000b3491000001, name:Emma, score:9]
-<pre
+    Connected to MongoDB v2.6.5 (at mongodb://localhost:27017)
+
+    [_id:5373acbda8000b3491000001, name:Emma, score:9]
 
 
 
-Usage [#usage]
-**************
+Usage
+*****
 `MongoClient` is the main entry point into 'Mongo'.
 From there you can access all other components of MongoDB, namely `Database`, `Collection`, `Index` and `User`.
 
@@ -115,10 +93,12 @@ MongoClient
 
 
 
-Connecting [#connecting]
-========================
+Connecting
+==========
 'MongoClient' is created with a `ConnectionManager`, which manages your connections to MongoDB.
 Use `ConnectionManagerPooled` for normal multi-threaded use:
+
+    syntax: fantom
 
     conMgr := ConnectionManagerPooled(ActorPool(), `mongodb://localhost:27017`)
     client := MongoClient(conMgr)
@@ -139,8 +119,8 @@ Note that 'ConnectionManagerPooled' will always query the supplied MongoDB host(
 
 
 
-Queries [#queries]
-==================
+Queries
+=======
 'Mongo' and MongoDB work with documents, they are used throughout the 'Mongo' API.
 A MongoDB document is represented in Fantom as a Map of type '[Str:Obj?]'.
 All document keys must be strings. Document values can be any valid [BSON]`pod:afBson` type.
@@ -180,8 +160,8 @@ collection.find( ["score": ["\$gt":2]] ) |cursor| {
 
 
 
-Write Commands [#writeCmds]
-==========================
+Write Commands
+==============
 The 'insert()' command is simple enough and is demonstrated in the [QuickStart example]`#quickStart`.
 
 'update()' and 'delete()' are similar in that they both take a query that describes which document(s) are to be updated / deleted.
@@ -194,8 +174,8 @@ By default 'Mongo' will throw a 'MongoErr' should a write error occur.
 
 
 
-ObjectId [#objectId]
-====================
+ObjectId
+========
 All documents held in a collection need a unique id, held in a field named '_id'.
 If the '_id' field does not exist, MongoDB will create one for you of type [ObjectId]`afBson::ObjectId`.
 
@@ -207,50 +187,9 @@ The bad is that in *humongous* collections it eats up precious bytes which means
 
 
 
-Remarks [#remarks]
-******************
+Remarks
+*******
 The Alien-Factory MongoDB driver was inspired by [fantomongo]`https://bitbucket.org/liamstask/fantomongo` by Liam Staskawicz.
 
 If you're looking for cross-platform MongoDB GUI client then look no further than [Robomongo]`http://robomongo.org/`!
-
-
-
-Release Notes [#releaseNotes]
-*****************************
-v1.0.4 [#v1.0.4]
-================
- - Chg: Changed the signature of 'Collection.mapReduce()' to make 'out' default to *inline*. (Breaking change.)
-
-v1.0.2 [#v1.0.2]
-================
- - New: Updated for MongoDB 3.x.
- - Chg: Added 'fieldNames' parameter to 'findAll()' - see [Issue #1]`https://bitbucket.org/AlienFactory/afmongo/issue/1/limit-fields-to-return-from-a-query`.
- - Chg: Made the 'deleteMulti()', 'insertMulti()' and 'updateMulti()' methods in 'Collection' public.
- - Chg: Documented some 'options' parameters.
-
-v1.0.0 [#v1.0.0]
-================
- - New: Support for connecting to Replica Sets via multiple hosts in the Mongo connection URL. All read and write operations performed on the primary.
- - New: Support for the 'waitQueueTimeoutMS' Mongo connection URL option with a truncated binary exponential backoff algorithm to wait for available connections.
- - New: Support for write concern options in the Mongo connection URL.
- - New: Support for 'connectTimeoutMS' and 'socketTimeoutMS' Mongo URL connection options.
- - Chg: The default write concern has moved out of MongoClient / Database / Collection / User and into the ConnectionManager.
- - Chg: 'Cursor.count' now takes into account 'skip' and 'limit'.
- - Chg: Renamed 'ConnectionManager.mongoUri' -> 'ConnectionManager.mongoUrl'.
- - Chg: Index keys must be ordered if they contain more than one entry.
- - Chg: Better Err msg if could not connect to MongoDB.
- - Bug: 'Cursor.count' threw an Err if the query was ordered.
-
-v0.0.6 [#v0.0.6]
-================
- - Bug: 'Index.ensure()' when comparing indexes did not respect 'unique:false'.
-
-v0.0.4 [#v0.0.4]
-================
- - New: 'ConnectionManagerPooled' instances are created with a [Mongo Connection URI]`http://docs.mongodb.org/manual/reference/connection-string/`.
- - New: 'ConnectionManagerPooled' accepts default database and user credentails to initially authenticate all leased connections with.
-
-v0.0.2 [#v0.0.2]
-================
- - New: Preview Release
 

@@ -5,7 +5,9 @@
 ** example Flags class:
 ** 
 ** pre>
-**   const class MyFlags : Flag {
+** syntax: fantom
+** 
+** const class MyFlags : Flag {
 **     static const MyFlags one     := MyFlags(1, "one")
 **     static const MyFlags two     := MyFlags(2, "two")
 **     static const MyFlags three   := MyFlags(3, "three")
@@ -13,35 +15,43 @@
 ** 
 **     new make(|This|? f := null) : super(f) { }
 **     new makeFromDefinition(Int flag, Str? name) : super(flag, name) { }
-**   }
+** }
 ** <pre
 ** 
 ** Set and clear bits by using '+' and '-' operators:
 ** 
 ** pre>
-**    (MyFlags.two + MyFlags.two) .toStr  --> two
-**    (MyFlags.two - MyFlags.four).toStr  --> two
+** syntax: fantom
+** 
+** (MyFlags.two + MyFlags.two) .toStr  --> two
+** (MyFlags.two - MyFlags.four).toStr  --> two
 ** <pre
 ** 
 ** Multiple flags may be set:
 ** 
 ** pre>
-**    (MyFlags.one + MyFlags.four).toStr  --> one|four
-**    (MyFlags.two + MyFlags.four).toStr  --> two|four
+** syntax: fantom
+** 
+** (MyFlags.one + MyFlags.four).toStr  --> one|four
+** (MyFlags.two + MyFlags.four).toStr  --> two|four
 ** <pre
 ** 
 ** Flags are automatically coalesced:
 ** 
 ** pre>
-**    (MyFlags.one + MyFlags.three) .toStr  --> three 
+** syntax: fantom
+** 
+** (MyFlags.one + MyFlags.three) .toStr  --> three 
 ** <pre
 ** 
 ** Unknown flags are presented as numbers:
 ** 
 ** pre>
-**    (MyFlags(16))               .toStr  --> (18)
-**    (MyFlags(10))               .toStr  --> two|(8)
-**    (MyFlags(27))               .toStr  --> three|(8)|(16)
+** syntax: fantom
+** 
+** (MyFlags(16))               .toStr  --> (18)
+** (MyFlags(10))               .toStr  --> two|(8)
+** (MyFlags(27))               .toStr  --> three|(8)|(16)
 ** <pre
 @NoDoc
 abstract const class Flag {

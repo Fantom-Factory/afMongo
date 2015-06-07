@@ -113,6 +113,8 @@ const class Collection {
 	** Returns what is returned from the given cursor function.
 	** 
 	** pre>
+	** syntax: fantom
+	** 
 	** second := collection.find([:]) |cursor->Obj?| {
 	**     first  := cursor.next
 	**     second := cursor.next
@@ -283,6 +285,7 @@ const class Collection {
 	** 
 	** The 'options' parameter is merged with the Mongo command and may contain the following:
 	** 
+	**   table:
 	**   Options  Type  Desc
 	**   -------  ----  ----
 	**   upsert   Bool  Creates a new document if no document matches the query
@@ -291,6 +294,7 @@ const class Collection {
 	** 
 	** Example:
 	** 
+	**   syntax: fantom
 	**   collection.findAndUpdate(query, cmd, true, ["upsert":true, "fields": ["myEntity.myField":1]]
 	** 
 	** @see `http://docs.mongodb.org/manual/reference/command/findAndModify/`
@@ -308,6 +312,7 @@ const class Collection {
 	** 
 	** The 'options' parameter is merged with the Mongo command and may contain the following:
 	** 
+	**   table:
 	**   Options  Type  Desc  
 	**   -------  ----  ----
 	**   sort     Doc   Orders the result to determine which document to delete.
@@ -315,6 +320,7 @@ const class Collection {
 	** 
 	** Example:
 	** 
+	**   syntax: fantom
 	**   collection.findAndDelete(query, ["fields": ["myEntity.myField":1]]
 	** 
 	** @see `http://docs.mongodb.org/manual/reference/command/findAndModify/`
@@ -352,6 +358,7 @@ const class Collection {
 	**
 	** The 'options' parameter is merged with the Mongo command and may contain the following:
 	** 
+	**   table:
 	**   Options   Type  Desc
 	**   -------   ----  ----
 	**   cond      Doc   Determines which documents in the collection to process.
@@ -383,6 +390,7 @@ const class Collection {
 	** 
 	** The 'options' parameter is merged with the Mongo command and may contain the following:
 	** 
+	**   table:
 	**   Options   Type  Desc  
 	**   -------   ----  ----
 	**   query     Doc   The selection criteria for input documents.
@@ -414,7 +422,8 @@ const class Collection {
 	** Performs an aggregation operation using a sequence of stage-based manipulations.
 	** 
 	** The 'options' parameter is merged with the Mongo command and may contain the following:
-	** 
+	**
+	**   table: 
 	**   Options       Type  Desc  
 	**   -------       ----  ----
 	**   explain       Bool  Returns pipeline processing information.

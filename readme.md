@@ -6,9 +6,9 @@
 
 ## Overview
 
-`Mongo` is a pure Fantom driver for [MongoDB](http://www.mongodb.org/).
+Mongo is a pure Fantom driver for [MongoDB](http://www.mongodb.org/).
 
-`Mongo` driver features:
+Mongo driver features:
 
 - Compatible with MongoDB v2.6 / 3.x+
 - Standard and capped collections
@@ -24,11 +24,11 @@
 - Pooled connection manager for multi-threaded use
 - Support for Replica Set connection URLs
 
-`Mongo` driver has been written specifically for MongoDB v2.6.0 or newer.
+Mongo driver has been written specifically for MongoDB v2.6.0 or newer.
 
 Many features, including ALL write commands, will **NOT** work with older MongoDB versions.
 
-> **ALIEN-AID:** See [Morphia](http://www.fantomfactory.org/pods/afMorphia) for a complete Fantom to MongoDB object mapping library!
+> **ALIEN-AID:** See [Morphia](http://pods.fantomfactory.org/pods/afMorphia) for a complete Fantom to MongoDB object mapping library!
 
 ## Install
 
@@ -42,66 +42,64 @@ To use in a [Fantom](http://fantom.org/) project, add a dependency to `build.fan
 
 ## Documentation
 
-Full API & fandocs are available on the [Status302 repository](http://repo.status302.com/doc/afMongo/).
+Full API & fandocs are available on the [Fantom Pod Repository](http://pods.fantomfactory.org/pods/afMongo/).
 
 ## Quick Start
 
-1). Start up an instance of MongoDB:
+1. Start up an instance of MongoDB:
 
-```
-C:\> mongod
+        C:\> mongod
+        
+        MongoDB starting
+        db version v2.6.0
+        waiting for connections on port 27017
 
-MongoDB starting
-db version v2.6.0
-waiting for connections on port 27017
-```
 
-2). Create a text file called `Example.fan`:
+2. Create a text file called `Example.fan`
 
-```
-using afBson
-using afMongo
-using concurrent
+        using afBson
+        using afMongo
+        using concurrent
+        
+        class Example {
+        
+            Void main() {
+                mongoClient := MongoClient(ActorPool(), `mongodb://localhost:27017`)
+                collection  := mongoClient.db("friends").collection("birds")
+        
+                documentIn  := [
+                    "_id"   : ObjectId(),
+                    "name"  : "Emma",
+                    "score" : 9
+                ]
+                collection.insert(documentIn)
+        
+                echo( collection.findAll.first )
+        
+                mongoClient.shutdown
+            }
+        }
 
-class Example {
 
-    Void main() {
-        mongoClient := MongoClient(ActorPool(), `mongodb://localhost:27017`)
-        collection  := mongoClient.db("friends").collection("birds")
+3. Run `Example.fan` as a Fantom script from the command line:
 
-        documentIn  := [
-            "_id"   : ObjectId(),
-            "name"  : "Emma",
-            "score" : 9
-        ]
-        collection.insert(documentIn)
+        C:\> fan Example.fan
+        
+              Alien-Factory
+          _____ ___ ___ ___ ___
+         |     | . |   | . | . |
+         |_|_|_|___|_|_|_  |___|
+                      |___|1.0.0
+        
+        Connected to MongoDB v2.6.5 (at mongodb://localhost:27017)
+        
+        [_id:5373acbda8000b3491000001, name:Emma, score:9]
 
-        echo( collection.findAll.first )
 
-        mongoClient.shutdown
-    }
-}
-```
-
-3). Run `Example.fan` as a Fantom script from the command line:
-
-```
-C:\> fan Example.fan
-
-     Alien-Factory
- _____ ___ ___ ___ ___
-|     | . |   | . | . |
-|_|_|_|___|_|_|_  |___|
-              |___|1.0.0
-
-Connected to MongoDB v2.6.5 (at mongodb://localhost:27017)
-
-[_id:5373acbda8000b3491000001, name:Emma, score:9]
-```
 
 ## Usage
 
-[MongoClient](http://repo.status302.com/doc/afMongo/MongoClient.html) is the main entry point into `Mongo`. From there you can access all other components of MongoDB, namely [Database](http://repo.status302.com/doc/afMongo/Database.html), [Collection](http://repo.status302.com/doc/afMongo/Collection.html), [Index](http://repo.status302.com/doc/afMongo/Index.html) and [User](http://repo.status302.com/doc/afMongo/User.html).
+[MongoClient](http://pods.fantomfactory.org/pods/afMongo/api/MongoClient) is the main entry point into `Mongo`. From there you can access all other components of MongoDB, namely [Database](http://pods.fantomfactory.org/pods/afMongo/api/Database), [Collection](http://pods.fantomfactory.org/pods/afMongo/api/Collection), [Index](http://pods.fantomfactory.org/pods/afMongo/api/Index) and [User](http://pods.fantomfactory.org/pods/afMongo/api/User).
 
 ```
 MongoClient
@@ -113,7 +111,7 @@ MongoClient
 
 ### Connecting
 
-`MongoClient` is created with a [ConnectionManager](http://repo.status302.com/doc/afMongo/ConnectionManager.html), which manages your connections to MongoDB. Use [ConnectionManagerPooled](http://repo.status302.com/doc/afMongo/ConnectionManagerPooled.html) for normal multi-threaded use:
+`MongoClient` is created with a [ConnectionManager](http://pods.fantomfactory.org/pods/afMongo/api/ConnectionManager), which manages your connections to MongoDB. Use [ConnectionManagerPooled](http://pods.fantomfactory.org/pods/afMongo/api/ConnectionManagerPooled) for normal multi-threaded use:
 
     conMgr := ConnectionManagerPooled(ActorPool(), `mongodb://localhost:27017`)
     client := MongoClient(conMgr)
@@ -134,7 +132,7 @@ Note that `ConnectionManagerPooled` will always query the supplied MongoDB host(
 
 ### Queries
 
-`Mongo` and MongoDB work with documents, they are used throughout the `Mongo` API. A MongoDB document is represented in Fantom as a Map of type `[Str:Obj?]`. All document keys must be strings. Document values can be any valid [BSON](http://www.fantomfactory.org/pods/afBson) type.
+`Mongo` and MongoDB work with documents, they are used throughout the `Mongo` API. A MongoDB document is represented in Fantom as a Map of type `[Str:Obj?]`. All document keys must be strings. Document values can be any valid [BSON](http://pods.fantomfactory.org/pods/afBson) type.
 
 A MongoDB database stores documents in collections. Use the `find()` methods to query a collection. Using the `friends` database in the [QuickStart Example](#quickStart) we could do:
 
@@ -149,7 +147,7 @@ collection.findAll( ["score": ["\$gt":7]] ) // --> return all docs with 'score >
 
 The `$gt` expression is an example of a [Query operator](http://docs.mongodb.org/manual/reference/operator/query/).
 
-To iterate over a *massive* collection without loading it all into memory, use a [Cursor](http://repo.status302.com/doc/afMongo/Cursor.html). `Cursors` download documents in batches, behind the scenes, as and when required. Create and use a `Cursors` by using the `find()` method:
+To iterate over a *massive* collection without loading it all into memory, use a [Cursor](http://pods.fantomfactory.org/pods/afMongo/api/Cursor). `Cursors` download documents in batches, behind the scenes, as and when required. Create and use a `Cursors` by using the `find()` method:
 
 ```
 collection.find( ["score": ["\$gt":2]] ) |cursor| {
@@ -174,7 +172,7 @@ Note that as of MongoDB v2.6 there is longer any need to call a `getLastError()`
 
 ### ObjectId
 
-All documents held in a collection need a unique id, held in a field named `_id`. If the `_id` field does not exist, MongoDB will create one for you of type [ObjectId](http://repo.status302.com/doc/afBson/ObjectId.html).
+All documents held in a collection need a unique id, held in a field named `_id`. If the `_id` field does not exist, MongoDB will create one for you of type [ObjectId](http://pods.fantomfactory.org/pods/afBson/api/ObjectId).
 
 Note that `_id` does not need to an `ObjectId`, it can be any BSON type. It just needs to be unique in the collection.
 
