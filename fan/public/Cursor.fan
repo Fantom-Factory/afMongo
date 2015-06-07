@@ -73,6 +73,7 @@ class Cursor {
 	** A zero based index into the documents returned by the query.
 	** 
 	** pre>
+	** syntax: fantom
 	** cursor.count  // --> 10
 	** cursor.skip = 2
 	** cursor.index  // -->  2
@@ -109,6 +110,8 @@ class Cursor {
 	** Should 'orderBy' contain more than 1 entry, it must be ordered.
 	** 
 	** Examples:
+	**   syntax: fantom
+	** 
 	**   cursor.orderBy = ["age": 1]
 	**   cursor.orderBy = [:] { ordered = true }.add("name", "asc").add("age", "desc")
 	** 
@@ -151,9 +154,11 @@ class Cursor {
 	** Use with 'hasNext()' to iterate over the results:
 	** 
 	** pre>
+	** syntax: fantom
+	** 
 	** while (cursor.hasNext) {
-	**   doc := cursor.next
-	**   ...
+	**     doc := cursor.next
+	**     ...
 	** }
 	** <pre
 	** 
@@ -180,9 +185,11 @@ class Cursor {
 	** Use with 'next()' to iterate over the results:
 	** 
 	** pre>
+	** syntax: fantom
+	** 
 	** while (cursor.hasNext) {
-	**   doc := cursor.next
-	**   ...
+	**     doc := cursor.next
+	**     ...
 	** }
 	** <pre
 	Bool hasNext() {
@@ -192,6 +199,8 @@ class Cursor {
 	** Return all *remaining* and unread documents as a List.
 	** 
 	** pre>
+	** syntax: fantom
+	** 
 	** cursor.count  // --> 10
 	** cursor.skip = 2
 	** cursor.next

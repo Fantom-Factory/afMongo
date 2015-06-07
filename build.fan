@@ -5,12 +5,12 @@ class Build : BuildPod {
 	new make() {
 		podName = "afMongo"
 		summary = "A pure Fantom driver for MongoDB"
-		version = Version("1.0.5")
+		version = Version("1.0.4")
 
 		meta = [
 			"proj.name"		: "Mongo",
-			"tags"			: "database",
-			"repo.private"	: "true"
+			"repo.tags"		: "database",
+			"repo.public"	: "false"
 		]
 
 		depends = [
@@ -24,6 +24,6 @@ class Build : BuildPod {
 		]
 
 		srcDirs = [`test/`, `test/utils/`, `test/unit-tests/`, `test/db-tests/`, `fan/`, `fan/public/`, `fan/public/util/`, `fan/internal/`]
-		resDirs = [,]
+		resDirs = [`doc/`]
 	}
 }

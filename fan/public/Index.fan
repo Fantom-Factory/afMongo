@@ -50,6 +50,7 @@ const class Index {
 	** Values may either be the standard Mongo '1' and '-1' for ascending / descending or the 
 	** strings 'ASC' / 'DESC'.
 	** 
+	**   syntax: fantom
   	**   index.create(["dateAdded" : Index.ASC])
 	** 
 	** Note that should 'key' contain more than 1 entry, it must be ordered.
@@ -57,6 +58,7 @@ const class Index {
 	** The 'options' parameter is merged with the Mongo command.
 	** Options are numerous (see the MongoDB documentation for details) but common options are:
 	** 
+	**   table:
 	**   Name               Type  Desc
 	**   ----               ----  ----                                              
 	**   background         Bool  Builds the index in the background so it does 
@@ -72,7 +74,7 @@ const class Index {
 			throw ArgErr(ErrMsgs.cursor_mapNotOrdered(key))
 
 		// there's no createIndexMulti 'cos I figure no novice will need to create multiple indexes at once!
-		if (unique != null)	options.set("unique", unique)
+		if (unique == null)	options.set("unique", unique)
 		cmd	.add("createIndexes", colNs.collectionName)
 			.add("indexes", 	[cmd
 				.add("key",		Utils.convertAscDesc(key))
@@ -91,6 +93,8 @@ const class Index {
 	** 
 	** Returns 'true' if the index was (re)-created, 'false' if nothing changed.
 	**
+	**   syntax: fantom
+	** 
 	**   index.ensure(["dateAdded" : Index.ASC])
 	**  
  	** Note that should 'key' contain more than 1 entry, it must be ordered.

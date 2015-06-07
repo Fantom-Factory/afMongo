@@ -7,10 +7,14 @@ using inet
 ** 
 ** Retrieving data from a MongoDB can be as easy as:
 ** 
+**   syntax: fantom
+** 
 **   mongo := MongoClient(ActorPool(), "127.0.0.1", 27017)
 **   data  := mongo.db("db").collection("col").findAll
 ** 
 ** Or using defaults and shorthand notation:
+** 
+**   syntax: fantom
 ** 
 **   mongo := MongoClient(ActorPool())
 **   data  := mongo["db"]["col"].findAll

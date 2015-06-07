@@ -38,6 +38,8 @@ const class Database {
 
 	** Evaluates a JavaScript function on the database server.
 	**  
+	**   syntax: fantom
+	** 
 	**   scope := ["y":2]
 	**   func  := Code("function (x) { return x + y; }", scope)
 	**   xy    := db.eval(func, [3f])  // --> 5.0
@@ -53,6 +55,8 @@ const class Database {
 	** Executes the given function passing in a database (connection) that has been authenticated 
 	** with the given user. Within the function, the authenticated database may be used as often 
 	** as you wish.
+	** 
+	**   syntax: fantom
 	** 
 	**   data := db.authenticate("ZeroCool", "password") |authDb -> Obj?| {
 	** 

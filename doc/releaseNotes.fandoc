@@ -1,0 +1,39 @@
+Versions
+********
+
+v1.0.4
+======
+ - Chg: Changed the signature of 'Collection.mapReduce()' to make 'out' default to *inline*. (Breaking change.)
+
+v1.0.2
+======
+ - New: Updated for MongoDB 3.x.
+ - Chg: Added 'fieldNames' parameter to 'findAll()' - see [Issue #1]`https://bitbucket.org/AlienFactory/afmongo/issue/1/limit-fields-to-return-from-a-query`.
+ - Chg: Made the 'deleteMulti()', 'insertMulti()' and 'updateMulti()' methods in 'Collection' public.
+ - Chg: Documented some 'options' parameters.
+
+v1.0.0
+======
+ - New: Support for connecting to Replica Sets via multiple hosts in the Mongo connection URL. All read and write operations performed on the primary.
+ - New: Support for the 'waitQueueTimeoutMS' Mongo connection URL option with a truncated binary exponential backoff algorithm to wait for available connections.
+ - New: Support for write concern options in the Mongo connection URL.
+ - New: Support for 'connectTimeoutMS' and 'socketTimeoutMS' Mongo URL connection options.
+ - Chg: The default write concern has moved out of MongoClient / Database / Collection / User and into the ConnectionManager.
+ - Chg: 'Cursor.count' now takes into account 'skip' and 'limit'.
+ - Chg: Renamed 'ConnectionManager.mongoUri' -> 'ConnectionManager.mongoUrl'.
+ - Chg: Index keys must be ordered if they contain more than one entry.
+ - Chg: Better Err msg if could not connect to MongoDB.
+ - Bug: 'Cursor.count' threw an Err if the query was ordered.
+
+v0.0.6
+======
+ - Bug: 'Index.ensure()' when comparing indexes did not respect 'unique:false'.
+
+v0.0.4
+======
+ - New: 'ConnectionManagerPooled' instances are created with a [Mongo Connection URI]`http://docs.mongodb.org/manual/reference/connection-string/`.
+ - New: 'ConnectionManagerPooled' accepts default database and user credentails to initially authenticate all leased connections with.
+
+v0.0.2
+======
+ - New: Preview Release
