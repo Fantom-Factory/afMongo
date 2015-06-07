@@ -61,12 +61,9 @@ const class Index {
 	**   table:
 	**   Name               Type  Desc
 	**   ----               ----  ----                                              
-	**   background         Bool  Builds the index in the background so it does 
-	**                            not block other database activities.
-	**   sparse             Bool  Only reference documents with the specified field. 
-	**                            Uses less space but behave differently in sorts.
-	**   expireAfterSeconds Int   Specifies a Time To Live (TTL) in seconds that 
-	**                            controls how long documents are retained.
+	**   background         Bool  Builds the index in the background so it does not block other database activities.
+	**   sparse             Bool  Only reference documents with the specified field. Uses less space but behave differently in sorts.
+	**   expireAfterSeconds Int   Specifies a Time To Live (TTL) in seconds that controls how long documents are retained.
 	** 
 	** @see `http://docs.mongodb.org/manual/reference/command/createIndexes/`
 	This create(Str:Obj key, Bool? unique := false, Str:Obj options := [:]) {
@@ -99,8 +96,16 @@ const class Index {
 	**  
  	** Note that should 'key' contain more than 1 entry, it must be ordered.
 	** 
-	** The 'options' parameter is merged with the Mongo command, see `create` for details.
+	** The 'options' parameter is merged with the Mongo command.
+	** Options are numerous (see the MongoDB documentation for details) but common options are:
 	**  
+	**   table:
+	**   Name               Type  Desc
+	**   ----               ----  ----                                              
+	**   background         Bool  Builds the index in the background so it does not block other database activities.
+	**   sparse             Bool  Only reference documents with the specified field. Uses less space but behave differently in sorts.
+	**   expireAfterSeconds Int   Specifies a Time To Live (TTL) in seconds that controls how long documents are retained.
+	** 
 	** @see `http://docs.mongodb.org/manual/reference/command/createIndexes/`
 	Bool ensure(Str:Obj key, Bool? unique := false, Str:Obj options := [:]) {
 		if (key.size > 1 && key.ordered == false)
