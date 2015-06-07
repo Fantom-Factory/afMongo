@@ -398,10 +398,8 @@ const class Collection {
 	**   limit     Int   The maximum number of documents given to the map function.
 	**   finalize  Func  Follows the 'reduce' method and modifies the output.
 	**   scope     Doc   global variables used in the 'map', 'reduce' and 'finalize' functions.
-	**   out       Obj   If a 'Str' then it's the name of a collection to store the results in, if
-	**                   a Doc, then it specifies the action to take.
-	**   jsMode    Bool  If 'false' (default) objects from the 'map' function are converted 
-	**                   into BSON before being handed to the 'finalize' function.
+	**   out       Obj   If a 'Str' then it's the name of a collection to store the results in, if a Doc, then it specifies the action to take.
+	**   jsMode    Bool  If 'false' (default) objects from the 'map' function are converted into BSON before being handed to the 'finalize' function.
 	**   verbose   Bool  If 'true' (default) then timing information is returned in the result.
 	** 
 	** Note if an 'out' option is not specified, it is taken to be *inline* and the returned document contains the results.
