@@ -3,7 +3,7 @@ using inet
 ** Represents a connection to a MongoDB instance.
 ** All connections on creation should be connected to a MongoDB instance and ready to go.
 ** 
-** @see `TcpConnection` 
+** Default implementation is a 'TcpConnection'. 
 mixin Connection {
 
 	** Data *from* MongoDB *to* the client.
