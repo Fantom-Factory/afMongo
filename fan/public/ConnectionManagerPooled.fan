@@ -290,6 +290,7 @@ const class ConnectionManagerPooled : ConnectionManager {
 		// remove user credentials and other crud from the url
 		mongoUrlRef.val = "mongodb://${primaryAddress}:${primaryPort}".toUri	// F4 doesn't like Uri interpolation
 
+		// set our connection factory
 		connectionState.withState |ConnectionManagerPoolState state| {
 			state.connectionFactory = |->Connection| {
 				socket := TcpSocket()
@@ -514,8 +515,8 @@ internal class HostDetails {
 			conMgr := ConnectionManagerLocal(connection, "mongodb://${address}:${port}".toUri)
 			details := Database(conMgr, "admin").runCmd(["ismaster":1])
 		
-			isPrimary 	= details["ismaster"]  == true	// '== true' to avoid NPEs if key doesn't exist
-			isSecondary	= details["secondary"] == true	// '== true' to avoid NPEs if key doesn't exist in standalone instances  
+			isPrimary 	= details["ismaster"]  == true			// '== true' to avoid NPEs if key doesn't exist
+			isSecondary	= details["secondary"] == true			// '== true' to avoid NPEs if key doesn't exist in standalone instances  
 			primary		= details["primary"]					// standalone instances don't have primary information
 			hosts		= details["hosts"] ?: Obj#.emptyList	// standalone instances don't have hosts information
 			

@@ -18,6 +18,8 @@ internal class MockMongoConnection : Connection {
 	override OutStream	out()		{ mongoIn.out } 
 	override Void		close()		{ }
 	override Bool		isClosed()	{ false }
+	override Void		authenticate(Str databaseName, Str userName, Str password, Str? mechanism := null) { }
+	override Void 		logout		(Str databaseName, Bool checked := true) { }
 	
 	Str:Obj? readSentDoc() {
 		// unwind the msg

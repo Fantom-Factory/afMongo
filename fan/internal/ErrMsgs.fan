@@ -117,6 +117,10 @@ internal const class ErrMsgs {
 		"Could not connect to MongoDB at `${ipAddr}:${port}` - ${errMsg}"
 	}
 	
+	static Str connection_unknownAuthMechanism(Str mechanism, Str[] supportedMechanisms) {
+		"Unknown authentication mechanism '${mechanism}', only the following are currently supported: " + supportedMechanisms.join(", ")
+	}
+	
 	static Str stripSys(Str str) {
 		str.replace("sys::", "")
 	}
