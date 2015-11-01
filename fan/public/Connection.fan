@@ -1,4 +1,5 @@
 using inet
+using util
 
 ** Represents a connection to a MongoDB instance.
 ** All connections on creation should be connected to a MongoDB instance and ready to go.
@@ -87,14 +88,16 @@ class TcpConnection : Connection {
 	private Void authScramSha1(Str databaseName, Str userName, Str password) {
 		gs2Header	:= "n,,"	// no idea where this comes from!
 		
-		clientFirstMsg := "n=${userName},r=fyko+d2lbbFgONRv9qkxdawL"	// FIXME genereate nonce
-		serverFirstRes := Operation(this).runCommand("${databaseName}.\$cmd", map
+		// ---- 1st message ----
+		random			:= Random.makeSecure
+		clientNonce		:= Buf().writeI8(random.next).writeI8(random.next).toBase64
+		clientFirstMsg	:= "n=${userName},r=${clientNonce}"
+		serverFirstRes	:= Operation(this).runCommand("${databaseName}.\$cmd", map
 			.add("saslStart", 1)
 			.add("mechanism", "SCRAM-SHA-1")
 			.add("payload", Buf().print(gs2Header).print(clientFirstMsg))
 			.add("autoAuthorize", 1)
 		)
-		echo("${gs2Header}${clientFirstMsg}")
 		
 		conversationId	:=  (Int) serverFirstRes["conversationId"]
 		serverFirstMsg	:= ((Buf) serverFirstRes["payload"]).readAllStr
@@ -102,45 +105,41 @@ class TcpConnection : Connection {
 		serverNonce		:= payloadValues["r"]
 		serverSalt		:= payloadValues["s"]
 		serverIterations:= Int.fromStr(payloadValues["i"])
-		
-//		serverFirstMsg = serverFirstMsg.replace(serverNonce, "fyko+d2lbbFgONRv9qkxdawLHo+Vgk7qvUOKUwuWLIWg4l/9SraGMHEE")
-//		serverFirstMsg = serverFirstMsg.replace(serverSalt, "rQ9ZY3MntBeuP3E1TDVC4w==")
-//		serverNonce = "fyko+d2lbbFgONRv9qkxdawLHo+Vgk7qvUOKUwuWLIWg4l/9SraGMHEE"
-//		serverSalt = "rQ9ZY3MntBeuP3E1TDVC4w=="
-		echo("${serverFirstMsg}")
-		
-		hashedPassword	:= Buf().print("${userName}:mongo:${password}").toDigest("MD5").toHex		
-//		dkLen			:= Buf().print("str").hmac("SHA-1", Buf().print("key")).size	// is always 20
-		dkLen			:= 20
+				
+		// ---- 2nd message ----
+		hashedPassword	:= Buf().print("${userName}:mongo:${password}").toDigest("MD5").toHex
+		dkLen			:= 20	// the size of a SHA-1 hash
 		saltedPassword	:= Buf.pbk("PBKDF2WithHmacSHA1", hashedPassword, Buf.fromBase64(serverSalt), serverIterations, dkLen)
-
 		clientFinalNoPf	:= "c=${Buf().print(gs2Header).toBase64},r=${serverNonce}"
 		authMessage		:= "${clientFirstMsg},${serverFirstMsg},${clientFinalNoPf}"
-
 		clientKey		:= Buf().print("Client Key").hmac("SHA-1", saltedPassword)
 		storedKey		:= clientKey.toDigest("SHA-1")
 		clientSignature	:= Buf().print(authMessage).hmac("SHA-1", storedKey)
 		clientProof		:= xor(clientKey, clientSignature) 
 		clientFinal		:= "${clientFinalNoPf},p=${clientProof.toBase64}"
-		
-		echo("###########")
-		echo(clientFinal)
-		
-		
+		serverKey		:= Buf().print("Server Key").hmac("SHA-1", saltedPassword)
+		serverSignature	:= Buf().print(authMessage).hmac("SHA-1", serverKey).toBase64
 		serverSecondRes := Operation(this).runCommand("${databaseName}.\$cmd", map
 			.add("saslContinue", 1)
 			.add("conversationId", conversationId)
 			.add("payload", Buf().print(clientFinal))
-			.add("autoAuthorize", 1)
 		)
-		echo(serverSecondRes)
 		serverSecondMsg	:= ((Buf) serverSecondRes["payload"]).readAllStr
-		echo(serverSecondMsg)
 		payloadValues	= Str:Str[:].addList(serverSecondMsg.split(',')) { it[0..<1] }.map { it[2..-1] }
-		echo(payloadValues)
-		
-		
-		throw Err(serverSecondRes.toStr)
+		serverProof		:= payloadValues["v"]
+
+		// authenticate the server
+		if (serverSignature != serverProof)
+			throw MongoErr(ErrMsgs.connection_invalidServerSignature(serverSignature, serverProof))
+
+		// ---- 3rd message ----
+		serverThirdRes := Operation(this).runCommand("${databaseName}.\$cmd", map
+			.add("saslContinue", 1)
+			.add("conversationId", conversationId)
+			.add("payload", Buf())
+		)
+		if (serverThirdRes["done"] != true)
+			throw MongoErr(ErrMsgs.connection_scramNotDone(serverThirdRes.toStr))
 	}
 	
 	private Buf xor(Buf key, Buf sig) {
