@@ -94,7 +94,7 @@ MongoClient
 
 
 Connecting
-==========
+**********
 'MongoClient' is created with a `ConnectionManager`, which manages your connections to MongoDB.
 Use `ConnectionManagerPooled` for normal multi-threaded use:
 
@@ -120,7 +120,7 @@ Note that 'ConnectionManagerPooled' will always query the supplied MongoDB host(
 
 
 Queries
-=======
+*******
 'Mongo' and MongoDB work with documents, they are used throughout the 'Mongo' API.
 A MongoDB document is represented in Fantom as a Map of type '[Str:Obj?]'.
 All document keys must be strings. Document values can be any valid [BSON]`pod:afBson` type.
@@ -161,7 +161,7 @@ collection.find( ["score": ["\$gt":2]] ) |cursor| {
 
 
 Write Commands
-==============
+**************
 The 'insert()' command is simple enough and is demonstrated in the [QuickStart example]`#quickStart`.
 
 'update()' and 'delete()' are similar in that they both take a query that describes which document(s) are to be updated / deleted.
@@ -175,7 +175,7 @@ By default 'Mongo' will throw a 'MongoErr' should a write error occur.
 
 
 ObjectId
-========
+********
 All documents held in a collection need a unique id, held in a field named '_id'.
 If the '_id' field does not exist, MongoDB will create one for you of type [ObjectId]`afBson::ObjectId`.
 
@@ -184,6 +184,32 @@ Note that '_id' does not need to an 'ObjectId', it can be any BSON type. It just
 Like [marmite]`http://www.ilovemarmite.com/`, people tend to have a love / hate relationship with the 'ObjectId'.
 The good comments revolve around it having a natural sort that (roughly) corresponds to creation time.
 The bad is that in *humongous* collections it eats up precious bytes which means the [index can't fit into RAM]`http://docs.mongodb.org/manual/tutorial/ensure-indexes-fit-ram/`.
+
+
+Authentication
+**************
+To set a default user to be used by all connections, set the username and password in the MongoDB connection URL:
+
+    syntax: fantom
+
+    conMgr := ConnectionManagerPooled(ActorPool(), `mongodb://<username>:<password>@localhost:27017`)
+    client := MongoClient(conMgr)
+
+Another way, that may also be used in conjunction with URL credentials, is to use an authenticated connection. Authenticated connections are bound to the database they are authenticated against.
+
+pre>
+syntax: fantom
+client := MongoClient(conMgr)
+db     := client["database"]
+data   := db.authenticate("ZeroCool", "password") |authDb -> Obj?| {
+    ...
+    return authDb["top-secret"].findAll
+}
+<pre
+
+All Mongo objects ( 'Collection', 'Index', 'User', etc...) created from the authenticated database will inherit the user credentials. Note that the database *must* be accessed via the 'authDb' variable for the commands to be authenticated.
+
+Note that authentication defaults to 'MONGODB-CR' for MongoDB 2.x and 'SCRAM-SHA-1' otherwise.
 
 
 
