@@ -24,7 +24,7 @@ class Build : BuildPod {
 			"afBson       1.0.0 - 1.0"
 		]
 
-		srcDirs = [`test/`, `test/utils/`, `test/unit-tests/`, `test/db-tests/`, `fan/`, `fan/public/`, `fan/public/util/`, `fan/internal/`]
+		srcDirs = [`fan/`, `fan/internal/`, `fan/public/`, `fan/public/util/`, `test/`, `test/db-tests/`, `test/unit-tests/`, `test/utils/`]
 		resDirs = [`doc/`]
 	}
 }
