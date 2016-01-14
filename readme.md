@@ -1,7 +1,7 @@
-#Mongo v1.0.4
+#Mongo v1.0.6
 ---
 [![Written in: Fantom](http://img.shields.io/badge/written%20in-Fantom-lightgray.svg)](http://fantom.org/)
-[![pod: v1.0.4](http://img.shields.io/badge/pod-v1.0.4-yellow.svg)](http://www.fantomfactory.org/pods/afMongo)
+[![pod: v1.0.6](http://img.shields.io/badge/pod-v1.0.6-yellow.svg)](http://www.fantomfactory.org/pods/afMongo)
 ![Licence: MIT](http://img.shields.io/badge/licence-MIT-blue.svg)
 
 ## Overview
@@ -34,7 +34,7 @@ Many features, including ALL write commands, will **NOT** work with older MongoD
 
 Install `Mongo` with the Fantom Repository Manager ( [fanr](http://fantom.org/doc/docFanr/Tool.html#install) ):
 
-    C:\> fanr install -r http://repo.status302.com/fanr/ afMongo
+    C:\> fanr install -r http://pods.fantomfactory.org/fanr/ afMongo
 
 To use in a [Fantom](http://fantom.org/) project, add a dependency to `build.fan`:
 
@@ -109,7 +109,7 @@ MongoClient
       `-- User
 ```
 
-### Connecting
+## Connecting
 
 `MongoClient` is created with a [ConnectionManager](http://pods.fantomfactory.org/pods/afMongo/api/ConnectionManager), which manages your connections to MongoDB. Use [ConnectionManagerPooled](http://pods.fantomfactory.org/pods/afMongo/api/ConnectionManagerPooled) for normal multi-threaded use:
 
@@ -130,7 +130,7 @@ Connected to MongoDB v2.6.5
 
 Note that `ConnectionManagerPooled` will always query the supplied MongoDB host(s) to find the primary node, on which all read and write operations are performed.
 
-### Queries
+## Queries
 
 `Mongo` and MongoDB work with documents, they are used throughout the `Mongo` API. A MongoDB document is represented in Fantom as a Map of type `[Str:Obj?]`. All document keys must be strings. Document values can be any valid [BSON](http://pods.fantomfactory.org/pods/afBson) type.
 
@@ -160,7 +160,7 @@ collection.find( ["score": ["\$gt":2]] ) |cursor| {
 }
 ```
 
-### Write Commands
+## Write Commands
 
 The `insert()` command is simple enough and is demonstrated in the [QuickStart example](#quickStart).
 
@@ -170,13 +170,35 @@ The `insert()` command is simple enough and is demonstrated in the [QuickStart e
 
 Note that as of MongoDB v2.6 there is longer any need to call a `getLastError()` function. All error handling is done via write concerns. By default `Mongo` will throw a `MongoErr` should a write error occur.
 
-### ObjectId
+## ObjectId
 
 All documents held in a collection need a unique id, held in a field named `_id`. If the `_id` field does not exist, MongoDB will create one for you of type [ObjectId](http://pods.fantomfactory.org/pods/afBson/api/ObjectId).
 
 Note that `_id` does not need to an `ObjectId`, it can be any BSON type. It just needs to be unique in the collection.
 
 Like [marmite](http://www.ilovemarmite.com/), people tend to have a love / hate relationship with the `ObjectId`. The good comments revolve around it having a natural sort that (roughly) corresponds to creation time. The bad is that in *humongous* collections it eats up precious bytes which means the [index can't fit into RAM](http://docs.mongodb.org/manual/tutorial/ensure-indexes-fit-ram/).
+
+## Authentication
+
+To set a default user to be used by all connections, set the username and password in the MongoDB connection URL:
+
+    conMgr := ConnectionManagerPooled(ActorPool(), `mongodb://<username>:<password>@localhost:27017`)
+    client := MongoClient(conMgr)
+
+Another way, that may also be used in conjunction with URL credentials, is to use an authenticated connection. Authenticated connections are bound to the database they are authenticated against.
+
+```
+client := MongoClient(conMgr)
+db     := client["database"]
+data   := db.authenticate("ZeroCool", "password") |authDb -> Obj?| {
+    ...
+    return authDb["top-secret"].findAll
+}
+```
+
+All Mongo objects ( `Collection`, `Index`, `User`, etc...) created from the authenticated database will inherit the user credentials. Note that the database *must* be accessed via the `authDb` variable for the commands to be authenticated.
+
+Note that authentication defaults to `MONGODB-CR` for MongoDB 2.x and `SCRAM-SHA-1` otherwise.
 
 ## Remarks
 

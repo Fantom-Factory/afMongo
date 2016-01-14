@@ -107,18 +107,18 @@ class TcpConnection : Connection {
 		serverIterations:= Int.fromStr(payloadValues["i"])
 				
 		// ---- 2nd message ----
-		hashedPassword	:= Buf().print("${userName}:mongo:${password}").toDigest("MD5").toHex
+		hashedPassword	:= "${userName}:mongo:${password}".toBuf.toDigest("MD5").toHex
 		dkLen			:= 20	// the size of a SHA-1 hash
 		saltedPassword	:= Buf.pbk("PBKDF2WithHmacSHA1", hashedPassword, Buf.fromBase64(serverSalt), serverIterations, dkLen)
 		clientFinalNoPf	:= "c=${Buf().print(gs2Header).toBase64},r=${serverNonce}"
 		authMessage		:= "${clientFirstMsg},${serverFirstMsg},${clientFinalNoPf}"
-		clientKey		:= Buf().print("Client Key").hmac("SHA-1", saltedPassword)
+		clientKey		:= "Client Key".toBuf.hmac("SHA-1", saltedPassword)
 		storedKey		:= clientKey.toDigest("SHA-1")
-		clientSignature	:= Buf().print(authMessage).hmac("SHA-1", storedKey)
+		clientSignature	:= authMessage.toBuf.hmac("SHA-1", storedKey)
 		clientProof		:= xor(clientKey, clientSignature) 
 		clientFinal		:= "${clientFinalNoPf},p=${clientProof.toBase64}"
-		serverKey		:= Buf().print("Server Key").hmac("SHA-1", saltedPassword)
-		serverSignature	:= Buf().print(authMessage).hmac("SHA-1", serverKey).toBase64
+		serverKey		:= "Server Key".toBuf.hmac("SHA-1", saltedPassword)
+		serverSignature	:= authMessage.toBuf.hmac("SHA-1", serverKey).toBase64
 		serverSecondRes := Operation(this).runCommand("${databaseName}.\$cmd", map
 			.add("saslContinue", 1)
 			.add("conversationId", conversationId)
