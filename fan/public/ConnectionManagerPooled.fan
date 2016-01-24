@@ -307,6 +307,7 @@ const class ConnectionManagerPooled : ConnectionManager {
 	}
 
 	** Makes a connection available to the given function.
+	** What ever is returned from the func is returned from the method.
 	** 
 	** If all connections are currently in use, a truncated binary exponential backoff algorithm 
 	** is used to wait for one to become free. If, while waiting, the duration specified in 
@@ -477,12 +478,6 @@ const class ConnectionManagerPooled : ConnectionManager {
 	
 	private Str? trimToNull(Str? str) {
 		(str?.trim?.isEmpty ?: true) ? null : str.trim
-	}
-	
-	static Void main() {
-		conmgr := ConnectionManagerPooled(ActorPool(), `mongodb://Sulaco:27018,Sulaco:27019,Sulaco:27017`)
-		conmgr.startup
-		conmgr.shutdown
 	}
 }
 

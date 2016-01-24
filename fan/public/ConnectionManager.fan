@@ -21,6 +21,8 @@ const mixin ConnectionManager {
 	abstract Str:Obj? writeConcern()
 	
 	** Makes a connection available to the given function.
+	** 
+	** What ever is returned from the func is returned from the method.
 	abstract Obj? leaseConnection(|Connection->Obj?| c)
 	
 	// Can't return 'This' because of Plastic Proxies.
