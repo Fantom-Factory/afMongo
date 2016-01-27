@@ -141,9 +141,10 @@ const class Collection {
 	** Always throws 'MongoErr' if the query returns more than one document.
 	**  
 	** @see `http://docs.mongodb.org/manual/reference/operator/query/`
-	[Str:Obj?]? findOne(Str:Obj? query, Bool checked := true) {
+	[Str:Obj?]? findOne([Str:Obj?]? query := null, Bool checked := true) {
+		query = query ?: Str:Obj?[:]
 		// findOne() is optomised to NOT call count() on a successful call 
-		find(query) |cursor| {
+		return find(query) |cursor| {
 			// "If numberToReturn is 1 the server will treat it as -1 (closing the cursor automatically)."
 			// Means I can't use the isAlive() trick to check for more documents.
 			cursor.batchSize = 2
@@ -169,8 +170,9 @@ const class Collection {
 	** 
 	** - @see `Cursor.toList`
 	** - @see `http://docs.mongodb.org/manual/reference/operator/query/`
-	[Str:Obj?][] findAll(Str:Obj? query := [:], Obj? sort := null, Int skip := 0, Int? limit := null, Str[]? fieldNames := null) {
-		find(query) |Cursor cursor->[Str:Obj?][]| {
+	[Str:Obj?][] findAll([Str:Obj?]? query := null, Obj? sort := null, Int skip := 0, Int? limit := null, Str[]? fieldNames := null) {
+		query = query ?: Str:Obj?[:]
+		return find(query) |Cursor cursor->[Str:Obj?][]| {
 			cursor.skip  		= skip
 			cursor.limit 		= limit
 			cursor.fieldNames	= fieldNames
@@ -185,16 +187,19 @@ const class Collection {
 	** Returns the number of documents that would be returned by the given 'query'.
 	** 
 	** @see `Cursor.count`
-	Int findCount(Str:Obj? query) {
-		find(query) |cur->Int| {
+	Int findCount([Str:Obj?]? query := null) {
+		query = query ?: Str:Obj?[:]
+		return find(query) |cur->Int| {
 			cur.count
 		}
 	}
 	
 	** Convenience / shorthand notation for 'findOne(["_id" : id], checked)'
 	@Operator
-	[Str:Obj?]? get(Obj id, Bool checked := true) {
-		findOne(["_id" : id], checked)
+	[Str:Obj?]? get(Obj? id, Bool checked := true) {
+		if (id == null)
+			return !checked ? null : (null ?: throw MongoErr(ErrMsgs.collection_findOneIsEmpty(qname, id)))
+		return findOne(["_id" : id], checked)
 	}
 
 	// ---- Write Operations ----------------------------------------------------------------------
