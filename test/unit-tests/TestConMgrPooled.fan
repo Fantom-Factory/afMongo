@@ -179,32 +179,32 @@ internal class TestConMgrPooled : MongoTest {
 	Void testWriteConcent() {
 		// test default
 		conMgr := ConnectionManagerPooled(pool, `mongodb://wotever`)
-		verifyEq(conMgr.writeConcern, Str:Obj?[:] { it.ordered=true }.add("w", 1).add("wtimeout", 0).add("journal", false))
+		verifyEq(conMgr.writeConcern, Str:Obj?[:] { it.ordered=true }.add("w", 1).add("wtimeout", 0).add("j", false))
 
 		// write concern
 		conMgr = ConnectionManagerPooled(pool, `mongodb://wotever?w=-1`)
-		verifyEq(conMgr.writeConcern, Str:Obj?[:] { it.ordered=true }.add("w", -1).add("wtimeout", 0).add("journal", false))
+		verifyEq(conMgr.writeConcern, Str:Obj?[:] { it.ordered=true }.add("w", -1).add("wtimeout", 0).add("j", false))
 		
 		conMgr = ConnectionManagerPooled(pool, `mongodb://wotever?w=0`)
-		verifyEq(conMgr.writeConcern, Str:Obj?[:] { it.ordered=true }.add("w", 0).add("wtimeout", 0).add("journal", false))
+		verifyEq(conMgr.writeConcern, Str:Obj?[:] { it.ordered=true }.add("w", 0).add("wtimeout", 0).add("j", false))
 		
 		conMgr = ConnectionManagerPooled(pool, `mongodb://wotever?w=1`)
-		verifyEq(conMgr.writeConcern, Str:Obj?[:] { it.ordered=true }.add("w", 1).add("wtimeout", 0).add("journal", false))
+		verifyEq(conMgr.writeConcern, Str:Obj?[:] { it.ordered=true }.add("w", 1).add("wtimeout", 0).add("j", false))
 
 		conMgr = ConnectionManagerPooled(pool, `mongodb://wotever?w=set`)
-		verifyEq(conMgr.writeConcern, Str:Obj?[:] { it.ordered=true }.add("w", "set").add("wtimeout", 0).add("journal", false))
+		verifyEq(conMgr.writeConcern, Str:Obj?[:] { it.ordered=true }.add("w", "set").add("wtimeout", 0).add("j", false))
 
 		// write timeout
 		conMgr = ConnectionManagerPooled(pool, `mongodb://wotever?wtimeoutMS=2000`)
-		verifyEq(conMgr.writeConcern, Str:Obj?[:] { it.ordered=true }.add("w", 1).add("wtimeout", 2000).add("journal", false))
+		verifyEq(conMgr.writeConcern, Str:Obj?[:] { it.ordered=true }.add("w", 1).add("wtimeout", 2000).add("j", false))
 		
 		// journal
 		conMgr = ConnectionManagerPooled(pool, `mongodb://wotever?journal=true`)
-		verifyEq(conMgr.writeConcern, Str:Obj?[:] { it.ordered=true }.add("w", 1).add("wtimeout", 0).add("journal", true))
+		verifyEq(conMgr.writeConcern, Str:Obj?[:] { it.ordered=true }.add("w", 1).add("wtimeout", 0).add("j", true))
 		
 		// all options
 		conMgr = ConnectionManagerPooled(pool, `mongodb://wotever?w=3&wtimeoutMS=1234&journal=true`)
-		verifyEq(conMgr.writeConcern, Str:Obj?[:] { it.ordered=true }.add("w", 3).add("wtimeout", 1234).add("journal", true))
+		verifyEq(conMgr.writeConcern, Str:Obj?[:] { it.ordered=true }.add("w", 3).add("wtimeout", 1234).add("j", true))
 
 		verify(logs.isEmpty)
 	}

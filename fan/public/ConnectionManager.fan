@@ -14,7 +14,7 @@ const mixin ConnectionManager {
 	
 	** The default write concern that all write operations use if none supplied.
 	** 
-	** Defaults to '["w": 1, "wtimeout": 0, "journal": false]'
+	** Defaults to '["w": 1, "wtimeout": 0, "j": false]'
 	**  - write operations are acknowledged,
 	**  - write operations never time out,
 	**  - write operations need not be committed to the journal.

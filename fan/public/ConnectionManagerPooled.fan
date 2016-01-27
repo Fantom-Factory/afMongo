@@ -41,11 +41,11 @@ const class ConnectionManagerPooled : ConnectionManager {
 	** The default write concern for all write operations. 
 	** Set by specifying the 'w', 'wtimeoutMS' and 'journal' connection string options. 
 	** 
-	** Defaults to '["w": 1, "wtimeout": 0, "journal": false]'
+	** Defaults to '["w": 1, "wtimeout": 0, "j": false]'
 	**  - write operations are acknowledged,
 	**  - write operations never time out,
 	**  - write operations need not be committed to the journal.
-	override const Str:Obj? writeConcern := ["w": 1, "wtimeout": 0, "journal": false]
+	override const Str:Obj? writeConcern := ["w": 1, "wtimeout": 0, "j": false]
 	
 	** The default database connections are authenticated against.
 	** 
@@ -199,13 +199,13 @@ const class ConnectionManagerPooled : ConnectionManager {
 		defaultUsername = username
 		defaultPassword = password
 		
-		writeConcern := Str:Obj?[:] { it.ordered=true }.add("w", 1).add("wtimeout", 0).add("journal", false)
+		writeConcern := Str:Obj?[:] { it.ordered=true }.add("w", 1).add("wtimeout", 0).add("j", false)
 		if (w != null)
 			writeConcern["w"] = Int.fromStr(w, 10, false) != null ? w.toInt : w
 		if (wtimeoutMs != null)
 			writeConcern["wtimeout"] = wtimeoutMs
 		if (journal != null)
-			writeConcern["journal"] = journal
+			writeConcern["j"] = journal
 		this.writeConcern = writeConcern
 
 		query := mongoUrl.query.rw

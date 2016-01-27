@@ -22,7 +22,7 @@ internal class TestIndexDb : MongoDbTest {
 		verifyErr(MongoCmdErr#) {			
 			// FIXME Mongo3.x no longer throws an err here until we ensure the index
 			collection.insert(["data":10])
-//			collection.insert(["data":10], ["w": 1, "wtimeout": 0, "j": true])
+			collection.insert(["data":10], ["w": 1, "wtimeout": 0, "j": true])
 		}
 		
 		verifyEq(indat.ensure(["data":"up"], true), false)
