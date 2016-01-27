@@ -256,6 +256,7 @@ class Cursor {
 	** Deprecated in MongoDB 3.x.
 	** 
 	** @see `http://docs.mongodb.org/manual/reference/operator/meta/explain/`
+	@Deprecated { msg="Deprecated in MongoDB 3.x." }
 	Str:Obj? explain() {
 		special["\$explain"] = 1
 		return toList.first

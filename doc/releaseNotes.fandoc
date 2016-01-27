@@ -1,6 +1,11 @@
 Versions
 ********
 
+v1.0.6
+======
+ - New: SCRAM-SHA-1 over SASL - New authentication protocol for MongoDB 3.x.
+ - Chg: Allowed some 'Collection' methods to take null queries.
+
 v1.0.4
 ======
  - Chg: Changed the signature of 'Collection.mapReduce()' to make 'out' default to *inline*. (Breaking change.)

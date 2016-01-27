@@ -57,7 +57,7 @@ internal const class ErrMsgs {
 		"${what} name '${name}' may not contain any of the following: ${invalidChars}"
 	}
 		
-	static Str collection_findOneIsEmpty(Str qname, Str:Obj? query) {
+	static Str collection_findOneIsEmpty(Str qname, Obj? query) {
 		"FindOne() query returned ZERO documents from '${qname}': $query"
 	}
 
