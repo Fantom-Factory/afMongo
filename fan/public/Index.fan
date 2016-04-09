@@ -130,11 +130,14 @@ const class Index {
 		return true
 	}
 	
-	** Drops this index.
+	** Drops this index, but only if it exists.
+	** 
+	** If 'force' is 'true' then the index is dropped regardless. 
+	** Note this may result in an error if the index doesn't exist.
 	** 
 	** @see `http://docs.mongodb.org/manual/reference/command/dropIndexes/`
-	This drop(Bool checked := true) {
-		if (checked || exists) cmd.add("dropIndexes", colNs.collectionName).add("index", name).run
+	This drop(Bool force := false) {
+		if (force || exists) cmd.add("dropIndexes", colNs.collectionName).add("index", name).run
 		// [nIndexesWas:2, ok:1.0]
 		return this
 	}

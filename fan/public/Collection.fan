@@ -85,11 +85,14 @@ const class Collection {
 		return this
 	}
 
-	** Drops this collection.
+	** Drops this collection, but only if it exists.
+	** 
+	** If 'force' is 'true' then the collection is dropped regardless. 
+	** Note this may result in an error if the collection doesn't exist.
 	** 
 	** @see `http://docs.mongodb.org/manual/reference/command/drop/`
-	This drop(Bool checked := true) {
-		if (checked || exists) cmd.add("drop", name).run
+	This drop(Bool force := false) {
+		if (force || exists) cmd.add("drop", name).run
 		// [ns:afMongoTest.col-test, nIndexesWas:1, ok:1.0] 
 		// not sure wot 'nIndexesWas' or if it's useful, so return this for now 
 		return this
