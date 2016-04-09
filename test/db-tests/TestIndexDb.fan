@@ -19,7 +19,7 @@ internal class TestIndexDb : MongoDbTest {
 		verifyEq(indat.exists, true)
 		verifyEq(indat.info["name"], "_data_")
 		
-		verifyErr(MongoCmdErr#) {			
+		verifyErr(MongoCmdErr#) {
 			// FIXME Mongo3.x no longer throws an err here until we ensure the index
 			collection.insert(["data":10])
 			collection.insert(["data":10], ["w": 1, "wtimeout": 0, "j": true])
