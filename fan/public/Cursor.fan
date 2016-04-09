@@ -64,8 +64,6 @@ class Cursor {
 	** Optional flags to set in the query. 
 	** 
 	** This value can not be changed once the query has been sent to the server.
-	** 
-	** @see `OpQueryFlags`
 	Flag flags {
 		set { _querySent.check; &flags = it }		
 	}
