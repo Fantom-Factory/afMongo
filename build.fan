@@ -10,7 +10,7 @@ class Build : BuildPod {
 		meta = [
 			"proj.name"		: "Mongo",
 			"repo.tags"		: "database",
-			"repo.public"	: "false"
+			"repo.public"	: "true"
 		]
 
 		depends = [
