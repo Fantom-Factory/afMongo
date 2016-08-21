@@ -5,12 +5,12 @@ class Build : BuildPod {
 	new make() {
 		podName = "afMongo"
 		summary = "A pure Fantom driver for MongoDB"
-		version = Version("1.0.8")
+		version = Version("1.0.9")
 
 		meta = [
 			"proj.name"		: "Mongo",
 			"repo.tags"		: "database",
-			"repo.public"	: "true"
+			"repo.public"	: "false"
 		]
 
 		depends = [
