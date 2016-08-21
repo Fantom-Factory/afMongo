@@ -1,5 +1,11 @@
 Versions
 ********
+v1.0.8
+======
+ - New: 'Collection.runCmd(...)' to run arbitrary commands against collections.
+ - Chg: Updates to 'Collections' and 'Indexes' to work with MongoDB v3.2+ and WiredTiger storage.
+ - Chg: Created a couple 'xxx26()' methods that now only with MongoDB v2.6.
+ - Bug: Creating unique indexes didn't work.
 
 v1.0.6
 ======

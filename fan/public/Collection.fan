@@ -515,6 +515,22 @@ const class Collection {
 		return this
 	}
 	
+	// ---- Misc Methods --------------------------------------------------------------------------
+	
+	** Runs an arbitrary command against this 'Collection'. 
+	** Example, to return the size of the collection:
+	** 
+	**   size := runCmd(
+	**     ["count" : "<collectionName>"]
+	**   )["n"]->toInt
+	** 
+	** *This is a low level operation.*
+	** 
+	** See `https://docs.mongodb.com/manual/reference/command/`  
+	Str:Obj? runCmd(Str:Obj? query) {
+		cmd.addAll(query).run
+	}
+		
 	// ---- Obj Overrides -------------------------------------------------------------------------
 	
 	@NoDoc

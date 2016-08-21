@@ -4,7 +4,7 @@ Mongo is a pure Fantom driver for [MongoDB]`http://www.mongodb.org/`.
 
 Mongo driver features:
 
- - Compatible with MongoDB v2.6 / 3.x+
+ - Compatible with MongoDB v2.6 / v3.0 / v3.2+
  - Standard and capped collections
  - Write commands: 'insert()', 'update()', 'delete()' and 'findAndModify()'
  - Write concern support
@@ -20,8 +20,6 @@ Mongo driver features:
 
 Mongo driver has been written specifically for MongoDB v2.6.0 or newer.
 
-Many features, including ALL write commands, will **NOT** work with older MongoDB versions.
-
 > **ALIEN-AID:** See [Morphia]`pod:afMorphia` for a complete Fantom to MongoDB object mapping library!
 
 
@@ -32,7 +30,7 @@ Quick Start [#quickStart]
     C:\> mongod
 
     MongoDB starting
-    db version v2.6.0
+    db version v3.2.8
     waiting for connections on port 27017
 
 2. Create a text file called 'Example.fan'
@@ -70,9 +68,9 @@ Quick Start [#quickStart]
       _____ ___ ___ ___ ___
      |     | . |   | . | . |
      |_|_|_|___|_|_|_  |___|
-                  |___|1.0.0
+                  |___|1.0.8
 
-    Connected to MongoDB v2.6.5 (at mongodb://localhost:27017)
+    Connected to MongoDB v3.2.8 (at mongodb://localhost:27017)
 
     [_id:5373acbda8000b3491000001, name:Emma, score:9]
 
@@ -112,7 +110,7 @@ pre>
 |_|_|_|___|_|_|_  |___|
               |___|1.0.0
 
-Connected to MongoDB v2.6.5
+Connected to MongoDB v3.2.8
 <pre
 
 Note that 'ConnectionManagerPooled' will always query the supplied MongoDB host(s) to find the primary node, on which all read and write operations are performed.
