@@ -1,7 +1,7 @@
-#Mongo v1.0.6
+#Mongo v1.0.8
 ---
 [![Written in: Fantom](http://img.shields.io/badge/written%20in-Fantom-lightgray.svg)](http://fantom.org/)
-[![pod: v1.0.6](http://img.shields.io/badge/pod-v1.0.6-yellow.svg)](http://www.fantomfactory.org/pods/afMongo)
+[![pod: v1.0.8](http://img.shields.io/badge/pod-v1.0.8-yellow.svg)](http://www.fantomfactory.org/pods/afMongo)
 ![Licence: MIT](http://img.shields.io/badge/licence-MIT-blue.svg)
 
 ## Overview
@@ -10,7 +10,7 @@ Mongo is a pure Fantom driver for [MongoDB](http://www.mongodb.org/).
 
 Mongo driver features:
 
-- Compatible with MongoDB v2.6 / 3.x+
+- Compatible with MongoDB v2.6 / v3.0 / v3.2+
 - Standard and capped collections
 - Write commands: `insert()`, `update()`, `delete()` and `findAndModify()`
 - Write concern support
@@ -25,8 +25,6 @@ Mongo driver features:
 - Support for Replica Set connection URLs
 
 Mongo driver has been written specifically for MongoDB v2.6.0 or newer.
-
-Many features, including ALL write commands, will **NOT** work with older MongoDB versions.
 
 > **ALIEN-AID:** See [Morphia](http://pods.fantomfactory.org/pods/afMorphia) for a complete Fantom to MongoDB object mapping library!
 
@@ -51,7 +49,7 @@ Full API & fandocs are available on the [Fantom Pod Repository](http://pods.fant
         C:\> mongod
         
         MongoDB starting
-        db version v2.6.0
+        db version v3.2.8
         waiting for connections on port 27017
 
 
@@ -89,9 +87,9 @@ Full API & fandocs are available on the [Fantom Pod Repository](http://pods.fant
           _____ ___ ___ ___ ___
          |     | . |   | . | . |
          |_|_|_|___|_|_|_  |___|
-                      |___|1.0.0
+                      |___|1.0.8
         
-        Connected to MongoDB v2.6.5 (at mongodb://localhost:27017)
+        Connected to MongoDB v3.2.8 (at mongodb://localhost:27017)
         
         [_id:5373acbda8000b3491000001, name:Emma, score:9]
 
@@ -125,7 +123,7 @@ When you create a `MongoClient` it immediately connects to MongoDB and verifies 
 |_|_|_|___|_|_|_  |___|
               |___|1.0.0
 
-Connected to MongoDB v2.6.5
+Connected to MongoDB v3.2.8
 ```
 
 Note that `ConnectionManagerPooled` will always query the supplied MongoDB host(s) to find the primary node, on which all read and write operations are performed.
