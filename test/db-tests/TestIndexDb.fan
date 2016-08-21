@@ -6,12 +6,14 @@ internal class TestIndexDb : MongoDbTest {
 	override Void setup() {
 		super.setup
 		collection = db["indexTest"]
+		collection.dropAllIndexes
+		collection.drop
 	}
 	
 	Void testBasicMethods() {
 		10.times |i| { collection.insert(["data":i+1]) }
 		
-		verifyEq(collection.indexNames, Obj?["_id_"])
+		verifyEq(collection.indexNames, Str["_id_"])
 		
 		indat := collection.index("_data_")
 		verifyEq(indat.exists, false)
@@ -20,9 +22,8 @@ internal class TestIndexDb : MongoDbTest {
 		verifyEq(indat.info["name"], "_data_")
 		
 		verifyErr(MongoCmdErr#) {
-			// FIXME Mongo3.x no longer throws an err here until we ensure the index
 			collection.insert(["data":10])
-			collection.insert(["data":10], ["w": 1, "wtimeout": 0, "j": true])
+			collection.insert(["data":10])
 		}
 		
 		verifyEq(indat.ensure(["data":"up"], true), false)

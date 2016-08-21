@@ -34,14 +34,42 @@ const class Index {
 
 	** Returns index info.
 	** 
+	** Returns 'null' if index does not exist.
+	** 
 	** @see `http://docs.mongodb.org/manual/reference/method/db.collection.getIndexes/`
-	Str:Obj? info() {
+	[Str:Obj?]? info() {
+		res := cmd.add("listIndexes", colNs.collectionName).run
+		nfo := ([Str:Obj?][]) res["cursor"]->get("firstBatch")
+		return nfo.find { it["name"] == name }
+	}
+
+	** *For use with MongoDB v2.6.x only*
+	** 
+	** Returns index info.
+	** 
+	** @see `http://docs.mongodb.org/manual/reference/method/db.collection.getIndexes/`
+	@Deprecated { msg="For use with MongoDB v2.6.x only" }
+	Str:Obj? info26() {
 		Collection(conMgr, idxNs.qname).findOne(["ns":colNs.qname, "name":name])
 	}
 	
 	** Returns 'true' if this index exists.
 	Bool exists() {
-		Collection(conMgr, idxNs.qname).findCount(["ns":colNs.qname, "name":name]) > 0		
+		info != null	
+	}
+
+	** *For use with MongoDB v2.6.x only*
+	** 
+	** Returns 'true' if this index exists.
+	@Deprecated { msg="For use with MongoDB v2.6.x only" }
+	Bool exists26() {
+		res  := cmd.add("listIndexes", colNs.collectionName).run
+		info := res["cursor"]->get("firstBatch") 
+		info{echo(it)}
+		
+		res["cursor"]->get("firstBatch")->isEmpty->not
+
+		return Collection(conMgr, idxNs.qname).findCount(["ns":colNs.qname, "name":name]) > 0		
 	}
 	
 	** Creates this index.
@@ -61,8 +89,8 @@ const class Index {
 	**   table:
 	**   Name               Type  Desc
 	**   ----               ----  ----                                              
-	**   background         Bool  Builds the index in the background so it does not block other database activities.
-	**   sparse             Bool  Only reference documents with the specified field. Uses less space but behave differently in sorts.
+	**   background         Bool  Builds the index in the background so it does not block other database activities. Defaults to 'false'.
+	**   sparse             Bool  Only reference documents with the specified field. Uses less space but behave differently in sorts. Defaults to 'false'.
 	**   expireAfterSeconds Int   Specifies a Time To Live (TTL) in seconds that controls how long documents are retained.
 	** 
 	** @see `http://docs.mongodb.org/manual/reference/command/createIndexes/`
@@ -71,7 +99,7 @@ const class Index {
 			throw ArgErr(ErrMsgs.cursor_mapNotOrdered(key))
 
 		// there's no createIndexMulti 'cos I figure no novice will need to create multiple indexes at once!
-		if (unique == null)	options.set("unique", unique)
+		if (unique == true)	options.set("unique", unique)
 		cmd	.add("createIndexes", colNs.collectionName)
 			.add("indexes", 	[cmd
 				.add("key",		Utils.convertAscDesc(key))

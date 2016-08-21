@@ -6,6 +6,7 @@ internal class TestCollectionDb : MongoDbTest {
 	override Void setup() {
 		super.setup
 		collection = db["collectionTest"]
+		collection.drop
 		10.times |i| { collection.insert(["data":i+1]) }
 	}
 
@@ -81,6 +82,7 @@ internal class TestCollectionDb : MongoDbTest {
 	
 	Void testCappedCollections() {
 		col := db["col-cap-test"]
+		col.drop
 		
 		verifyEq(col.exists, false)
 		col.createCapped(2*1024, 3)

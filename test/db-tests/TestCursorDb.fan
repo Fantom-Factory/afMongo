@@ -8,6 +8,7 @@ internal class TestCursorDb : MongoDbTest {
 	override Void setup() {
 		super.setup
 		col = db["cursorTest"]
+		col.drop
 		10.times |i| { col.insert(["data":i+1]) }
 		col.conMgr.leaseConnection |c| { connection = c }	// very cheeky! Leaking refs!
 		cursor = Cursor(connection, Namespace(col.qname), [:])
