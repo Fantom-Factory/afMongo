@@ -63,13 +63,7 @@ const class Index {
 	** Returns 'true' if this index exists.
 	@Deprecated { msg="For use with MongoDB v2.6.x only" }
 	Bool exists26() {
-		res  := cmd.add("listIndexes", colNs.collectionName).run
-		info := res["cursor"]->get("firstBatch") 
-		info{echo(it)}
-		
-		res["cursor"]->get("firstBatch")->isEmpty->not
-
-		return Collection(conMgr, idxNs.qname).findCount(["ns":colNs.qname, "name":name]) > 0		
+		Collection(conMgr, idxNs.qname).findCount(["ns":colNs.qname, "name":name]) > 0		
 	}
 	
 	** Creates this index.

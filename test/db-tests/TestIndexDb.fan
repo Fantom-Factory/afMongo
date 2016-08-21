@@ -6,8 +6,10 @@ internal class TestIndexDb : MongoDbTest {
 	override Void setup() {
 		super.setup
 		collection = db["indexTest"]
-		collection.dropAllIndexes
-		collection.drop
+		if (collection.exists) {
+			collection.dropAllIndexes
+			collection.drop
+		}
 	}
 	
 	Void testBasicMethods() {
@@ -34,7 +36,7 @@ internal class TestIndexDb : MongoDbTest {
 		
 		indat.drop
 		verifyEq(indat.exists, false)
-		
+
 		collection.dropAllIndexes
 	}
 	
