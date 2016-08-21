@@ -50,7 +50,17 @@ const class Collection {
 
 	** Returns 'true' if this collection exists.
 	Bool exists() {
-		Collection(conMgr, namespace.withCollection("system.namespaces")).findCount(["name": "${namespace.databaseName}.${name}"]) > 0
+		// FIXME add Collection.runCmd(doc) for low level ops
+		res := cmd.add("listCollections", 1).add("filter", ["name":name]).run
+		return res["cursor"]->get("firstBatch")->isEmpty->not
+	}
+	
+	** *For use with MongoDB v2.6.x only*
+	** 
+	** Returns 'true' if this collection exists.
+	@Deprecated { msg="For use with MongoDB v2.6.x only" }
+	Bool exists26() {
+		Collection(conMgr, namespace.withCollection("system.namespaces")).findCount(["name": "${namespace.databaseName}.${name}"]) > 0		
 	}
 	
 	** Creates a new collection explicitly.
@@ -475,6 +485,16 @@ const class Collection {
 
 	** Returns all the index names of this collection.
 	Str[] indexNames() {
+		res := cmd.add("listIndexes", name).run
+		nfo := ([Str:Obj?][]) res["cursor"]->get("firstBatch")
+		return nfo.map |i->Str| { i["name"] }
+	}
+
+	** *For use with MongoDB v2.6.x only*
+	** 
+	** Returns all the index names of this collection.
+	@Deprecated { msg="For use with MongoDB v2.6.x only" }
+	Str[] indexNames26() {
 		idxNs := namespace.withCollection("system.indexes")
 		return Collection(conMgr, idxNs.qname).findAll(["ns":namespace.qname]).map { it["name"] }.sort
 	}

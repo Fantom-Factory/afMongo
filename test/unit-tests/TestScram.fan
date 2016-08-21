@@ -36,7 +36,7 @@ internal class TestScram : MongoTest {
 		md:=Buf().print("n,,n=user,r=fyko+d2lbbFgONRv9qkxdawL")	//.toDigest("SHA-1")
 		echo(md.toBase64)
 		
-		mongoClient := MongoClient(ActorPool(), `mongodb://user:pencil@ds039331.mongolab.com:39331/podrepo`)
+		mongoClient := MongoClient(ActorPool(), `mongodb://bushmasters:password@ds013216.mlab.com:13216/bushmasters`)
 	}
 	
 }

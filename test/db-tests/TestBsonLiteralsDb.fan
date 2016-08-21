@@ -5,7 +5,7 @@ internal class TestBsonLiteralsDb : MongoDbTest {
 	private DateTime now	:= DateTime.now
 
 	Void testBsonLiterals() {
-		col := db["Literals"]	//.drop
+		col := db["Literals"].drop
 		col.insert(bsonValueMap)
 		verifyBsonValueMap(col.findAll.first)
 	}
