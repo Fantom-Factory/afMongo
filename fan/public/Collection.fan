@@ -50,7 +50,6 @@ const class Collection {
 
 	** Returns 'true' if this collection exists.
 	Bool exists() {
-		// FIXME add Collection.runCmd(doc) for low level ops
 		res := cmd.add("listCollections", 1).add("filter", ["name":name]).run
 		return res["cursor"]->get("firstBatch")->isEmpty->not
 	}

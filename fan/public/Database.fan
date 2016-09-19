@@ -93,8 +93,19 @@ const class Database {
 	
 	// ---- Collections ---------------------------------------------------------------------------
 	
-	** Returns all the collection names in the database. 
+	** Returns 'true' if this collection exists.
 	Str[] collectionNames() {
+		res := cmd.add("listCollections", 1).run
+		cur := (Str:Obj?)     res["cursor"]
+		bat := ([Str:Obj?][]) cur["firstBatch"]
+		return bat.map |nom->Str| { nom["name"] }
+	}
+	
+	** *For use with MongoDB v2.6.x only*
+	** 
+	** Returns all the collection names in the database. 
+	@Deprecated { msg="For use with MongoDB v2.6.x only" }
+	Str[] collectionNames26() {
 		// if it wasn't for F4, I could have this all on one line!
 		docs  := collection("system.namespaces").findAll
 		names := (Str[]) docs.map |ns->Str| { ns["name"] }
