@@ -237,68 +237,7 @@ const class ConnectionManagerPooled : ConnectionManager {
 			return this
 		startupLock.lock
 		
-		hg :=  connectionUrl.host.split(',')
-		hostList := (HostDetails[]) hg.map { HostDetails(it) }
-		hostList.last.port = connectionUrl.port ?: 27017
-		hosts := Str:HostDetails[:] { it.ordered=true }.addList(hostList) { it.host }
-		
-		// default to the first host
-		primary	:= (HostDetails?) null
-		
-		// let's play hunt the primary! Always check, even if only 1 host is supplied, it may still 
-		// be part of a replica set
-		// first, check the list of supplied hosts
-		primary = hostList.eachWhile |hd->HostDetails?| {
-			// Is it? Is it!?
-			if (hd.populate.isPrimary)
-				return hd
-
-			// now lets contact what it thinks is the primary, to double check
-			// assume if it's been contacted, it's not the primary - cos we would have returned it already
-			if (hd.primary != null && hosts[hd.primary]?.contacted != true) {
-				if (hosts[hd.primary] == null) 
-					hosts[hd.primary] = HostDetails(hd.primary)
-				if (hosts[hd.primary].populate.isPrimary)
-					return hosts[hd.primary]
-			}
-
-			// keep looking!
-			return null
-		}
-
-		// the above should have flushed out the primary, but if not, check *all* the returned hosts
-		if (primary == null) {
-			// add all the hosts to our map
-			hostList.each |hd| {
-				hd.hosts.each {
-					if (hosts[it] == null)
-						hosts[it] = HostDetails(it)
-				}
-			}
-
-			// loop through them all
-			primary = hosts.find { !it.contacted && it.populate.isPrimary }
-		}
-
-		// Bugger!
-		if (primary == null)
-			throw MongoErr(ErrMsgs.connectionManager_couldNotFindPrimary(connectionUrl))
-
-		primaryAddress	:= primary.address
-		primaryPort		:= primary.port
-		
-		// remove user credentials and other crud from the url
-		mongoUrlRef.val = "mongodb://${primaryAddress}:${primaryPort}".toUri	// F4 doesn't like Uri interpolation
-
-		// set our connection factory
-		connectionState.withState |ConnectionManagerPoolState state| {
-			state.connectionFactory = |->Connection| {
-				socket := TcpSocket()
-				socket.options.connectTimeout = connectTimeout
-				socket.options.receiveTimeout = socketTimeout
-				return TcpConnection(socket).connect(IpAddr(primaryAddress), primaryPort)
-			} 
-		}.get
+		huntThePrimary
 
 		// connect x times
 		minPoolSize.times { checkIn(checkOut) }
@@ -422,6 +361,71 @@ const class ConnectionManagerPooled : ConnectionManager {
 		}
 		
 		return result
+	}
+	
+	private Void huntThePrimary() {
+		hg :=  connectionUrl.host.split(',')
+		hostList := (HostDetails[]) hg.map { HostDetails(it) }
+		hostList.last.port = connectionUrl.port ?: 27017
+		hosts := Str:HostDetails[:] { it.ordered=true }.addList(hostList) { it.host }
+		
+		// default to the first host
+		primary	:= (HostDetails?) null
+		
+		// let's play hunt the primary! Always check, even if only 1 host is supplied, it may still 
+		// be part of a replica set
+		// first, check the list of supplied hosts
+		primary = hostList.eachWhile |hd->HostDetails?| {
+			// Is it? Is it!?
+			if (hd.populate.isPrimary)
+				return hd
+
+			// now lets contact what it thinks is the primary, to double check
+			// assume if it's been contacted, it's not the primary - cos we would have returned it already
+			if (hd.primary != null && hosts[hd.primary]?.contacted != true) {
+				if (hosts[hd.primary] == null) 
+					hosts[hd.primary] = HostDetails(hd.primary)
+				if (hosts[hd.primary].populate.isPrimary)
+					return hosts[hd.primary]
+			}
+
+			// keep looking!
+			return null
+		}
+
+		// the above should have flushed out the primary, but if not, check *all* the returned hosts
+		if (primary == null) {
+			// add all the hosts to our map
+			hostList.each |hd| {
+				hd.hosts.each {
+					if (hosts[it] == null)
+						hosts[it] = HostDetails(it)
+				}
+			}
+
+			// loop through them all
+			primary = hosts.find { !it.contacted && it.populate.isPrimary }
+		}
+
+		// Bugger!
+		if (primary == null)
+			throw MongoErr(ErrMsgs.connectionManager_couldNotFindPrimary(connectionUrl))
+
+		primaryAddress	:= primary.address
+		primaryPort		:= primary.port
+		
+		// remove user credentials and other crud from the url
+		mongoUrlRef.val = `mongodb://${primaryAddress}:${primaryPort}`
+
+		// set our connection factory
+		connectionState.withState |ConnectionManagerPoolState state| {
+			state.connectionFactory = |->Connection| {
+				socket := TcpSocket()
+				socket.options.connectTimeout = connectTimeout
+				socket.options.receiveTimeout = socketTimeout
+				return TcpConnection(socket).connect(IpAddr(primaryAddress), primaryPort)
+			} 
+		}.get
 	}
 	
 	private Connection checkOut() {
