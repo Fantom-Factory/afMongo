@@ -6,11 +6,14 @@ const class Index {
 	private const Namespace			idxNs
 	private const ConnectionManager conMgr
 	
-	** Use in 'key' arguments to denote sort order.
+	** Use in 'key' arguments to denote field sort order.
 	static const Int ASC	:= 1
 	
-	** Use in 'key' arguments to denote sort order.
+	** Use in 'key' arguments to denote field sort order.
 	static const Int DESC	:= -1
+	
+	** Use in 'key' arguments to denote a text index on the field.
+	static const Str TEXT	:= "text"
 	
 	** The name of this index. 
 	const Str	name
@@ -69,8 +72,8 @@ const class Index {
 	** Creates this index.
 	** 
 	** 'key' is a map of fields to index type. 
-	** Values may either be the standard Mongo '1' and '-1' for ascending / descending or the 
-	** strings 'ASC' / 'DESC'.
+	** Values may either be the standard Mongo '1' and '-1' for ascending / descending, the 
+	** strings 'ASC' / 'DESC', or the string 'TEXT'.
 	** 
 	**   syntax: fantom
   	**   index.create(["dateAdded" : Index.ASC])
@@ -86,6 +89,7 @@ const class Index {
 	**   background         Bool  Builds the index in the background so it does not block other database activities. Defaults to 'false'.
 	**   sparse             Bool  Only reference documents with the specified field. Uses less space but behave differently in sorts. Defaults to 'false'.
 	**   expireAfterSeconds Int   Specifies a Time To Live (TTL) in seconds that controls how long documents are retained.
+	**   default_language   Str   The language used to create text indexes. See [Supported Text Search Languages]`https://docs.mongodb.com/manual/reference/text-search-languages/#text-search-languages`. Defaults to 'english'. 
 	** 
 	** @see `http://docs.mongodb.org/manual/reference/command/createIndexes/`
 	This create(Str:Obj key, Bool? unique := false, Str:Obj options := [:]) {
@@ -127,6 +131,7 @@ const class Index {
 	**   background         Bool  Builds the index in the background so it does not block other database activities.
 	**   sparse             Bool  Only reference documents with the specified field. Uses less space but behave differently in sorts.
 	**   expireAfterSeconds Int   Specifies a Time To Live (TTL) in seconds that controls how long documents are retained.
+	**   default_language   Str   The language used to create text indexes. See [Text Search Languages]`https://docs.mongodb.com/manual/reference/text-search-languages/#text-search-languages` for a list of valid options. Defaults to 'english'. 
 	** 
 	** @see `http://docs.mongodb.org/manual/reference/command/createIndexes/`
 	Bool ensure(Str:Obj key, Bool? unique := false, Str:Obj options := [:]) {
