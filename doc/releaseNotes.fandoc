@@ -1,5 +1,9 @@
 Versions
 ********
+v1.0.12
+=======
+ - New: 'Index.TEXT' for creating 'text' indexes.
+
 v1.0.10
 =======
  - Bug: 'Database.collectionNames()' didn't work with MongoDB v3.2+ and WiredTiger storage.
