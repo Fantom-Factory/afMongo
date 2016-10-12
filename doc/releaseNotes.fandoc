@@ -1,7 +1,9 @@
 Versions
 ********
+
 v1.0.12
 =======
+ - New: 'PrettyPrinter' for printing MongoDB documents.
  - New: 'Index.TEXT' for creating 'text' indexes.
 
 v1.0.10

@@ -54,7 +54,11 @@ Quick Start [#quickStart]
             ]
             collection.insert(documentIn)
 
-            echo( collection.findAll.first )
+            emma   := collection.findAll.first
+            result := PrettyPrinter { it.maxWidth = 20 }.print(emma)
+
+            echo("Emma:")
+            echo(result)
 
             mongoClient.shutdown
         }
@@ -68,11 +72,16 @@ Quick Start [#quickStart]
       _____ ___ ___ ___ ___
      |     | . |   | . | . |
      |_|_|_|___|_|_|_  |___|
-                  |___|1.0.8
+                  |___|1.0.12
 
     Connected to MongoDB v3.2.8 (at mongodb://localhost:27017)
 
-    [_id:5373acbda8000b3491000001, name:Emma, score:9]
+    Emma:
+    {
+      "_id"   : ObjectId("57fe499fa81320d933000001"),
+      "name"  : "Emma"
+      "score" : 9,
+    }
 
 
 
@@ -108,7 +117,7 @@ pre>
  _____ ___ ___ ___ ___
 |     | . |   | . | . |
 |_|_|_|___|_|_|_  |___|
-              |___|1.0.0
+              |___|1.0.12
 
 Connected to MongoDB v3.2.8
 <pre

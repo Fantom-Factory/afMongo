@@ -6,18 +6,22 @@ internal
 class Example {
 	
 	Void main() {
-		mongoDbase := MongoClient(ActorPool(), `mongodb://localhost:27017`)
-		collection := mongoDbase.db("friends").collection("birds")
+		mongoClient := MongoClient(ActorPool(), `mongodb://localhost:27017`)
+		collection  := mongoClient.db("friends").collection("birds")
 		
-		documentIn := [
+		documentIn  := [
 			"_id"	: ObjectId(),
 			"name"	: "Emma",
-			"age"	: 32
+			"score"	: 9
 		]
-		
 		collection.insert(documentIn)
-		documentOut := collection.findAll.first
 		
-		echo(documentOut)
+		emma   := collection.findAll.first
+		result := PrettyPrinter { it.maxWidth = 20 }.print(emma)
+		
+		echo("Emma:")
+		echo(result)
+		
+		mongoClient.shutdown
 	}
 }
