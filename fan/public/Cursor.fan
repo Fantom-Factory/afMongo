@@ -261,18 +261,6 @@ class Cursor {
 	Bool isAlive() {
 		_querySent.locked && _cursorId != 0
 	}
-
-	** Returns a query plan that describes the process and indexes used to return the query. 
-	** Useful when attempting to optimise queries.
-	** 
-	** Deprecated in MongoDB 3.x.
-	** 
-	** @see `http://docs.mongodb.org/manual/reference/operator/meta/explain/`
-	@Deprecated { msg="Deprecated in MongoDB 3.x." }
-	Str:Obj? explain() {
-		special["\$explain"] = 1
-		return toList.first
-	}
 	
 	// ---- Helper Methods ------------------------------------------------------------------------
 

@@ -1,10 +1,10 @@
 Overview
 ********
-Mongo is a pure Fantom driver for [MongoDB]`http://www.mongodb.org/`.
+Mongo is a pure Fantom driver for [MongoDB v3.2+]`http://www.mongodb.org/`.
 
 Mongo driver features:
 
- - Compatible with MongoDB v2.6 / v3.0 / v3.2+
+ - Compatible with MongoDB v3.2+
  - Standard and capped collections
  - Write commands: 'insert()', 'update()', 'delete()' and 'findAndModify()'
  - Write concern support
@@ -18,7 +18,7 @@ Mongo driver features:
  - Pooled connection manager for multi-threaded use
  - Support for Replica Set connection URLs
 
-Mongo driver has been written specifically for MongoDB v2.6.0 or newer.
+Mongo driver has been written specifically for MongoDB v3.2 or newer.
 
 > **ALIEN-AID:** See [Morphia]`pod:afMorphia` for a complete Fantom to MongoDB object mapping library!
 
