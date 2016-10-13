@@ -13,7 +13,7 @@ internal class TestCursor : MongoTest {
 	Void testAllQueryDataSent() {
 		cursor.batchSize = 3 
 		cursor.skip = 6 
-		cursor.fieldNames = ["field1", "field2"]
+		cursor.projection = ["field1":1, "field2":1]
 		cursor.flags  = OpQueryFlags.slaveOk
 		
 		mmc.reply([:])
@@ -48,9 +48,9 @@ internal class TestCursor : MongoTest {
 			cursor.skip = 3
 		}
 
-		t = cursor.fieldNames
+		t = cursor.projection
 		verifyErrMsg(MongoErr#, ErrMsgs.oneShotLock_violation("Query has been sent to MongoDB")) {
-			cursor.fieldNames = [,]
+			cursor.projection = [:]
 		}
 
 		t = cursor.flags

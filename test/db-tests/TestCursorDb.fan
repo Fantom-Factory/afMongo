@@ -35,13 +35,13 @@ internal class TestCursorDb : MongoDbTest {
 	}
 
 	Void testFieldNames() {
-		cursor.fieldNames = ["data"]
+		cursor.projection = ["data":1]
 		list := cursor.toList
 		verifyEq(list.size, 10)
 		verifyEq(list[0]["data"], 1)
 
 		cursor = Cursor(connection, Namespace(col.qname), [:])
-		cursor.fieldNames = ["data-2"]
+		cursor.projection = ["data-2":1]
 		list = cursor.toList
 		verifyEq(list.size, 10)
 		verifyEq(list[0]["data"], null)
