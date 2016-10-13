@@ -45,28 +45,10 @@ const class Index {
 		nfo := ([Str:Obj?][]) res["cursor"]->get("firstBatch")
 		return nfo.find { it["name"] == name }
 	}
-
-	** *For use with MongoDB v2.6.x only*
-	** 
-	** Returns index info.
-	** 
-	** @see `http://docs.mongodb.org/manual/reference/method/db.collection.getIndexes/`
-	@Deprecated { msg="For use with MongoDB v2.6.x only" }
-	Str:Obj? info26() {
-		Collection(conMgr, idxNs.qname).findOne(["ns":colNs.qname, "name":name])
-	}
 	
 	** Returns 'true' if this index exists.
 	Bool exists() {
 		info != null	
-	}
-
-	** *For use with MongoDB v2.6.x only*
-	** 
-	** Returns 'true' if this index exists.
-	@Deprecated { msg="For use with MongoDB v2.6.x only" }
-	Bool exists26() {
-		Collection(conMgr, idxNs.qname).findCount(["ns":colNs.qname, "name":name]) > 0		
 	}
 	
 	** Creates this index.

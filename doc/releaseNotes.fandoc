@@ -7,6 +7,7 @@ v1.1.0
  - New: 'Index.TEXT' for creating 'text' indexes.
  - Chg: Replaced 'Cursor.fields' with 'Cursor.projection'. (Breaking change.)
  - Chg: Exposed some *advanced use* classes.
+ - Chg: Removed deprecated MongoDB 2.6 methods.
 
 v1.0.10
 =======
