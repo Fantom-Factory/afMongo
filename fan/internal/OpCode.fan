@@ -2,8 +2,7 @@
 ** A list of operation codes as supported by MongoDB.
 ** 
 ** @see `http://docs.mongodb.org/meta-driver/latest/legacy/mongodb-wire-protocol/#request-opcodes`
-@NoDoc
-enum class OpCode {
+internal enum class OpCode {
 	
 	** Signifies a reply from MongoDB.
 	OP_REPLY		(1),

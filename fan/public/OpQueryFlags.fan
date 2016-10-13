@@ -1,9 +1,10 @@
 
-** Flags to use with the [Collection.find()]`Collection.find` method and the [Query Operation]`Operation.query`.
+** (Advanced)
+** Flags to use with 'Cursors' in [Collection.find()]`Collection.find` method and the [Query Operation]`Operation.query`.
 ** 
-** @see `http://docs.mongodb.org/meta-driver/latest/legacy/mongodb-wire-protocol/#op-query`
-@NoDoc
+** @see `https://docs.mongodb.com/manual/reference/mongodb-wire-protocol/#op-query`
 const class OpQueryFlags : Flag {
+
 	** No flags are set. Business as usual.
 	static const OpQueryFlags none				:= OpQueryFlags(0, "None")
 	

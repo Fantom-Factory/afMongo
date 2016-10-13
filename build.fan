@@ -5,7 +5,7 @@ class Build : BuildPod {
 	new make() {
 		podName = "afMongo"
 		summary = "A pure Fantom driver for MongoDB"
-		version = Version("1.0.11")
+		version = Version("1.1.0")
 
 		meta = [
 			"pod.displayName"	: "Mongo",
@@ -21,7 +21,7 @@ class Build : BuildPod {
 
 			// ---- Core ------------------------
 			"afConcurrent 1.0.12 - 1.0",
-			"afBson       1.0.0  - 1.0"
+			"afBson       1.1.0  - 1.1"
 		]
 
 		srcDirs = [`fan/`, `fan/internal/`, `fan/public/`, `fan/public/util/`, `test/`, `test/db-tests/`, `test/unit-tests/`, `test/utils/`]
