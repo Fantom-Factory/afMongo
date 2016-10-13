@@ -1,10 +1,11 @@
 Versions
 ********
 
-v1.0.12
-=======
+v1.1.0
+======
  - New: 'PrettyPrinter' for printing MongoDB documents.
  - New: 'Index.TEXT' for creating 'text' indexes.
+ - Chg: Replaced 'Cursor.fields' with 'Cursor.projection'. (Breaking change.)
 
 v1.0.10
 =======

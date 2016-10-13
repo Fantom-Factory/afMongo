@@ -1,4 +1,5 @@
 
+** (Advanced)
 ** A Flag represents many states by setting and clearing bits on a Int. 
 ** 
 ** Using Ints as flags is still valid, but the Flags class gives superior debugging info. An 
@@ -53,7 +54,6 @@
 ** (MyFlags(10))               .toStr  --> two|(8)
 ** (MyFlags(27))               .toStr  --> three|(8)|(16)
 ** <pre
-@NoDoc
 abstract const class Flag {
 	const Int value
 	private const Str? pName

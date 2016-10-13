@@ -1,17 +1,30 @@
 
-@NoDoc	// Boring!
+** (Advanced)
+** Wraps a response from MongoDB.
+** 
+** @See `https://docs.mongodb.com/manual/reference/mongodb-wire-protocol/#op-reply`.
 class OpReplyResponse {
 
+	** Response information.
 	const OpReplyFlags	flags
+	
+	** The Mongo cursor this reply corresponds to.
 	const Int			cursorId
+	
+	** The cursor position.
 	const Int			cursorPos
 	
+	** The returned MongoDB BSON documents.
 	[Str:Obj?][] documents {
 		internal set
 	}
 	
 	internal new make(|This|in) { in(this) }
 	
+	** Returns the first document. 
+	** 
+	** Throws an Err if 'checked' and 'documents' is empty.
+	** Always throws an Err if there is more than 1 document.
 	[Str:Obj?]? document(Bool checked := true) {
 		// always check for more than one, 'cos which are we to return!?
 		if (documents.size > 1)
@@ -24,16 +37,4 @@ class OpReplyResponse {
 	override Str toStr() {
 		"${documents.size} documents, pos=${cursorPos}, cursor is " + (cursorId == 0 ? "dead" : "alive")
 	}
-}
-
-@NoDoc	// Boring!
-const class OpReplyFlags : Flag {
-	static const OpReplyFlags none				:= OpReplyFlags(0, "None")
-	
-	static const OpReplyFlags cursorNotFound	:= OpReplyFlags(1.shiftl(0), "CursorNotFound")
-	static const OpReplyFlags queryFailure		:= OpReplyFlags(1.shiftl(1), "QueryFailure")
-	static const OpReplyFlags awaitCapable		:= OpReplyFlags(1.shiftl(3), "AwaitCapable")
-	
-	@NoDoc
-	new make(Int flag, Str? name := null) : super(flag, name) { }
 }

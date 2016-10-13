@@ -2,6 +2,7 @@ using concurrent
 using afBson
 using inet
 
+** (Advanced)
 ** The low level transport mechanism that talks to MongoDB instances.
 ** 
 ** This is, actually, the only class you need to talk to a MongoDB instance!
@@ -11,7 +12,7 @@ using inet
 ** Feel free to send your 16Mb+ documents to MongoDB for they'll be streamed straight out over 
 ** the socket. 
 ** 
-** @see `http://www.mongodb.org/display/DOCS/Mongo+Wire+Protocol`
+** @see `https://docs.mongodb.com/manual/reference/mongodb-wire-protocol/`
 class Operation {
 	private static const Log log	:= Utils.getLog(Operation#)
 	private static const AtomicInt	requestIdGenerator	:= AtomicInt(0)
@@ -40,8 +41,8 @@ class Operation {
 
 	** Queries MongoDB for documents in a collection.
 	** 
-	** @see `http://docs.mongodb.org/meta-driver/latest/legacy/mongodb-wire-protocol/#op-query`
-	OpReplyResponse query(Str qname, Str:Obj? query, Int limit := 0, Int skip := 0, [Str:Obj?]? fields := null, Flag flags := OpQueryFlags.none) {
+	** @see `https://docs.mongodb.com/manual/reference/mongodb-wire-protocol/#op-query`
+	OpReplyResponse query(Str qname, Str:Obj? query, Int limit := 0, Int skip := 0, [Str:Obj?]? fields := null, OpQueryFlags flags := OpQueryFlags.none) {
 		sizer	:= BsonWriter(null)
 		msgSize	:= 4 + sizer.sizeCString(qname) + 4 + 4 + sizer.sizeDocument(query) + sizer.sizeDocument(fields)
 		reqId 	:= sendMsg(OpCode.OP_QUERY, msgSize) |out| {
@@ -57,7 +58,7 @@ class Operation {
 
 	** Asks MongoDB for more documents from a query.
 	** 
-	** @see `http://docs.mongodb.org/meta-driver/latest/legacy/mongodb-wire-protocol/#op-get-more`
+	** @see `https://docs.mongodb.com/manual/reference/mongodb-wire-protocol/#op-get-more`
 	OpReplyResponse getMore(Str qname, Int limit, Int cursorId) {
 		sizer	:= BsonWriter(null)
 		msgSize	:= 4 + sizer.sizeCString(qname) + 4 + 8
@@ -72,7 +73,7 @@ class Operation {
 
 	** Closes the given active cursors in the database.
 	** 
-	** @see `http://docs.mongodb.org/meta-driver/latest/legacy/mongodb-wire-protocol/#op-kill-cursors`
+	** @see `https://docs.mongodb.com/manual/reference/mongodb-wire-protocol/#op-kill-cursors`
 	Void killCursors(Int[] cursorIds) {
 		msgSize	:= 4 + 4 + (cursorIds.size * 8)
 		sendMsg(OpCode.OP_KILL_CURSORS, msgSize) |out| {
@@ -82,29 +83,6 @@ class Operation {
 		}
 	}
 	
-	// ---- Protected Methods ----
-	
-	** 'msgSize' and 'outFunc' ensure we can stream the entire msg straight out to the MongoDB
-	** without the use of 'Buf()'. Given people tend to save 20Mb Objects in Mongo, this is a good 
-	** thing!
-	@NoDoc
-	protected Int sendMsg(OpCode opCode, Int msgSize, |BsonWriter| outFunc) {
-		requestId 	:= requestIdGenerator.incrementAndGet
-		out 		:= BsonWriter(connection.out)
-		
-		// write std header
-		out.writeInteger32(msgSize + 16)
-		out.writeInteger32(requestId)
-		out.writeInteger32(0)
-		out.writeInteger32(opCode.id)
-		
-		// write msg
-		outFunc.call(out)
-		out.flush
-		
-		return requestId
-	}
-
 	** Reads a reply from the server.
 	** 
 	** 'requestId' may be 'null' when gulping down replies resulting from an *exhaust* query. 
@@ -145,6 +123,30 @@ class Operation {
 			it.flags	 	= resFlags
 			it.documents	= documents
 		}
-	}	
+	}
+	
+	
+
+	// ---- Private Methods ----
+	
+	** 'msgSize' and 'outFunc' ensure we can stream the entire msg straight out to the MongoDB
+	** without the use of 'Buf()'. Given people tend to save 20Mb Objects in Mongo, this is a good 
+	** thing!
+	private Int sendMsg(OpCode opCode, Int msgSize, |BsonWriter| outFunc) {
+		requestId 	:= requestIdGenerator.incrementAndGet
+		out 		:= BsonWriter(connection.out)
+		
+		// write std header
+		out.writeInteger32(msgSize + 16)
+		out.writeInteger32(requestId)
+		out.writeInteger32(0)
+		out.writeInteger32(opCode.id)
+		
+		// write msg
+		outFunc.call(out)
+		out.flush
+		
+		return requestId
+	}
 }
 
