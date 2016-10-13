@@ -1,7 +1,7 @@
 
 ** Represents a MongoDB user.
 ** 
-** To enable authentication, ensure MongoDB was started in *secure* mode:
+** To enable authentication, ensure MongoDB is started in *secure* mode:
 ** 
 **   C:\> mongod --auth
 ** 

@@ -89,6 +89,7 @@ const class Index {
 	**   background         Bool  Builds the index in the background so it does not block other database activities. Defaults to 'false'.
 	**   sparse             Bool  Only reference documents with the specified field. Uses less space but behave differently in sorts. Defaults to 'false'.
 	**   expireAfterSeconds Int   Specifies a Time To Live (TTL) in seconds that controls how long documents are retained.
+	**   weights            Map   Specifies the relative weights of fields to use in text searching. See [Control Search Results with Weights]`https://docs.mongodb.com/manual/tutorial/control-results-of-text-search/`.
 	**   default_language   Str   The language used to create text indexes. See [Supported Text Search Languages]`https://docs.mongodb.com/manual/reference/text-search-languages/#text-search-languages`. Defaults to 'english'. 
 	** 
 	** @see `http://docs.mongodb.org/manual/reference/command/createIndexes/`
@@ -131,6 +132,7 @@ const class Index {
 	**   background         Bool  Builds the index in the background so it does not block other database activities.
 	**   sparse             Bool  Only reference documents with the specified field. Uses less space but behave differently in sorts.
 	**   expireAfterSeconds Int   Specifies a Time To Live (TTL) in seconds that controls how long documents are retained.
+	**   weights            Map   Specifies the relative weights of fields to use in text searching. See [Control Search Results with Weights]`https://docs.mongodb.com/manual/tutorial/control-results-of-text-search/`.
 	**   default_language   Str   The language used to create text indexes. See [Text Search Languages]`https://docs.mongodb.com/manual/reference/text-search-languages/#text-search-languages` for a list of valid options. Defaults to 'english'. 
 	** 
 	** @see `http://docs.mongodb.org/manual/reference/command/createIndexes/`
