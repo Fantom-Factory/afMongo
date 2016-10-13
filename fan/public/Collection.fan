@@ -176,18 +176,19 @@ const class Collection {
 	** 
 	** The 'sort' map, should it contain more than 1 entry, must be ordered.
 	** 
-	** 'fieldNames' are names of the fields to be returned in the query results.
+	** 'projection' alters / limits which fields returned in the query results.
 	** 
 	** Note that 'findAll(...)' is a convenience for calling 'find(...)' and returning the cursor as a list. 
 	** 
 	** - @see `Cursor.toList`
 	** - @see `http://docs.mongodb.org/manual/reference/operator/query/`
-	[Str:Obj?][] findAll([Str:Obj?]? query := null, Obj? sort := null, Int skip := 0, Int? limit := null, Str[]? fieldNames := null) {
+	** - @see `https://docs.mongodb.com/manual/reference/operator/projection/`
+	[Str:Obj?][] findAll([Str:Obj?]? query := null, Obj? sort := null, Int skip := 0, Int? limit := null, [Str:Obj?]? projection := null) {
 		query = query ?: Str:Obj?[:]
 		return find(query) |Cursor cursor->[Str:Obj?][]| {
 			cursor.skip  		= skip
 			cursor.limit 		= limit
-			cursor.fieldNames	= fieldNames
+			cursor.projection	= projection
 			if (sort is Str)	cursor.hint 	= sort
 			if (sort is Map)	cursor.orderBy  = sort
 			if (sort != null && sort isnot Str && sort isnot Map)

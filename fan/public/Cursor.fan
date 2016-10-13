@@ -52,19 +52,33 @@ class Cursor {
 		set { _querySent.check; &skip = it; &index = it }
 	}
 	
-	** The names of the fields to be returned in the query results.
-	**  
+	** Use to alter / set which fields returned in the Mongo responses.
+	** 
+	** Set field names with a value of '1' to limit returned fields to just those mentioned. Example:
+	** 
+	** pre>
+	** syntax: fantom
+	** cursor.projection = [
+	**     "fieldName1" : 1,
+	**     "fieldName2" : 1
+	** ]
+	** <pre
+	** 
+	** Would limit the returned fields to just '_id', 'fieldName1', & 'fieldName2'.
+	** 
 	** Leave as 'null' to return all fields. 
 	** 
+	** See [Projection Operators]`https://docs.mongodb.com/manual/reference/operator/projection/` for other uses.
+	** 
 	** This value can not be changed once the query has been sent to the server.
-	Str[]? fieldNames {
-		set { _querySent.check; &fieldNames = it }		
+	[Str:Obj?]? projection {
+		set { _querySent.check; &projection = it }
 	}
 	
 	** Optional flags to set in the query. 
 	** 
 	** This value can not be changed once the query has been sent to the server.
-	Flag flags {
+	OpQueryFlags flags {
 		set { _querySent.check; &flags = it }		
 	}
 	
@@ -209,7 +223,7 @@ class Cursor {
 	[Str:Obj?][] toList() {
 		// if nothing has been returned, ask for some data
 		if (!_querySent.locked) {
-			flags += OpQueryFlags.exhaust
+			flags = OpQueryFlags.exhaust + flags
 			batchSize = null
 			getSome
 		}
@@ -272,20 +286,19 @@ class Cursor {
 
 	internal Void getSome() {
 		// drain isn't passed in, 'cos it may be user set
-		drain	:= flags.containsAll(OpQueryFlags.exhaust)
+		drain := &flags.containsAll(OpQueryFlags.exhaust)
 
 		_deadCursor.check
-		fields	:= (fieldNames == null) ? null : _cmd.addList(fieldNames).map { 1 }
 		
 		// we want to limit the no. of returned results to the smallest, non-null value
-		qlimit := [batchSize, limit].sort.find { it != null } ?: 0
+		qlimit := [&batchSize, &limit].sort.find { it != null } ?: 0
 		
 		// if we're bringing down the entire limit, negate so the server doesn't keep the cursor 
 		// open and exhaust *everything*!
-		if (qlimit == limit)
-			qlimit = -limit
+		if (qlimit == &limit)
+			qlimit = -&limit
 		
-		reply := Operation(_connection).query(_nsCol.qname, _compileQuery, qlimit, skip, fields, flags)
+		reply := Operation(_connection).query(_nsCol.qname, _compileQuery, qlimit, &skip, &projection, &flags)
 		_querySent.lock
 		_gotSome(reply, false)
 		
