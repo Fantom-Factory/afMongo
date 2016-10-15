@@ -175,11 +175,11 @@ const class ConnectionManagerPooled : ConnectionManager {
 			throw ArgErr(ErrMsgs.connectionManager_badInt("wtimeoutMS", "zero", wtimeoutMs, mongoUrl))
 
 		if (waitQueueTimeoutMs != null)
-			waitQueueTimeout = (waitQueueTimeoutMs * 1000000).toDuration
+			waitQueueTimeout = (waitQueueTimeoutMs * 1_000_000).toDuration
 		if (connectTimeoutMs != null)
-			connectTimeout = (connectTimeoutMs * 1000000).toDuration
+			connectTimeout = (connectTimeoutMs * 1_000_000).toDuration
 		if (socketTimeoutMs != null)
-			socketTimeout = (socketTimeoutMs * 1000000).toDuration
+			socketTimeout = (socketTimeoutMs * 1_000_000).toDuration
 
 		database := trimToNull(mongoUrl.pathOnly.toStr)
 		username := trimToNull(mongoUrl.userInfo?.split(':')?.getSafe(0))
@@ -364,10 +364,10 @@ const class ConnectionManagerPooled : ConnectionManager {
 	}
 	
 	private Void huntThePrimary() {
-		hg :=  connectionUrl.host.split(',')
+		hg		:= connectionUrl.host.split(',')
 		hostList := (HostDetails[]) hg.map { HostDetails(it) }
 		hostList.last.port = connectionUrl.port ?: 27017
-		hosts := Str:HostDetails[:] { it.ordered=true }.addList(hostList) { it.host }
+		hosts	:= Str:HostDetails[:] { it.ordered=true }.addList(hostList) { it.host }
 		
 		// default to the first host
 		primary	:= (HostDetails?) null
@@ -501,8 +501,9 @@ internal class HostDetails {
 	Str?	primary
 	
 	new make(Str addr) {
-		this.address	= addr.split(':').getSafe(0) ?: "127.0.0.1"
-		this.port 		= addr.split(':').getSafe(1)?.toInt ?: 27017
+		uri	:= `//${addr}`
+		this.address = uri.host ?: "127.0.0.1"
+		this.port	 = uri.port ?: 27017
 	}
 	
 	This populate() {

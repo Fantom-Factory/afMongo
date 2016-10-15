@@ -90,6 +90,23 @@ internal class TestConMgrPooled : MongoTest {
 		verifyEq(logs[0].msg, LogMsgs.connectionManager_unknownUrlOption("dude", "wotever", `mongodb://wotever?dude=wotever&dude2`))
 		verifyEq(logs[1].msg, LogMsgs.connectionManager_unknownUrlOption("dude2", "true",   `mongodb://wotever?dude=wotever&dude2`))
 	}
+
+	Void testMongoLabConnectionStr() {
+		conMgr	:= ConnectionManagerPooled(pool, `mongodb://user:pass@ds999999-a0.mlab.com:55555,@ds999999-a1.mlab.com:44444/stackhub?replicaSet=rs-ds059296`)
+		verifyEq(conMgr.defaultDatabase,	"stackhub")
+		verifyEq(conMgr.defaultUsername,	"user")
+		verifyEq(conMgr.defaultPassword,	"pass")
+		verifyEq(conMgr.connectionUrl.host,	"ds999999-a0.mlab.com:55555,@ds999999-a1.mlab.com")
+		verifyEq(conMgr.connectionUrl.port,	44444)
+
+		hg := conMgr.connectionUrl.host.split(',')
+		hostList := (HostDetails[]) hg.map { HostDetails(it) }
+		hostList.last.port = conMgr.connectionUrl.port ?: 27017
+		verifyEq(hostList[0].address,	"ds999999-a0.mlab.com")
+		verifyEq(hostList[0].port, 		55555)
+		verifyEq(hostList[1].address,	"ds999999-a1.mlab.com")
+		verifyEq(hostList[1].port, 		44444)
+	}
 	
 	Void testBackoffFuncHappyCase() {
 		conMgr := ConnectionManagerPooled(pool, `mongodb://wotever`) {

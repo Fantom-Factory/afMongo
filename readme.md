@@ -1,30 +1,31 @@
-#Mongo v1.0.10
+#Mongo v1.1.0
 ---
 [![Written in: Fantom](http://img.shields.io/badge/written%20in-Fantom-lightgray.svg)](http://fantom.org/)
-[![pod: v1.0.10](http://img.shields.io/badge/pod-v1.0.10-yellow.svg)](http://www.fantomfactory.org/pods/afMongo)
+[![pod: v1.1.0](http://img.shields.io/badge/pod-v1.1.0-yellow.svg)](http://www.fantomfactory.org/pods/afMongo)
 ![Licence: MIT](http://img.shields.io/badge/licence-MIT-blue.svg)
 
 ## Overview
 
-Mongo is a pure Fantom driver for [MongoDB](http://www.mongodb.org/).
+Mongo is a pure Fantom driver for [MongoDB v3.2+](http://www.mongodb.org/).
 
 Mongo driver features:
 
-- Compatible with MongoDB v2.6 / v3.0 / v3.2+
+- Compatible with MongoDB v3.2+
 - Standard and capped collections
+- Pooled connection manager for multi-threaded use
 - Write commands: `insert()`, `update()`, `delete()` and `findAndModify()`
-- Write concern support
 - Optimised queries for `findOne()` and `findAll()`
-- Cursor support
 - Aggregation commands: `aggregate()`, `distinct()`, `group()` and `mapReduce()`
 - Index support: `create()`, `ensure()` and `drop()`
 - User support: `create()`, `drop()`, `grant()` and `revoke()` roles
-- Database authentication
 - Server side `eval()` commands
-- Pooled connection manager for multi-threaded use
+- Database authentication
+- Cursor support
+- Write concern support
+- Text indexes and text searching
 - Support for Replica Set connection URLs
 
-Mongo driver has been written specifically for MongoDB v2.6.0 or newer.
+Mongo driver has been written specifically for MongoDB v3.2 or newer.
 
 > **ALIEN-AID:** See [Morphia](http://pods.fantomfactory.org/pods/afMorphia) for a complete Fantom to MongoDB object mapping library!
 
@@ -36,7 +37,7 @@ Install `Mongo` with the Fantom Repository Manager ( [fanr](http://fantom.org/do
 
 To use in a [Fantom](http://fantom.org/) project, add a dependency to `build.fan`:
 
-    depends = ["sys 1.0", ..., "afMongo 1.0"]
+    depends = ["sys 1.0", ..., "afMongo 1.1"]
 
 ## Documentation
 
@@ -49,7 +50,7 @@ Full API & fandocs are available on the [Fantom Pod Repository](http://pods.fant
         C:\> mongod
         
         MongoDB starting
-        db version v3.2.8
+        db version v3.2.10
         waiting for connections on port 27017
 
 
@@ -72,7 +73,11 @@ Full API & fandocs are available on the [Fantom Pod Repository](http://pods.fant
                 ]
                 collection.insert(documentIn)
         
-                echo( collection.findAll.first )
+                emma   := collection.findAll.first
+                result := PrettyPrinter { it.maxWidth = 20 }.print(emma)
+        
+                echo("Emma:")
+                echo(result)
         
                 mongoClient.shutdown
             }
@@ -87,11 +92,16 @@ Full API & fandocs are available on the [Fantom Pod Repository](http://pods.fant
           _____ ___ ___ ___ ___
          |     | . |   | . | . |
          |_|_|_|___|_|_|_  |___|
-                      |___|1.0.8
+                      |___|1.1.0
         
-        Connected to MongoDB v3.2.8 (at mongodb://localhost:27017)
+        Connected to MongoDB v3.2.10 (at mongodb://localhost:27017)
         
-        [_id:5373acbda8000b3491000001, name:Emma, score:9]
+        Emma:
+        {
+          "_id"   : ObjectId("57fe499fa81320d933000001"),
+          "name"  : "Emma"
+          "score" : 9,
+        }
 
 
 
@@ -121,9 +131,9 @@ When you create a `MongoClient` it immediately connects to MongoDB and verifies 
  _____ ___ ___ ___ ___
 |     | . |   | . | . |
 |_|_|_|___|_|_|_  |___|
-              |___|1.0.0
+              |___|1.1.0
 
-Connected to MongoDB v3.2.8
+Connected to MongoDB v3.2.10
 ```
 
 Note that `ConnectionManagerPooled` will always query the supplied MongoDB host(s) to find the primary node, on which all read and write operations are performed.
@@ -196,7 +206,7 @@ data   := db.authenticate("ZeroCool", "password") |authDb -> Obj?| {
 
 All Mongo objects ( `Collection`, `Index`, `User`, etc...) created from the authenticated database will inherit the user credentials. Note that the database *must* be accessed via the `authDb` variable for the commands to be authenticated.
 
-Note that authentication defaults to `MONGODB-CR` for MongoDB 2.x and `SCRAM-SHA-1` otherwise.
+Note that authentication defaults to `SCRAM-SHA-1` but basic `MONGODB-CR` is also supported.
 
 ## Remarks
 

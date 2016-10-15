@@ -1,6 +1,6 @@
 using afBson
 
-** Pretty prints MongoDB documents to a JSON-esque 'Str'.
+** Pretty prints MongoDB documents to a JSON-esque string.
 ** Useful for debugging.
 ** 
 ** Note PrettyPrinter only pretty prints if the resulting text string if greater than 'maxWidth'.
@@ -27,7 +27,7 @@ const class PrettyPrinter {
 	** 
 	**   syntax: fantom
 	**   printer := PrettyPrinter()
-	**   printer := PrettyPrinter { it.indent="\t"; maxWidth=40; }
+	**   printer := PrettyPrinter { it.indent="\t"; it.maxWidth=40; }
 	new make(|This|? f := null) {
 		f?.call(this)
 		
