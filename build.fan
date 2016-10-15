@@ -14,10 +14,10 @@ class Build : BuildPod {
 		]
 
 		depends = [
-			"sys        1.0.68 - 1.0", 
-			"inet       1.0.68 - 1.0",
-			"util       1.0.68 - 1.0",	// for Random()
-			"concurrent 1.0.68 - 1.0",
+			"sys        1.0.69 - 1.0", 
+			"inet       1.0.69 - 1.0",
+			"util       1.0.69 - 1.0",	// for Random()
+			"concurrent 1.0.69 - 1.0",
 
 			// ---- Core ------------------------
 			"afConcurrent 1.0.12 - 1.0",
