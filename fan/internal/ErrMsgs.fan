@@ -74,7 +74,7 @@ internal const class ErrMsgs {
 	}
 
 	static Str cmd_writeErrs(Str what, Str colName, [Str:Obj?][] errs) {
-		"Errors ${what} '${colName}' - " + ((errs.size == 1) ? errs.first.toStr : errs.toStr)
+		"Errors ${what} '${colName}' - " + ((errs.size == 1) ? errs.first["errmsg"].toStr : errs.toStr)
 	}
 	
 //	static Str cmd_nothingHappened(Str what, [Str:Obj?] response) {

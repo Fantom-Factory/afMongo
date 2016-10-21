@@ -1,6 +1,10 @@
 Versions
 ********
 
+v1.1.2
+======
+ - Chg: Exposed 'MongoCmdErr' and added 'code()' and 'errmsg()' helper methods.
+
 v1.1.0
 ======
  - New: 'PrettyPrinter' for printing MongoDB documents.

@@ -81,12 +81,12 @@ internal class Cmd {
 		if (doc.containsKey("writeConcernError"))
 			errs.add((Str:Obj?) doc["writeConcernError"])
 		if (!errs.isEmpty)
-			throw MongoCmdErr(ErrMsgs.cmd_writeErrs(when, namespace.qname, errs))
+			throw MongoCmdErr(ErrMsgs.cmd_writeErrs(when, namespace.qname, errs), errs)
 		
 		if (doc["ok"] != 1f && doc["ok"] != 1) {
 			// attempt to work out the cmd, usually the first key in the given doc
 			cname := cmd.keys.first
-			throw MongoCmdErr(ErrMsgs.operation_cmdFailed(cname, doc["errmsg"] ?: doc))
+			throw MongoCmdErr(ErrMsgs.operation_cmdFailed(cname, doc["errmsg"] ?: doc), [doc])
 		}
 
 		// After some deliberation I decided not to check these results. 
