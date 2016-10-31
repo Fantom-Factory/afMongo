@@ -56,15 +56,12 @@ const class Collection {
 	
 	** Creates a new collection explicitly.
 	** 
-	** There is no no need to call this unless you wish to disable the (default) auto indexing of 
-	** IDs or disable the (default) power of 2 allocation strategy.
+	** There is usually no no need to call this unless you wish explicitly set collection options. 
 	**  
 	** @see `http://docs.mongodb.org/manual/reference/command/create/`
-	This create(Bool? autoIndexId := true, Bool? usePowerOf2Sizes := true) {
-		flags := (usePowerOf2Sizes == null) ? null : (usePowerOf2Sizes ? 1 : 0) 
-		cmd	.add("create", 		name)
-			.add("autoIndexId",	autoIndexId)
-			.add("flags", 		flags)
+	This create([Str:Obj?]? options := null) {
+		cmd	.add("create", name)
+			.addAll(options)
 			.run
 		// as create() only returns [ok:1.0], return this
 		return this
@@ -73,14 +70,12 @@ const class Collection {
 	** Creates a capped collection.
 	** 
 	** @see `http://docs.mongodb.org/manual/reference/command/create/`
-	This createCapped(Int size, Int? maxNoOfDocs := null, Bool? autoIndexId := true, Bool? usePowerOf2Sizes := true) {
-		flags := (usePowerOf2Sizes == null) ? null : (usePowerOf2Sizes ? 1 : 0) 
+	This createCapped(Int sizeInBytes, Int? maxNoOfDocs := null, [Str:Obj?]? options := null) {
 		cmd	.add("create", 		name)
 			.add("capped", 		true)
-			.add("size", 		size)
-			.add("autoIndexId", autoIndexId)
+			.add("size", 		sizeInBytes)
 			.add("max", 		maxNoOfDocs)
-			.add("flags",		flags)
+			.addAll(options)
 			.run
 		// as create() only returns [ok:1.0], return this
 		return this
