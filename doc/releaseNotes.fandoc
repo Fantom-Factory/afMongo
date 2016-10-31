@@ -3,6 +3,7 @@ Versions
 
 v1.1.2
 ======
+ - Chg: Re-jigged the signature of 'Collection.create()'. (Potential breaking change.)
  - Chg: Exposed 'MongoCmdErr' and added 'code()' and 'errmsg()' helper methods.
 
 v1.1.0
