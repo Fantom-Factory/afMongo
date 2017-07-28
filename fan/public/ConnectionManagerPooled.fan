@@ -262,6 +262,22 @@ const class ConnectionManagerPooled : ConnectionManager {
 		try {
 			return c(connection)
 
+		} catch (MongoErr e) {
+			err := e as Err
+			connection.close
+
+			if (!err.msg.contains("MongoDB says: not master"))
+				throw err
+			
+			try	{
+				// note that other leased connections may play Hunt the Primary if they fail too
+				// at some point we should try to curb 10 connections playing the same game!
+				huntThePrimary
+				throw MongoOpErr("Hunt the Primary succeeded! (Caused by ${err.typeof.qname} - ${err.msg})", err)
+			} catch (Err err2) {
+				throw MongoOpErr("Hunt the Primary failed (${err2.typeof.qname} - ${err2.msg})", err)
+			}
+			
 		} catch (Err err) {
 			// if something dies, kill the connection.
 			// we may have died part way through talking with the server meaning our communication 
@@ -418,14 +434,14 @@ const class ConnectionManagerPooled : ConnectionManager {
 		mongoUrlRef.val = `mongodb://${primaryAddress}:${primaryPort}`
 
 		// set our connection factory
-		connectionState.async |ConnectionManagerPoolState state| {
+		connectionState.sync |ConnectionManagerPoolState state| {
 			state.connectionFactory = |->Connection| {
 				socket := TcpSocket()
 				socket.options.connectTimeout = connectTimeout
 				socket.options.receiveTimeout = socketTimeout
 				return TcpConnection(socket).connect(IpAddr(primaryAddress), primaryPort)
 			} 
-		}.get
+		}
 	}
 	
 	private Connection checkOut() {
