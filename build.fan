@@ -20,7 +20,7 @@ class Build : BuildPod {
 			"concurrent 1.0.69 - 1.0",
 
 			// ---- Core ------------------------
-			"afConcurrent 1.0.12 - 1.0",
+			"afConcurrent 1.0.18 - 1.0",
 			"afBson       1.1.0  - 1.1"
 		]
 

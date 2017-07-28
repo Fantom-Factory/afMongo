@@ -284,7 +284,7 @@ const class ConnectionManagerPooled : ConnectionManager {
 		shutdownLock.lock
 		
 		closeFunc := |->Bool?| {
-			waitingOn := connectionState.getState |ConnectionManagerPoolState state -> Int| {
+			waitingOn := connectionState.sync |ConnectionManagerPoolState state -> Int| {
 				while (!state.checkedIn.isEmpty) {
 					state.checkedIn.removeAt(0).close 
 				}
@@ -299,7 +299,7 @@ const class ConnectionManagerPooled : ConnectionManager {
 
 		if (!allClosed) {
 			// too late, they've had their chance. Now everybody dies.
-			connectionState.withState |ConnectionManagerPoolState state| {
+			connectionState.async |ConnectionManagerPoolState state| {
 				// just in case one or two snuck back in
 				while (!state.checkedIn.isEmpty) {
 					state.checkedIn.removeAt(0).close 
@@ -317,14 +317,14 @@ const class ConnectionManagerPooled : ConnectionManager {
 	
 	** Returns the number of pooled connections currently in use.
 	Int noOfConnectionsInUse() {
-		connectionState.getState |ConnectionManagerPoolState state->Int| {
+		connectionState.sync |ConnectionManagerPoolState state->Int| {
 			state.checkedOut.size
 		}		
 	}
 
 	** Returns the number of connections currently in the pool.
 	Int noOfConnectionsInPool() {
-		connectionState.getState |ConnectionManagerPoolState state->Int| {
+		connectionState.sync |ConnectionManagerPoolState state->Int| {
 			state.checkedOut.size + state.checkedIn.size
 		}
 	}
@@ -418,7 +418,7 @@ const class ConnectionManagerPooled : ConnectionManager {
 		mongoUrlRef.val = `mongodb://${primaryAddress}:${primaryPort}`
 
 		// set our connection factory
-		connectionState.withState |ConnectionManagerPoolState state| {
+		connectionState.async |ConnectionManagerPoolState state| {
 			state.connectionFactory = |->Connection| {
 				socket := TcpSocket()
 				socket.options.connectTimeout = connectTimeout
@@ -430,7 +430,7 @@ const class ConnectionManagerPooled : ConnectionManager {
 	
 	private Connection checkOut() {
 		connectionFunc := |Duration totalNapTime->Connection?| {
-			con := connectionState.getState |ConnectionManagerPoolState state->Unsafe?| {
+			con := connectionState.sync |ConnectionManagerPoolState state->Unsafe?| {
 				if (!state.checkedIn.isEmpty) {
 					connection := state.checkedIn.pop
 					state.checkedOut.push(connection)
@@ -468,7 +468,7 @@ const class ConnectionManagerPooled : ConnectionManager {
 
 	private Void checkIn(Connection connection) {
 		unsafeConnection := Unsafe(connection)
-		connectionState.withState |ConnectionManagerPoolState state| {
+		connectionState.async |ConnectionManagerPoolState state| {
 			conn := (Connection) unsafeConnection.val
 			state.checkedOut.removeSame(conn)
 			
