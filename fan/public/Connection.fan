@@ -110,7 +110,7 @@ class TcpConnection : Connection {
 		hashedPassword	:= "${userName}:mongo:${password}".toBuf.toDigest("MD5").toHex
 		dkLen			:= 20	// the size of a SHA-1 hash
 		saltedPassword	:= Buf.pbk("PBKDF2WithHmacSHA1", hashedPassword, Buf.fromBase64(serverSalt), serverIterations, dkLen)
-		clientFinalNoPf	:= "c=${Buf().print(gs2Header).toBase64},r=${serverNonce}"
+		clientFinalNoPf	:= "c=${gs2Header.toBuf.toBase64},r=${serverNonce}"
 		authMessage		:= "${clientFirstMsg},${serverFirstMsg},${clientFinalNoPf}"
 		clientKey		:= "Client Key".toBuf.hmac("SHA-1", saltedPassword)
 		storedKey		:= clientKey.toDigest("SHA-1")
