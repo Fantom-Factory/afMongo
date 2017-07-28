@@ -10,6 +10,26 @@ internal class TestCollectionAggregationDb : MongoDbTest {
 		10.times |i| { collection.insert(["data":i+1]) }
 	}
 	
+	Void testGroupAgg() {
+		c := collection.drop
+		
+		c.insert(["x":"a", "y":1])
+		c.insert(["x":"a", "y":2])
+		c.insert(["x":"a", "y":3])
+		c.insert(["x":"b", "y":1])
+		
+		initial := ["count": 0.0f]
+		f := "function (obj, prev) { prev.count += inc_value; }"
+		
+		g1 := c.group(["y"], [:], Code("function (obj, val) { return obj }"))
+		verifyEq(3, g1.size)
+
+		// with finalize
+		fin := "function(doc) {doc.f = doc.count + 200; }"
+		g4 := c.group(Str[,], initial, Code(f, ["inc_value":1]), ["finalize":fin])
+		verifyEq(204f, g4[0]["f"])		
+	}
+
 	Void testGroup() {
 		c := collection.drop
 		
