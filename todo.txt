@@ -1,15 +1,5 @@
 
-On failover, and ip node is no longer the master, then reset all connections and re-hunt the master.
-
-afMongo::MongoCmdErr - Command 'mapReduce' failed. MongoDB says: not master
-
-Stack Trace:
-  afMongo::MongoCmdErr : Command 'mapReduce' failed. MongoDB says: not master
-  afMongo::Operation.runCommand (Operation.fan:36)
-  afMongo::Cmd.run (Cmd.fan:72)
-  afMongo::ConnectionManagerPooled.leaseConnection (ConnectionManagerPooled.fan:322)
-  afMongo::Cmd.run (Cmd.fan:71)
-  afMongo::Collection.mapReduce (Collection.fan:416)
+If we start to get connection errors, then re-play huntThePrimary (or Secondary!)
 
 
 For Future
