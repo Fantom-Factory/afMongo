@@ -72,10 +72,10 @@ const class ConnectionManagerPooled : ConnectionManager {
 	** They are initially created during 'startup()'.
 	** 
 	** Set via the [minPoolSize]`http://docs.mongodb.org/manual/reference/connection-string/#uri.minPoolSize` connection string option.
-	** Defaults to 0.
+	** Defaults to 1.
 	** 
 	**   mongodb://example.com/puppies?minPoolSize=50
-	const Int 	minPoolSize	:= 0
+	const Int 	minPoolSize	:= 1
 
 	** The maximum number of database connections this pool should open.
 	** This is the number of concurrent users you expect to use your application.
@@ -181,15 +181,15 @@ const class ConnectionManagerPooled : ConnectionManager {
 		if (socketTimeoutMs != null)
 			socketTimeout = (socketTimeoutMs * 1_000_000).toDuration
 
-		database := trimToNull(mongoUrl.pathOnly.toStr)
-		username := trimToNull(mongoUrl.userInfo?.split(':')?.getSafe(0))
-		password := trimToNull(mongoUrl.userInfo?.split(':')?.getSafe(1))
+		database := mongoUrl.pathStr.trimToNull
+		username := mongoUrl.userInfo?.split(':')?.getSafe(0)?.trimToNull
+		password := mongoUrl.userInfo?.split(':')?.getSafe(1)?.trimToNull
 		
 		if ((username == null).xor(password == null))
 			throw ArgErr(ErrMsgs.connectionManager_badUsernamePasswordCombo(username, password, mongoUrl))
 
 		if (database != null && database.startsWith("/"))
-			database = trimToNull(database[1..-1])
+			database = database[1..-1].trimToNull
 		if (username != null && password != null && database == null)
 			database = "admin"
 		if (username == null && password == null)	// a default database has no meaning without credentials
@@ -240,7 +240,9 @@ const class ConnectionManagerPooled : ConnectionManager {
 		huntThePrimary
 
 		// connect x times
-		minPoolSize.times { checkIn(checkOut) }
+		pool := TcpConnection[,]
+		minPoolSize.times { pool.push(checkOut) }
+		minPoolSize.times { checkIn(pool.pop) }
 		
 		return this
 	}
@@ -268,15 +270,25 @@ const class ConnectionManagerPooled : ConnectionManager {
 
 			if (!err.msg.contains("MongoDB says: not master"))
 				throw err
-			
+
+			// if the master URL has changed, then we've already found a new master!
+			if (connection.mongoUrl != mongoUrl)
+				throw err
+
+			// if we're still connected to the same master, lets play huntThePrimary!
+			// other threads may play huntThePrimary at the same time. Meh! Let them!
 			try	{
-				// note that other leased connections may play Hunt the Primary if they fail too
-				// at some point we should try to curb 10 connections playing the same game!
 				huntThePrimary
-				throw MongoOpErr("Hunt the Primary succeeded! (Caused by ${err.typeof.qname} - ${err.msg})", err)
+				emptyPool
+				
+				// we're an unsung hero - we've established a new master connection and nobody knows! 
+				
 			} catch (Err err2) {
-				throw MongoOpErr("Hunt the Primary failed (${err2.typeof.qname} - ${err2.msg})", err)
+				log.warn("Could not find new Master", err2)
 			}
+			
+			// even though Hunt the Primary succeeded, we still need to report the original error!
+			throw err
 			
 		} catch (Err err) {
 			// if something dies, kill the connection.
@@ -345,41 +357,29 @@ const class ConnectionManagerPooled : ConnectionManager {
 		}
 	}
 	
-	** Implements a truncated binary exponential backoff algorithm. *Damn, I'm good!*
-	** Returns 'null' if the operation timed out.
-	** 
-	** @see `http://en.wikipedia.org/wiki/Exponential_backoff`
-	internal Obj? backoffFunc(|Duration totalNapTime->Obj?| func, Duration timeout) {
-		result			:= null
-		c				:= 0
-		i				:= 10
-		totalNapTime	:= 0ms
-		
-		while (result == null && totalNapTime < timeout) {
-
-			result = func.call(totalNapTime)
-
-			if (result == null) {
-				if (++c > i) c = i	// truncate the exponentiation ~ 10 secs
-				napTime := (randomFunc(0..<2.pow(c)) * 10 * 1000000).toDuration
-
-				// don't over sleep!
-				if ((totalNapTime + napTime) > timeout)
-					napTime = timeout - totalNapTime 
-
-				sleepFunc(napTime)
-				totalNapTime += napTime
-				
-				// if we're about to quit, lets have 1 more last ditch attempt!
-				if (totalNapTime >= timeout)
-					result = func.call(totalNapTime)
+	** (Advanced)
+	** Closes all un-leased connections in the pool, and flags all leased connections to close 
+	** themselves after use. Use to migrate connections to new host / master.
+	Void emptyPool() {
+		connectionState.sync |ConnectionManagerPoolState state| {
+			while (!state.checkedIn.isEmpty) {
+				state.checkedIn.removeAt(0).close 
 			}
+			state.checkedOut.each { it.forceCloseOnCheckIn = true }
 		}
-		
-		return result
+	
+		// re-connect x times
+		pool := TcpConnection[,]
+		minPoolSize.times { pool.push(checkOut) }
+		minPoolSize.times { checkIn(pool.pop) }
 	}
 	
-	private Void huntThePrimary() {
+	** (Advanced)
+	** Searches the replica set for the Master node and instructs all new connections to connect to it.
+	** Throws 'MongoErr' if a primary can not be found. 
+	** 
+	** This method should be followed with a call to 'emptyPool()'.  
+	Void huntThePrimary() {
 		hg		:= connectionUrl.host.split(',')
 		hostList := (HostDetails[]) hg.map { HostDetails(it) }
 		hostList.last.port = connectionUrl.port ?: 27017
@@ -431,7 +431,8 @@ const class ConnectionManagerPooled : ConnectionManager {
 		primaryPort		:= primary.port
 		
 		// remove user credentials and other crud from the url
-		mongoUrlRef.val = `mongodb://${primaryAddress}:${primaryPort}`
+		mongoUrl := `mongodb://${primaryAddress}:${primaryPort}`
+		mongoUrlRef.val = mongoUrl
 
 		// set our connection factory
 		connectionState.sync |ConnectionManagerPoolState state| {
@@ -439,13 +440,51 @@ const class ConnectionManagerPooled : ConnectionManager {
 				socket := TcpSocket()
 				socket.options.connectTimeout = connectTimeout
 				socket.options.receiveTimeout = socketTimeout
-				return TcpConnection(socket).connect(IpAddr(primaryAddress), primaryPort)
+				return TcpConnection(socket).connect(IpAddr(primaryAddress), primaryPort) {
+					it.mongoUrl = mongoUrl
+				}
 			} 
 		}
+
+		log.info(LogMsgs.connectionManager_foundNewMaster(mongoUrl))
 	}
 	
-	private Connection checkOut() {
-		connectionFunc := |Duration totalNapTime->Connection?| {
+	** Implements a truncated binary exponential backoff algorithm. *Damn, I'm good!*
+	** Returns 'null' if the operation timed out.
+	** 
+	** @see `http://en.wikipedia.org/wiki/Exponential_backoff`
+	internal Obj? backoffFunc(|Duration totalNapTime->Obj?| func, Duration timeout) {
+		result			:= null
+		c				:= 0
+		i				:= 10
+		totalNapTime	:= 0ms
+		
+		while (result == null && totalNapTime < timeout) {
+
+			result = func.call(totalNapTime)
+
+			if (result == null) {
+				if (++c > i) c = i	// truncate the exponentiation ~ 10 secs
+				napTime := (randomFunc(0..<2.pow(c)) * 10 * 1000000).toDuration
+
+				// don't over sleep!
+				if ((totalNapTime + napTime) > timeout)
+					napTime = timeout - totalNapTime 
+
+				sleepFunc(napTime)
+				totalNapTime += napTime
+				
+				// if we're about to quit, lets have 1 more last ditch attempt!
+				if (totalNapTime >= timeout)
+					result = func.call(totalNapTime)
+			}
+		}
+		
+		return result
+	}
+
+	private TcpConnection checkOut() {
+		connectionFunc := |Duration totalNapTime->TcpConnection?| {
 			con := connectionState.sync |ConnectionManagerPoolState state->Unsafe?| {
 				if (!state.checkedIn.isEmpty) {
 					connection := state.checkedIn.pop
@@ -471,10 +510,10 @@ const class ConnectionManagerPooled : ConnectionManager {
 		}
 
 		connection
-			:= (Connection?) backoffFunc(connectionFunc, waitQueueTimeout)
+			:= (TcpConnection?) backoffFunc(connectionFunc, waitQueueTimeout)
 			?: throw MongoErr("Argh! No more connections! All ${maxPoolSize} are in use!")
 		
-		// ensure all connections are initially leased authenticated as the default user
+		// ensure all connections that are initially leased are authenticated as the default user
 		// specifically do the check here so you can always *brute force* an authentication on a connection
 		if (defaultDatabase != null && connection.authentications[defaultDatabase] != defaultUsername)
 			connection.authenticate(defaultDatabase, defaultUsername, defaultPassword)
@@ -482,32 +521,33 @@ const class ConnectionManagerPooled : ConnectionManager {
 		return connection
 	}
 
-	private Void checkIn(Connection connection) {
+	private Void checkIn(TcpConnection connection) {
 		unsafeConnection := Unsafe(connection)
-		connectionState.async |ConnectionManagerPoolState state| {
-			conn := (Connection) unsafeConnection.val
+		// call sync() to make sure this thread checks in before it asks for a new one
+		connectionState.sync |ConnectionManagerPoolState state| {
+			conn := (TcpConnection) unsafeConnection.val
 			state.checkedOut.removeSame(conn)
+		
 			
 			// make sure we don't save stale connections
 			if (!conn.isClosed)
-				state.checkedIn.push(conn)
-
-		// call get() to make sure this thread checks in before it asks for a new one
-		}.get	
-	}
-	
-	private Str? trimToNull(Str? str) {
-		(str?.trim?.isEmpty ?: true) ? null : str.trim
+				// only keep the min pool size
+				if (conn.forceCloseOnCheckIn || state.checkedIn.size >= minPoolSize)
+					conn.close
+				else
+					state.checkedIn.push(conn)
+		}
 	}
 }
 
 internal class ConnectionManagerPoolState {
-	Connection[]	checkedOut	:= [,]
-	Connection[]	checkedIn	:= [,]
-	|->Connection|?	connectionFactory
+	TcpConnection[]		checkedIn	:= [,]
+	TcpConnection[]		checkedOut	:= [,]
+	|->TcpConnection|?	connectionFactory
 }
 
 internal class HostDetails {
+	static const Log	log	:= Utils.getLog(HostDetails#)
 	Str		address
 	Int		port
 	Bool	contacted
@@ -536,6 +576,10 @@ internal class HostDetails {
 			primary		= details["primary"]					// standalone instances don't have primary information
 			hosts		= details["hosts"] ?: Obj#.emptyList	// standalone instances don't have hosts information
 			
+		} catch (Err err) {
+			// if a replica is down, simply log it and move onto the next one!
+			log.warn("Could not connect to Host ${address}:${port} :: ${err.typeof.name} - ${err.msg}")
+
 		} finally connection.close
 		
 		return this

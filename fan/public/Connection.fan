@@ -14,6 +14,7 @@ mixin Connection {
 	abstract OutStream	out()
 	
 	** Closes the connection.
+	** Should never throw an IOErr.
 	abstract Void		close()	
 	
 	** Return 'true' if this socket is closed. 
@@ -37,6 +38,8 @@ mixin Connection {
 class TcpConnection : Connection {
 			 TcpSocket	socket
 			 Version?	mongoDbVer
+			 Uri?		mongoUrl
+			 Bool		forceCloseOnCheckIn
 	override Str:Str	authentications	:= [:]
 	
 	** Allows you to pass in a TcpSocket with options already set.

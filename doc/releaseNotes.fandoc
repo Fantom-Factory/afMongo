@@ -3,9 +3,10 @@ Versions
 
 v1.1.2
 ======
- - Chg: Should a Mongo connection switch / fail over to a replicaset, then the Connection Manager plays Hunt the Primary to re-establish connection with the Master. (Untested code!)
+ - New: Should the Master Mongo connection switch / fail over to a replica node, the Connection Manager automatically plays "Hunt the Primary" to re-establish connection with the new Master.
  - Chg: Re-jigged the signature of 'Collection.create()'. (Potential breaking change.)
  - Chg: Exposed 'MongoCmdErr' and added 'code()' and 'errmsg()' helper methods.
+ - Chg: 'PooledConnectionManager.minPoolSize' now defaults to 1 (used to be 0).
 
 v1.1.0
 ======
