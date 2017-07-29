@@ -11,12 +11,13 @@ internal class TestConnectionPool : MongoDbTest {
 	ConnectionManagerPooled? conMgr
 	
 	override Void setup() {
-		Pod.of(this).log.level = LogLevel.debug
+		Pod.of(this).log.level = LogLevel.warn
 		conMgr = ConnectionManagerPooled(ActorPool(), `mongodb://localhost:27017?minPoolSize=5`)
 		mc = MongoClient(conMgr)
 
 		logs.clear
 		Log.addHandler(handler)
+		Pod.of(this).log.level = LogLevel.info
 	}
 
 	override Void teardown() {

@@ -1,8 +1,9 @@
-#Mongo v1.1.0
+#Mongo v1.1.2
 ---
-[![Written in: Fantom](http://img.shields.io/badge/written%20in-Fantom-lightgray.svg)](http://fantom.org/)
-[![pod: v1.1.0](http://img.shields.io/badge/pod-v1.1.0-yellow.svg)](http://www.fantomfactory.org/pods/afMongo)
-![Licence: MIT](http://img.shields.io/badge/licence-MIT-blue.svg)
+
+[![Written in: Fantom](http://img.shields.io/badge/written%20in-Fantom-lightgray.svg)](http://fantom-lang.org/)
+[![pod: v1.1.2](http://img.shields.io/badge/pod-v1.1.2-yellow.svg)](http://www.fantomfactory.org/pods/afMongo)
+![Licence: ISC](http://img.shields.io/badge/licence-ISC-blue.svg)
 
 ## Overview
 
@@ -27,21 +28,25 @@ Mongo driver features:
 
 Mongo driver has been written specifically for MongoDB v3.2 or newer.
 
-> **ALIEN-AID:** See [Morphia](http://pods.fantomfactory.org/pods/afMorphia) for a complete Fantom to MongoDB object mapping library!
+> **ALIEN-AID:** See [Morphia](http://eggbox.fantomfactory.org/pods/afMorphia) for a complete Fantom to MongoDB object mapping library!
 
 ## Install
 
-Install `Mongo` with the Fantom Repository Manager ( [fanr](http://fantom.org/doc/docFanr/Tool.html#install) ):
+Install `Mongo` with the Fantom Pod Manager ( [FPM](http://eggbox.fantomfactory.org/pods/afFpm) ):
 
-    C:\> fanr install -r http://pods.fantomfactory.org/fanr/ afMongo
+    C:\> fpm install afMongo
 
-To use in a [Fantom](http://fantom.org/) project, add a dependency to `build.fan`:
+Or install `Mongo` with [fanr](http://fantom.org/doc/docFanr/Tool.html#install):
+
+    C:\> fanr install -r http://eggbox.fantomfactory.org/fanr/ afMongo
+
+To use in a [Fantom](http://fantom-lang.org/) project, add a dependency to `build.fan`:
 
     depends = ["sys 1.0", ..., "afMongo 1.1"]
 
 ## Documentation
 
-Full API & fandocs are available on the [Fantom Pod Repository](http://pods.fantomfactory.org/pods/afMongo/).
+Full API & fandocs are available on the [Eggbox](http://eggbox.fantomfactory.org/pods/afMongo/) - the Fantom Pod Repository.
 
 ## Quick Start
 
@@ -107,7 +112,7 @@ Full API & fandocs are available on the [Fantom Pod Repository](http://pods.fant
 
 ## Usage
 
-[MongoClient](http://pods.fantomfactory.org/pods/afMongo/api/MongoClient) is the main entry point into `Mongo`. From there you can access all other components of MongoDB, namely [Database](http://pods.fantomfactory.org/pods/afMongo/api/Database), [Collection](http://pods.fantomfactory.org/pods/afMongo/api/Collection), [Index](http://pods.fantomfactory.org/pods/afMongo/api/Index) and [User](http://pods.fantomfactory.org/pods/afMongo/api/User).
+[MongoClient](http://eggbox.fantomfactory.org/pods/afMongo/api/MongoClient) is the main entry point into `Mongo`. From there you can access all other components of MongoDB, namely [Database](http://eggbox.fantomfactory.org/pods/afMongo/api/Database), [Collection](http://eggbox.fantomfactory.org/pods/afMongo/api/Collection), [Index](http://eggbox.fantomfactory.org/pods/afMongo/api/Index) and [User](http://eggbox.fantomfactory.org/pods/afMongo/api/User).
 
 ```
 MongoClient
@@ -119,7 +124,7 @@ MongoClient
 
 ## Connecting
 
-`MongoClient` is created with a [ConnectionManager](http://pods.fantomfactory.org/pods/afMongo/api/ConnectionManager), which manages your connections to MongoDB. Use [ConnectionManagerPooled](http://pods.fantomfactory.org/pods/afMongo/api/ConnectionManagerPooled) for normal multi-threaded use:
+`MongoClient` is created with a [ConnectionManager](http://eggbox.fantomfactory.org/pods/afMongo/api/ConnectionManager), which manages your connections to MongoDB. Use [ConnectionManagerPooled](http://eggbox.fantomfactory.org/pods/afMongo/api/ConnectionManagerPooled) for normal multi-threaded use:
 
     conMgr := ConnectionManagerPooled(ActorPool(), `mongodb://localhost:27017`)
     client := MongoClient(conMgr)
@@ -140,7 +145,7 @@ Note that `ConnectionManagerPooled` will always query the supplied MongoDB host(
 
 ## Queries
 
-`Mongo` and MongoDB work with documents, they are used throughout the `Mongo` API. A MongoDB document is represented in Fantom as a Map of type `[Str:Obj?]`. All document keys must be strings. Document values can be any valid [BSON](http://pods.fantomfactory.org/pods/afBson) type.
+`Mongo` and MongoDB work with documents, they are used throughout the `Mongo` API. A MongoDB document is represented in Fantom as a Map of type `[Str:Obj?]`. All document keys must be strings. Document values can be any valid [BSON](http://eggbox.fantomfactory.org/pods/afBson) type.
 
 A MongoDB database stores documents in collections. Use the `find()` methods to query a collection. Using the `friends` database in the [QuickStart Example](#quickStart) we could do:
 
@@ -155,7 +160,7 @@ collection.findAll( ["score": ["\$gt":7]] ) // --> return all docs with 'score >
 
 The `$gt` expression is an example of a [Query operator](http://docs.mongodb.org/manual/reference/operator/query/).
 
-To iterate over a *massive* collection without loading it all into memory, use a [Cursor](http://pods.fantomfactory.org/pods/afMongo/api/Cursor). `Cursors` download documents in batches, behind the scenes, as and when required. Create and use a `Cursors` by using the `find()` method:
+To iterate over a *massive* collection without loading it all into memory, use a [Cursor](http://eggbox.fantomfactory.org/pods/afMongo/api/Cursor). `Cursors` download documents in batches, behind the scenes, as and when required. Create and use a `Cursors` by using the `find()` method:
 
 ```
 collection.find( ["score": ["\$gt":2]] ) |cursor| {
@@ -180,7 +185,7 @@ Note that as of MongoDB v2.6 there is longer any need to call a `getLastError()`
 
 ## ObjectId
 
-All documents held in a collection need a unique id, held in a field named `_id`. If the `_id` field does not exist, MongoDB will create one for you of type [ObjectId](http://pods.fantomfactory.org/pods/afBson/api/ObjectId).
+All documents held in a collection need a unique id, held in a field named `_id`. If the `_id` field does not exist, MongoDB will create one for you of type [ObjectId](http://eggbox.fantomfactory.org/pods/afBson/api/ObjectId).
 
 Note that `_id` does not need to an `ObjectId`, it can be any BSON type. It just needs to be unique in the collection.
 
