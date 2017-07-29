@@ -486,12 +486,16 @@ const class ConnectionManagerPooled : ConnectionManager {
 	private TcpConnection checkOut() {
 		connectionFunc := |Duration totalNapTime->TcpConnection?| {
 			con := connectionState.sync |ConnectionManagerPoolState state->Unsafe?| {
-				if (!state.checkedIn.isEmpty) {
+				while (!state.checkedIn.isEmpty) {
 					connection := state.checkedIn.pop
-					state.checkedOut.push(connection)
-					return Unsafe(connection)
+					
+					// check the connection is still alive - the server may have closed it during a fail over
+					if (!connection.isClosed) {
+						state.checkedOut.push(connection)
+						return Unsafe(connection)
+					}
 				}
-				
+
 				if (state.checkedOut.size < maxPoolSize) {
 					connection := state.connectionFactory()
 					state.checkedOut.push(connection)
