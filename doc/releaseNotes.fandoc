@@ -3,6 +3,7 @@ Versions
 
 v1.1.2
 ======
+ - New: Proper fail over in the event of lost connections. Ensure your MongoDB URL has multiple host nodes.
  - New: Should the Master Mongo connection switch / fail over to a replica node, the Connection Manager automatically plays "Hunt the Primary" to re-establish connection with the new Master.
  - Chg: Re-jigged the signature of 'Collection.create()'. (Potential breaking change.)
  - Chg: Exposed 'MongoCmdErr' and added 'code()' and 'errmsg()' helper methods.

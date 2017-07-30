@@ -13,7 +13,7 @@ Mongo driver features:
 
 - Compatible with MongoDB v3.2+
 - Standard and capped collections
-- Pooled connection manager for multi-threaded use
+- Pooled connection manager for multi-threaded use and automatic connection fail over.
 - Write commands: `insert()`, `update()`, `delete()` and `findAndModify()`
 - Optimised queries for `findOne()` and `findAll()`
 - Aggregation commands: `aggregate()`, `distinct()`, `group()` and `mapReduce()`
@@ -189,7 +189,7 @@ All documents held in a collection need a unique id, held in a field named `_id`
 
 Note that `_id` does not need to an `ObjectId`, it can be any BSON type. It just needs to be unique in the collection.
 
-Like [marmite](http://www.ilovemarmite.com/), people tend to have a love / hate relationship with the `ObjectId`. The good comments revolve around it having a natural sort that (roughly) corresponds to creation time. The bad is that in *humongous* collections it eats up precious bytes which means the [index can't fit into RAM](http://docs.mongodb.org/manual/tutorial/ensure-indexes-fit-ram/).
+Like [marmite](http://www.ilovemarmite.com/), people tend to have a love / hate relationship with the `ObjectId`. The good comments revolve around it having a natural sort that (roughly) corresponds to creation time. The bad is that it's a large human-unfriendly 24 char identifier, and in *humongous* collections it eats up precious bytes which means the [index may not fit into RAM](http://docs.mongodb.org/manual/tutorial/ensure-indexes-fit-ram/).
 
 ## Authentication
 
@@ -212,6 +212,16 @@ data   := db.authenticate("ZeroCool", "password") |authDb -> Obj?| {
 All Mongo objects ( `Collection`, `Index`, `User`, etc...) created from the authenticated database will inherit the user credentials. Note that the database *must* be accessed via the `authDb` variable for the commands to be authenticated.
 
 Note that authentication defaults to `SCRAM-SHA-1` but basic `MONGODB-CR` is also supported.
+
+## Connection Fail Over
+
+The `PooledConnectionManager` accepts a replica set URL with multiple hosts (with optional ports):
+
+    mongodb://db1.example.net,db2.example.net:2500/?connectTimeoutMS=30000
+
+When  `startup()` is called, the hosts are queried to find the primary / master node. All read and write operations are then performed on this primary node.
+
+When a connection to the master node is lost, all hosts are automatically re-queried to find a new master.
 
 ## Remarks
 

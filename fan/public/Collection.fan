@@ -1,4 +1,4 @@
-using afBson
+using afBson::Code
 
 ** Represents a MongoDB collection.
 const class Collection {

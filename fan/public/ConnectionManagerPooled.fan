@@ -4,7 +4,7 @@ using inet
 
 ** Manages a pool of connections. 
 ** 
-** Connections are created on-demand and kept in a pool when idle. 
+** Connections are created on-demand and a total of 'minPoolSize' are kept in a pool when idle. 
 ** Once the pool is exhausted, any operation requiring a connection will block for (at most) 'waitQueueTimeout' 
 ** waiting for an available connection.
 ** 
@@ -21,16 +21,20 @@ using inet
 ** 
 **   mongodb://db1.example.net,db2.example.net:2500/?connectTimeoutMS=30000
 ** 
-** On 'startup()' the hosts are queried to find the primary / master. 
+** On 'startup()' the hosts are queried to find the primary / master node. 
 ** All read and write operations are performed on the primary node.
+** 
+** When a connection to the master node is lost, all hosts are re-queried to find the new master.
 ** 
 ** Note this connection manager *is* safe for multi-threaded / web-application use.
 const class ConnectionManagerPooled : ConnectionManager {
 	private const Log				log				:= Utils.getLog(ConnectionManagerPooled#)
 	private const OneShotLock		startupLock		:= OneShotLock("Connection Pool has been started")
 	private const OneShotLock		shutdownLock	:= OneShotLock("Connection Pool has been shutdown")
+	private const AtomicBool 		failingOverRef	:= AtomicBool(false)
+	private const Synchronized		failOverThread
 	private const SynchronizedState connectionState
-	
+
 	** The host name of the MongoDB server this 'ConnectionManager' connects to.
 	** When connecting to replica sets, this will indicate the primary.
 	** 
@@ -77,8 +81,8 @@ const class ConnectionManagerPooled : ConnectionManager {
 	**   mongodb://example.com/puppies?minPoolSize=50
 	const Int 	minPoolSize	:= 1
 
-	** The maximum number of database connections this pool should open.
-	** This is the number of concurrent users you expect to use your application.
+	** The maximum number of database connections this pool is allowed open.
+	** This is the maximum number of concurrent users you expect your application to have.
 	** 
 	** Set via the [maxPoolSize]`http://docs.mongodb.org/manual/reference/connection-string/#uri.maxPoolSize` connection string option.
 	** Defaults to 10.
@@ -89,10 +93,10 @@ const class ConnectionManagerPooled : ConnectionManager {
 	** The maximum time a thread can wait for a connection to become available.
 	** 
 	** Set via the [maxPoolSize]`http://docs.mongodb.org/manual/reference/connection-string/#uri.waitQueueTimeoutMS` connection string option.
-	** Defaults to 10 seconds.
+	** Defaults to 15 seconds.
 	** 
 	**   mongodb://example.com/puppies?waitQueueTimeoutMS=10
-	const Duration	waitQueueTimeout := 10sec
+	const Duration	waitQueueTimeout := 15sec
 
 	** If specified, this is the time to attempt a connection before timing out.
 	** If 'null' (the default) then a system timeout is used.
@@ -150,6 +154,7 @@ const class ConnectionManagerPooled : ConnectionManager {
 		mongoUrl				:= connectionUrl
 		this.connectionUrl		= connectionUrl
 		this.connectionState	= SynchronizedState(actorPool, ConnectionManagerPoolState#)
+		this.failOverThread		= Synchronized(actorPool)
 		this.minPoolSize 		= mongoUrl.query["minPoolSize"]?.toInt ?: minPoolSize
 		this.maxPoolSize 		= mongoUrl.query["maxPoolSize"]?.toInt ?: maxPoolSize
 		waitQueueTimeoutMs		:= mongoUrl.query["waitQueueTimeoutMS"]?.toInt
@@ -276,17 +281,8 @@ const class ConnectionManagerPooled : ConnectionManager {
 				throw err
 
 			// if we're still connected to the same master, lets play huntThePrimary!
-			// other threads may play huntThePrimary at the same time. Meh! Let them!
-			try	{
-				huntThePrimary
-				emptyPool
+			failOver
 				
-				// we're an unsung hero - we've established a new master connection and nobody knows! 
-				
-			} catch (Err err2) {
-				log.warn("Could not find new Master", err2)
-			}
-			
 			// even though Hunt the Primary succeeded, we still need to report the original error!
 			throw err
 			
@@ -449,6 +445,29 @@ const class ConnectionManagerPooled : ConnectionManager {
 		log.info(LogMsgs.connectionManager_foundNewMaster(mongoUrl))
 	}
 	
+	private Void failOver() {
+		// no need to have 3 threads huntingThePrimary at the same time!
+		if (failingOverRef.val == true)
+			return
+
+		// it doesn't matter if a race condition means we play huntThePrimary twice in succession
+		failOverThread.async |->| {
+			failingOverRef.val = true
+			try	{
+				huntThePrimary
+				emptyPool
+				
+				// we're an unsung hero - we've established a new master connection and nobody knows! 
+				
+			} catch (Err err) {
+				log.warn("Could not find new Master", err)
+
+			} finally {
+				failingOverRef.val = false
+			}
+		}
+	}
+	
 	** Implements a truncated binary exponential backoff algorithm. *Damn, I'm good!*
 	** Returns 'null' if the operation timed out.
 	** 
@@ -513,9 +532,19 @@ const class ConnectionManagerPooled : ConnectionManager {
 			return con
 		}
 
-		connection
-			:= (TcpConnection?) backoffFunc(connectionFunc, waitQueueTimeout)
-			?: throw MongoErr("Argh! No more connections! All ${maxPoolSize} are in use!")
+		connection := (TcpConnection?) backoffFunc(connectionFunc, waitQueueTimeout)
+		
+		if (connection == null) {
+			if (noOfConnectionsInUse == maxPoolSize)
+				throw MongoErr("Argh! No more connections! All ${maxPoolSize} are in use!")
+			
+			// it would appear the database is down ... :(			
+			// so lets kick off a game of huntThePrimary in the background ...
+			failOver
+
+			// ... and report an error - 'cos we can't wait longer than 'waitQueueTimeout'
+			throw MongoErr("Argh! Can not connect to Master! All ${maxPoolSize} are in use!")			
+		}
 		
 		// ensure all connections that are initially leased are authenticated as the default user
 		// specifically do the check here so you can always *brute force* an authentication on a connection
@@ -524,14 +553,13 @@ const class ConnectionManagerPooled : ConnectionManager {
 		
 		return connection
 	}
-
+	
 	private Void checkIn(TcpConnection connection) {
 		unsafeConnection := Unsafe(connection)
 		// call sync() to make sure this thread checks in before it asks for a new one
 		connectionState.sync |ConnectionManagerPoolState state| {
 			conn := (TcpConnection) unsafeConnection.val
 			state.checkedOut.removeSame(conn)
-		
 			
 			// make sure we don't save stale connections
 			if (!conn.isClosed)

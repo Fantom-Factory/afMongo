@@ -44,6 +44,9 @@ internal class TestConnectionPool : MongoDbTest {
 				throw MongoErr("==< MongoDB says: not master >==")
 			}
 		}
+
+		// give the async failOver() time to complete
+		Actor.sleep(10ms)
 		
 		verifyEq((logs.first as LogRec).msg, "Found a new Master at mongodb://localhost:27017")
 		verifyEq(conMgr.minPoolSize, 5)
