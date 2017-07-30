@@ -1,4 +1,4 @@
-using afBson
+using afBson::Code
 
 ** Represents a MongoDB database.
 const class Database {
