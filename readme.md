@@ -1,8 +1,8 @@
-#Mongo v1.1.2
+#Mongo v1.1.4
 ---
 
 [![Written in: Fantom](http://img.shields.io/badge/written%20in-Fantom-lightgray.svg)](http://fantom-lang.org/)
-[![pod: v1.1.2](http://img.shields.io/badge/pod-v1.1.2-yellow.svg)](http://www.fantomfactory.org/pods/afMongo)
+[![pod: v1.1.4](http://img.shields.io/badge/pod-v1.1.4-yellow.svg)](http://www.fantomfactory.org/pods/afMongo)
 ![Licence: ISC](http://img.shields.io/badge/licence-ISC-blue.svg)
 
 ## Overview
