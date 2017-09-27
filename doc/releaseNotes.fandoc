@@ -1,6 +1,10 @@
 Versions
 ********
 
+v1.1.4
+======
+ - Bug: Failover did not occur when a host simply went *offline* and refused connections.
+
 v1.1.2
 ======
  - New: Proper fail over in the event of lost connections. Ensure your MongoDB URL has multiple host nodes.

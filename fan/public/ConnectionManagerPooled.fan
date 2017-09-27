@@ -532,9 +532,15 @@ const class ConnectionManagerPooled : ConnectionManager {
 			return con
 		}
 
-		connection := (TcpConnection?) backoffFunc(connectionFunc, waitQueueTimeout)
+		connection	:= null as TcpConnection
+		ioErr		:= null as Err
+		try connection = backoffFunc(connectionFunc, waitQueueTimeout)
 		
-		if (connection == null) {
+		// sys::IOErr: Could not connect to MongoDB at `dsXXXXXX-a0.mlab.com:59296` - java.net.ConnectException: Connection refused
+		catch (IOErr ioe)
+			ioErr = ioe
+
+		if (connection == null || ioErr != null) {
 			if (noOfConnectionsInUse == maxPoolSize)
 				throw MongoErr("Argh! No more connections! All ${maxPoolSize} are in use!")
 			
@@ -543,7 +549,7 @@ const class ConnectionManagerPooled : ConnectionManager {
 			failOver
 
 			// ... and report an error - 'cos we can't wait longer than 'waitQueueTimeout'
-			throw MongoErr("Argh! Can not connect to Master! All ${maxPoolSize} are in use!")			
+			throw ioErr ?: MongoErr("Argh! Can not connect to Master! All ${maxPoolSize} are in use!")
 		}
 		
 		// ensure all connections that are initially leased are authenticated as the default user

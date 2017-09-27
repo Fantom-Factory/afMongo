@@ -30,13 +30,10 @@ internal class TestScram : MongoTest {
 		random			:= util::Random.makeSecure
 		clientNonce		:= Buf().writeI8(random.next).writeI8(random.next).toBase64
 		echo(clientNonce)
-		echo(clientNonce)
 		
 		
 		md:=Buf().print("n,,n=user,r=fyko+d2lbbFgONRv9qkxdawL")	//.toDigest("SHA-1")
 		echo(md.toBase64)
-		
-		mongoClient := MongoClient(ActorPool(), `mongodb://bushmasters:password@ds013216.mlab.com:13216/bushmasters`)
 	}
 	
 }
