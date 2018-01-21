@@ -251,7 +251,7 @@ const class Collection {
 	}
 
 	** Runs the given 'updateCmd' against documents returned by 'query'.
-	** Returns the number of documents modified. 
+	** Inspect return value for upserted IDs.
 	** Note this does *not* throw an Err should the query not match any documents.
 	** 
 	** If 'multi' is 'true' then the multiple documents may be updated, otherwise the update is limited to one.
@@ -259,14 +259,13 @@ const class Collection {
 	** If 'upsert' is 'true' and no documents are updated, then one is inserted.
 	** 
 	** @see `http://docs.mongodb.org/manual/reference/command/update/`
-	// TODO: we loose any returned upserted id...?
-	Int update(Str:Obj? query, Str:Obj? updateCmd, Bool? multi := false, Bool? upsert := false, [Str:Obj?]? writeConcern := null) {
+	[Str:Obj?] update(Str:Obj? query, Str:Obj? updateCmd, Bool? multi := false, Bool? upsert := false, [Str:Obj?]? writeConcern := null) {
 		cmd := cmd
 			.add("q",		query)
 			.add("u",		updateCmd)
 			.add("upsert",	upsert)
 			.add("multi",	multi)
-		return updateMulti([cmd.query], null, writeConcern)["nModified"]->toInt
+		return updateMulti([cmd.query], null, writeConcern)
 	}
 
 	** Runs multiple update queries.

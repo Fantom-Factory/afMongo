@@ -1,7 +1,4 @@
 
-If we start to get connection errors, then re-play huntThePrimary (or Secondary!)
-
-
 For Future
 ----------
 Role Commands (new in 2.6)
