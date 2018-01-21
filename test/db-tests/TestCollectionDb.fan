@@ -65,7 +65,7 @@ internal class TestCollectionDb : MongoDbTest {
 		verifyEq(col.size, 3)
 		verifyEq(col.findCount(["milk":"juggs"]), 3)
 
-		verifyEq(col.update(["milk":"juggs"], ["\$set": ["milk": "muggs"]], true), 3)
+		verifyEq(col.update(["milk":"juggs"], ["\$set": ["milk": "muggs"]], true)["n"], 3)
 		
 		verifyEq(col.size, 3)
 		verifyEq(col.findCount(["milk":"juggs"]), 0)

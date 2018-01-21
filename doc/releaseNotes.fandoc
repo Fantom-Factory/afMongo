@@ -1,5 +1,9 @@
-Versions
-********
+v1.1
+****
+
+v1.1.6
+======
+ - Chg: 'Collection.update()' returns a map of update data and not just the number of docs updated. (Potential breaking change.)
 
 v1.1.4
 ======
@@ -20,6 +24,11 @@ v1.1.0
  - Chg: Replaced 'Cursor.fields' with 'Cursor.projection'. (Breaking change.)
  - Chg: Exposed some *advanced use* classes.
  - Chg: Removed deprecated MongoDB 2.6 methods.
+
+
+
+v1.0
+****
 
 v1.0.10
 =======
@@ -61,6 +70,11 @@ v1.0.0
  - Chg: Index keys must be ordered if they contain more than one entry.
  - Chg: Better Err msg if could not connect to MongoDB.
  - Bug: 'Cursor.count' threw an Err if the query was ordered.
+
+
+
+v0.0
+****
 
 v0.0.6
 ======
