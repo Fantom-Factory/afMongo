@@ -118,6 +118,13 @@ internal class TestCollectionDb : MongoDbTest {
 			return second
 		} as Str:Obj?
 		verifyEq(second["data"], 2)
+		
+		res := collection.findAll([:], null, 0, 0)
+		verifyEq(10, res.size)
+
+		// test negative skip / limit values are ignored and don't cause errors
+		res = collection.findAll([:], null, -10, -10)
+		verifyEq(10, res.size)
 	}
 
 	Void testFindOne() {
@@ -144,7 +151,6 @@ internal class TestCollectionDb : MongoDbTest {
 	}
 	
 	Void testSort() {
-		
 		// test sort
 		verifyEq(collection.findAll([:], ["data": 1])[0]["data"],  1)
 		verifyEq(collection.findAll([:], ["data": 1])[9]["data"], 10)
