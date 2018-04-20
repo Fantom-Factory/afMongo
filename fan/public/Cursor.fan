@@ -40,7 +40,7 @@ class Cursor {
 	** 
 	** This value can not be changed once a query has been sent to the server.
 	Int? limit {
-		set { _querySent.check; &limit = it }		
+		set { _querySent.check; &limit = it?.max(0) }		
 	}
 	
 	** The number of documents to omit, when returning the result of the query.
@@ -49,7 +49,7 @@ class Cursor {
 	** 
 	** This value can not be changed once the query has been sent to the server.
 	Int skip {
-		set { _querySent.check; &skip = it; &index = it }
+		set { _querySent.check; &skip = it.max(0); &index = it }
 	}
 	
 	** Use to alter / set which fields returned in the Mongo responses.
