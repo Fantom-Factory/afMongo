@@ -3,6 +3,7 @@ v1.1
 
 v1.1.8
 ======
+ - New: 'Collection.deleteAll()' convenience method.
  - Chg: 'skip' and 'limit' values are clamped at 0 to prevent negative values - which cause server errors.
 
 v1.1.6

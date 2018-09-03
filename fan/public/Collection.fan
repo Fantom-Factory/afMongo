@@ -83,8 +83,10 @@ const class Collection {
 
 	** Drops this collection, but only if it exists.
 	** 
-	** If 'force' is 'true' then the collection is dropped regardless. 
-	** Note this may result in an error if the collection doesn't exist.
+	** Note that deleting all documents is MUCH quicker than dropping the Collection. See `deleteAll` for details.
+	** 
+	** If 'force' is 'true' then no checks are made. 
+	** This will result in an error if the collection doesn't exist.
 	** 
 	** @see `http://docs.mongodb.org/manual/reference/command/drop/`
 	This drop(Bool force := false) {
@@ -248,6 +250,19 @@ const class Collection {
 			.add("ordered",			ordered)
 			.add("writeConcern",	writeConcern ?: conMgr.writeConcern)
 			.run
+	}
+	
+	** Convenience method for deleting ALL documents in a Collection.
+	** Returns the number of documents deleted.
+	** 
+	** Note this is MUCH quicker than dropping the Collection.
+	** 
+	** Same as calling:
+	** 
+	**   syntax: fantom
+	**   deleteMulti([["q":[:], "limit":0]], false, writeConcern)["n"]
+	Int deleteAll([Str:Obj?]? writeConcern := null) {
+		deleteMulti([["q":[:], "limit":0]], false, writeConcern)["n"]->toInt
 	}
 
 	** Runs the given 'updateCmd' against documents returned by 'query'.
