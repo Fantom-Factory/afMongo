@@ -450,6 +450,7 @@ const class Collection {
 	** @see 
 	**  - `http://docs.mongodb.org/manual/reference/command/aggregate/`
 	**  - `http://docs.mongodb.org/manual/reference/aggregation/`
+	@Deprecated { msg="Removed in MongoDB v3.6.x - use aggregateCursor() instead" }
 	[Str:Obj?][] aggregate([Str:Obj?][] pipeline, [Str:Obj?]? options := null) {
 		cmd	.add("aggregate",	name)
 			.add("pipeline", 	pipeline)
