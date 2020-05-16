@@ -3,7 +3,7 @@ v1.1
 
 v1.1.10
 =======
- - New: Added 'ssl' MongoDB connection option.
+ - New: Added 'ssl' and 'authSource' MongoDB connection option.
 
 v1.1.8
 ======

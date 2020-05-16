@@ -13,9 +13,9 @@ using inet::TcpSocket
 ** Once the pool is exhausted, any operation requiring a connection will block for (at most) 'waitQueueTimeout' 
 ** waiting for an available connection.
 ** 
-** This connection manager is created with the standard [Mongo Connection URL]`http://docs.mongodb.org/manual/reference/connection-string/` in the format:
+** This connection manager is created with the standard [Mongo Connection URL]`https://docs.mongodb.org/manual/reference/connection-string/` in the format:
 ** 
-**   mongodb://[username:password@]host[:port][/[database][?options]]
+**   mongodb://[username:password@]host[:port][/[defaultauthdb][?options]]
 ** 
 ** Examples:
 ** 
@@ -80,7 +80,7 @@ const class ConnectionManagerPooled : ConnectionManager {
 	** The minimum number of database connections this pool should keep open.
 	** They are initially created during 'startup()'.
 	** 
-	** Set via the [minPoolSize]`http://docs.mongodb.org/manual/reference/connection-string/#uri.minPoolSize` connection string option.
+	** Set via the [minPoolSize]`https://docs.mongodb.com/manual/reference/connection-string/#urioption.minPoolSize` connection string option.
 	** Defaults to 1.
 	** 
 	**   mongodb://example.com/puppies?minPoolSize=50
@@ -89,7 +89,7 @@ const class ConnectionManagerPooled : ConnectionManager {
 	** The maximum number of database connections this pool is allowed open.
 	** This is the maximum number of concurrent users you expect your application to have.
 	** 
-	** Set via the [maxPoolSize]`http://docs.mongodb.org/manual/reference/connection-string/#uri.maxPoolSize` connection string option.
+	** Set via the [maxPoolSize]`https://docs.mongodb.org/manual/reference/connection-string/#urioption.maxPoolSize` connection string option.
 	** Defaults to 10.
 	** 
 	**   mongodb://example.com/puppies?maxPoolSize=10
@@ -97,7 +97,7 @@ const class ConnectionManagerPooled : ConnectionManager {
 	
 	** The maximum time a thread can wait for a connection to become available.
 	** 
-	** Set via the [maxPoolSize]`http://docs.mongodb.org/manual/reference/connection-string/#uri.waitQueueTimeoutMS` connection string option.
+	** Set via the [maxPoolSize]`https://docs.mongodb.org/manual/reference/connection-string/#urioption.waitQueueTimeoutMS` connection string option.
 	** Defaults to 15 seconds.
 	** 
 	**   mongodb://example.com/puppies?waitQueueTimeoutMS=10
@@ -106,7 +106,7 @@ const class ConnectionManagerPooled : ConnectionManager {
 	** If specified, this is the time to attempt a connection before timing out.
 	** If 'null' (the default) then a system timeout is used.
 	** 
-	** Set via the [connectTimeoutMS]`http://docs.mongodb.org/manual/reference/connection-string/#uri.connectTimeoutMS` connection string option.
+	** Set via the [connectTimeoutMS]`https://docs.mongodb.org/manual/reference/connection-string/#urioption.connectTimeoutMS` connection string option.
 	** 
 	**   mongodb://example.com/puppies?connectTimeoutMS=2500
 	** 
@@ -116,7 +116,7 @@ const class ConnectionManagerPooled : ConnectionManager {
 	** If specified, this is the time to attempt a send or receive on a socket before the attempt times out.
 	** 'null' (the default) indicates an infinite timeout.
 	** 
-	** Set via the [socketTimeoutMS]`http://docs.mongodb.org/manual/reference/connection-string/#uri.socketTimeoutMS` connection string option.
+	** Set via the [socketTimeoutMS]`https://docs.mongodb.org/manual/reference/connection-string/#urioption.socketTimeoutMS` connection string option.
 	** 
 	**   mongodb://example.com/puppies?socketTimeoutMS=2500
 	** 
@@ -153,6 +153,7 @@ const class ConnectionManagerPooled : ConnectionManager {
 	**  - [journal]`https://docs.mongodb.com/manual/reference/connection-string/#urioption.journal`
 	**  - [ssl]`https://docs.mongodb.com/manual/reference/connection-string/#urioption.ssl`
 	**  - [tls]`https://docs.mongodb.com/manual/reference/connection-string/#urioption.tls`
+	**  - [authSource]`https://docs.mongodb.com/manual/reference/connection-string/#urioption.authSource`
 	** 
 	** URL examples:
 	**  - 'mongodb://username:password@example1.com/database?maxPoolSize=50'
@@ -199,7 +200,8 @@ const class ConnectionManagerPooled : ConnectionManager {
 		if (socketTimeoutMs != null)
 			socketTimeout = (socketTimeoutMs * 1_000_000).toDuration
 
-		database := mongoUrl.pathStr.trimToNull
+		// authSource trumps defaultauthdb 
+		database := mongoUrl.query["authSource"]?.trimToNull ?: mongoUrl.pathStr.trimToNull
 		username := mongoUrl.userInfo?.split(':')?.getSafe(0)?.trimToNull
 		password := mongoUrl.userInfo?.split(':')?.getSafe(1)?.trimToNull
 		
@@ -237,6 +239,7 @@ const class ConnectionManagerPooled : ConnectionManager {
 		query.remove("journal")
 		query.remove("ssl")
 		query.remove("tls")
+		query.remove("authSource")
 		query.each |val, key| {
 			log.warn(LogMsgs.connectionManager_unknownUrlOption(key, val, mongoUrl))
 		}
