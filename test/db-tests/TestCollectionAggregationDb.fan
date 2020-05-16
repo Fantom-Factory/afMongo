@@ -77,12 +77,7 @@ internal class TestCollectionAggregationDb : MongoDbTest {
 			["\$group"		: ["_id":"\$tags", "count": ["\$sum":1]]]
 		] 
 		
-		tags := collection.aggregate(pipeline)
-		verifyEq(tags.size, 4)
-		verifyEq(tags.find { it["_id"] == "programming" }["count"], 2)
-		verifyEq(tags.find { it["_id"] == "database"    }["count"], 1)
-
-		tags = collection.aggregateCursor(pipeline) |Cursor cursor -> Obj| {
+		tags := ([Str:Obj?][]) collection.aggregateCursor(pipeline) |Cursor cursor -> Obj| {
 			cursor.toList
 		}
 		verifyEq(tags.size, 4)

@@ -1,6 +1,11 @@
-using concurrent
-using afConcurrent
-using inet
+using concurrent::AtomicBool
+using concurrent::AtomicRef
+using concurrent::Actor
+using concurrent::ActorPool
+using afConcurrent::Synchronized
+using afConcurrent::SynchronizedState
+using inet::IpAddr
+using inet::TcpSocket
 
 ** Manages a pool of connections. 
 ** 
@@ -123,6 +128,11 @@ const class ConnectionManagerPooled : ConnectionManager {
 	** Defaults to '2sec'. 
 	const Duration? shutdownTimeout	:= 2sec
 	
+	** Specifies an SSL connection. Set to 'true' for Atlas databases.
+	** 
+	** Defaults to 'false'. 
+	const Bool ssl := false
+	
 	// used to test the backoff func
 	internal const |Range->Int|	randomFunc	:= |Range r->Int| { r.random }
 	internal const |Duration| 	sleepFunc	:= |Duration napTime| { Actor.sleep(napTime) }
@@ -133,18 +143,20 @@ const class ConnectionManagerPooled : ConnectionManager {
 	**   conMgr := ConnectionManagerPooled(ActorPool(), `mongodb://localhost:27017`)
 	** 
 	** The following URL options are supported:
-	**  - [minPoolSize]`http://docs.mongodb.org/manual/reference/connection-string/#uri.minPoolSize`
-	**  - [maxPoolSize]`http://docs.mongodb.org/manual/reference/connection-string/#uri.maxPoolSize`
-	**  - [waitQueueTimeoutMS]`http://docs.mongodb.org/manual/reference/connection-string/#uri.waitQueueTimeoutMS`
-	**  - [connectTimeoutMS]`http://docs.mongodb.org/manual/reference/connection-string/#uri.connectTimeoutMS`
-	**  - [socketTimeoutMS]`http://docs.mongodb.org/manual/reference/connection-string/#uri.socketTimeoutMS`
-	**  - [w]`http://docs.mongodb.org/manual/reference/connection-string/#uri.w`
-	**  - [wtimeoutMS]`http://docs.mongodb.org/manual/reference/connection-string/#uri.wtimeoutMS`
-	**  - [journal]`http://docs.mongodb.org/manual/reference/connection-string/#uri.journal`
+	**  - [minPoolSize]`https://docs.mongodb.com/manual/reference/connection-string/#urioption.minPoolSize`
+	**  - [maxPoolSize]`https://docs.mongodb.com/manual/reference/connection-string/#urioption.maxPoolSize`
+	**  - [waitQueueTimeoutMS]`https://docs.mongodb.com/manual/reference/connection-string/#urioption.waitQueueTimeoutMS`
+	**  - [connectTimeoutMS]`https://docs.mongodb.com/manual/reference/connection-string/#urioption.connectTimeoutMS`
+	**  - [socketTimeoutMS]`https://docs.mongodb.com/manual/reference/connection-string/#urioption.socketTimeoutMS`
+	**  - [w]`https://docs.mongodb.com/manual/reference/connection-string/#urioption.w`
+	**  - [wtimeoutMS]`https://docs.mongodb.com/manual/reference/connection-string/#urioption.wtimeoutMS`
+	**  - [journal]`https://docs.mongodb.com/manual/reference/connection-string/#urioption.journal`
+	**  - [ssl]`https://docs.mongodb.com/manual/reference/connection-string/#urioption.ssl`
+	**  - [tls]`https://docs.mongodb.com/manual/reference/connection-string/#urioption.tls`
 	** 
 	** URL examples:
 	**  - 'mongodb://username:password@example1.com/database?maxPoolSize=50'
-	**  - 'mongodb://example2.com?minPoolSize=10&maxPoolSize=50'
+	**  - 'mongodb://example2.com?minPoolSize=10&maxPoolSize=50&ssl=true'
 	** 
 	** @see `http://docs.mongodb.org/manual/reference/connection-string/`
 	new makeFromUrl(ActorPool actorPool, Uri connectionUrl, |This|? f := null) {
@@ -152,17 +164,18 @@ const class ConnectionManagerPooled : ConnectionManager {
 			throw ArgErr(ErrMsgs.connectionManager_badScheme(connectionUrl))
 
 		mongoUrl				:= connectionUrl
-		this.connectionUrl		= connectionUrl
-		this.connectionState	= SynchronizedState(actorPool, ConnectionManagerPoolState#)
-		this.failOverThread		= Synchronized(actorPool)
-		this.minPoolSize 		= mongoUrl.query["minPoolSize"]?.toInt ?: minPoolSize
-		this.maxPoolSize 		= mongoUrl.query["maxPoolSize"]?.toInt ?: maxPoolSize
+		this.connectionUrl		 = connectionUrl
+		this.connectionState	 = SynchronizedState(actorPool, ConnectionManagerPoolState#)
+		this.failOverThread		 = Synchronized(actorPool)
+		this.minPoolSize 		 = mongoUrl.query["minPoolSize"]?.toInt ?: minPoolSize
+		this.maxPoolSize 		 = mongoUrl.query["maxPoolSize"]?.toInt ?: maxPoolSize
 		waitQueueTimeoutMs		:= mongoUrl.query["waitQueueTimeoutMS"]?.toInt
 		connectTimeoutMs		:= mongoUrl.query["connectTimeoutMS"]?.toInt
 		socketTimeoutMs 		:= mongoUrl.query["socketTimeoutMS"]?.toInt
 		w						:= mongoUrl.query["w"]
 		wtimeoutMs		 		:= mongoUrl.query["wtimeoutMS"]?.toInt
 		journal			 		:= mongoUrl.query["journal"]?.toBool
+		ssl				 		 = mongoUrl.query["tls"]?.toBool ?: mongoUrl.query["ssl"]?.toBool
 
 		if (minPoolSize < 0)
 			throw ArgErr(ErrMsgs.connectionManager_badInt("minPoolSize", "zero", minPoolSize, mongoUrl))
@@ -222,6 +235,8 @@ const class ConnectionManagerPooled : ConnectionManager {
 		query.remove("w")
 		query.remove("wtimeoutMS")
 		query.remove("journal")
+		query.remove("ssl")
+		query.remove("tls")
 		query.each |val, key| {
 			log.warn(LogMsgs.connectionManager_unknownUrlOption(key, val, mongoUrl))
 		}
@@ -377,7 +392,7 @@ const class ConnectionManagerPooled : ConnectionManager {
 	** This method should be followed with a call to 'emptyPool()'.  
 	Void huntThePrimary() {
 		hg		:= connectionUrl.host.split(',')
-		hostList := (HostDetails[]) hg.map { HostDetails(it) }
+		hostList := (HostDetails[]) hg.map { HostDetails(it, ssl) }
 		hostList.last.port = connectionUrl.port ?: 27017
 		hosts	:= Str:HostDetails[:] { it.ordered=true }.addList(hostList) { it.host }
 		
@@ -396,7 +411,7 @@ const class ConnectionManagerPooled : ConnectionManager {
 			// assume if it's been contacted, it's not the primary - cos we would have returned it already
 			if (hd.primary != null && hosts[hd.primary]?.contacted != true) {
 				if (hosts[hd.primary] == null) 
-					hosts[hd.primary] = HostDetails(hd.primary)
+					hosts[hd.primary] = HostDetails(hd.primary, ssl)
 				if (hosts[hd.primary].populate.isPrimary)
 					return hosts[hd.primary]
 			}
@@ -411,7 +426,7 @@ const class ConnectionManagerPooled : ConnectionManager {
 			hostList.each |hd| {
 				hd.hosts.each {
 					if (hosts[it] == null)
-						hosts[it] = HostDetails(it)
+						hosts[it] = HostDetails(it, ssl)
 				}
 			}
 
@@ -433,7 +448,7 @@ const class ConnectionManagerPooled : ConnectionManager {
 		// set our connection factory
 		connectionState.sync |ConnectionManagerPoolState state| {
 			state.connectionFactory = |->Connection| {
-				socket := TcpSocket()
+				socket := ssl ? TcpSocket.makeTls : TcpSocket.make
 				socket.options.connectTimeout = connectTimeout
 				socket.options.receiveTimeout = socketTimeout
 				return TcpConnection(socket).connect(IpAddr(primaryAddress), primaryPort) {
@@ -588,25 +603,28 @@ internal class HostDetails {
 	static const Log	log	:= Utils.getLog(HostDetails#)
 	Str		address
 	Int		port
+	Bool	ssl
 	Bool	contacted
 	Bool	isPrimary
 	Bool	isSecondary
 	Str[]	hosts	:= Obj#.emptyList
 	Str?	primary
 	
-	new make(Str addr) {
+	new make(Str addr, Bool ssl) {
 		uri	:= `//${addr}`
 		this.address = uri.host ?: "127.0.0.1"
 		this.port	 = uri.port ?: 27017
+		this.ssl	 = ssl
 	}
 	
 	This populate() {
 		contacted = true
 		
-		connection := TcpConnection()
+		connection := TcpConnection(ssl)
 		try {
 			connection.connect(IpAddr(address), port)
-			conMgr := ConnectionManagerLocal(connection, "mongodb://${address}:${port}".toUri)
+			mongUrl	:= `mongodb://${address}:${port}`
+			conMgr	:= ConnectionManagerLocal(connection, ssl ? mongUrl.plusQuery(["ssl":"true"]) : mongUrl)
 			details := Database(conMgr, "admin").runCmd(["ismaster":1])
 		
 			isPrimary 	= details["ismaster"]  == true			// '== true' to avoid NPEs if key doesn't exist

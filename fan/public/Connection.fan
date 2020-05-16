@@ -43,8 +43,13 @@ class TcpConnection : Connection {
 	override Str:Str	authentications	:= [:]
 	
 	** Allows you to pass in a TcpSocket with options already set.
-	new make(TcpSocket? socket := null) {
-		this.socket = socket ?: TcpSocket()
+	new fromSocket(TcpSocket socket) {
+		this.socket = socket
+	}
+
+	** Creates a new TCP Socket
+	new make(Bool ssl) {
+		this.socket = ssl ? TcpSocket.makeTls : TcpSocket.make
 	}
 	
 	This connect(IpAddr address := IpAddr("127.0.0.1"), Int port := 27017) {

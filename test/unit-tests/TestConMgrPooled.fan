@@ -100,7 +100,7 @@ internal class TestConMgrPooled : MongoTest {
 		verifyEq(conMgr.connectionUrl.port,	44444)
 
 		hg := conMgr.connectionUrl.host.split(',')
-		hostList := (HostDetails[]) hg.map { HostDetails(it) }
+		hostList := (HostDetails[]) hg.map { HostDetails(it, false) }
 		hostList.last.port = conMgr.connectionUrl.port ?: 27017
 		verifyEq(hostList[0].address,	"ds999999-a0.mlab.com")
 		verifyEq(hostList[0].port, 		55555)
