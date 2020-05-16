@@ -133,6 +133,9 @@ const class ConnectionManagerPooled : ConnectionManager {
 	** Defaults to 'false'. 
 	const Bool ssl := false
 	
+	@NoDoc
+	override Str? authSource() { defaultDatabase }
+
 	// used to test the backoff func
 	internal const |Range->Int|	randomFunc	:= |Range r->Int| { r.random }
 	internal const |Duration| 	sleepFunc	:= |Duration napTime| { Actor.sleep(napTime) }
@@ -176,7 +179,7 @@ const class ConnectionManagerPooled : ConnectionManager {
 		w						:= mongoUrl.query["w"]
 		wtimeoutMs		 		:= mongoUrl.query["wtimeoutMS"]?.toInt
 		journal			 		:= mongoUrl.query["journal"]?.toBool
-		ssl				 		 = mongoUrl.query["tls"]?.toBool ?: mongoUrl.query["ssl"]?.toBool
+		ssl				 		 =(mongoUrl.query["tls"]?.toBool ?: mongoUrl.query["ssl"]?.toBool) ?: false
 
 		if (minPoolSize < 0)
 			throw ArgErr(ErrMsgs.connectionManager_badInt("minPoolSize", "zero", minPoolSize, mongoUrl))
@@ -446,6 +449,8 @@ const class ConnectionManagerPooled : ConnectionManager {
 		
 		// remove user credentials and other crud from the url
 		mongoUrl := `mongodb://${primaryAddress}:${primaryPort}`
+		if (connectionUrl.pathStr.trimToNull != null)
+			mongoUrl = mongoUrl.plusSlash.plusName(connectionUrl.path.first) 
 		mongoUrlRef.val = mongoUrl
 
 		// set our connection factory
@@ -455,7 +460,7 @@ const class ConnectionManagerPooled : ConnectionManager {
 				socket.options.connectTimeout = connectTimeout
 				socket.options.receiveTimeout = socketTimeout
 				return TcpConnection(socket).connect(IpAddr(primaryAddress), primaryPort) {
-					it.mongoUrl = mongoUrl
+					it.mongoUrl = mongoUrlRef.val
 				}
 			} 
 		}

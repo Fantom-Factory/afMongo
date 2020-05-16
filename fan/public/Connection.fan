@@ -25,8 +25,8 @@ mixin Connection {
 	
 	** Authenticates this connection against a database with the given user credentials. 
 	** If given, 'mechanism' must be one of:
-	**  - 'SCRAM-SHA-1' - default for MongoDB 3.x +
-	**  - 'MONGODB-CR' - default for MongoDB 2.x
+	**  - 'SCRAM-SHA-1'   - default for MongoDB 3.x +
+	**  - 'MONGODB-CR'    - default for MongoDB 2.x
 	abstract Void authenticate(Str databaseName, Str userName, Str password, Str? mechanism := null)
 	
 	** Logs this connection out from the given database.

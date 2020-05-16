@@ -68,7 +68,7 @@ const class Database {
 	Obj? authenticate(Str userName, Str password, |Database db->Obj?| func) {
 		// run outside the closure so we only ever lease one connection at a time
 		return conMgr.leaseConnection |connection->Obj?| {
-			connection.authenticate(name, userName, password)
+			connection.authenticate(conMgr.authSource ?: name, userName, password)
 			try {
 				cm := ConnectionManagerLocal(connection, conMgr.mongoUrl)
 				db := Database(cm, name)

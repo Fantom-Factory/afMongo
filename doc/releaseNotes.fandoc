@@ -4,6 +4,7 @@ v1.1
 v1.1.10
 =======
  - New: Added 'ssl' and 'authSource' MongoDB connection option.
+ - Chg: Database connections authenticate against the 'authSource', not themselves.
 
 v1.1.8
 ======

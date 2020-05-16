@@ -4,9 +4,10 @@ using afConcurrent
 const class ConnectionManagerLocal : ConnectionManager {
 	private const LocalRef connectionRef	:= LocalRef("afMongo.connection")
 	
-	override const Uri? mongoUrl	
-	override const Str:Obj? writeConcern := Str:Obj?[:] { it.ordered=true }.add("w", 1).add("wtimeout", 0).add("j", false)
-
+	override const Uri?		mongoUrl	
+	override const Str?		authSource	 := null
+	override const Str:Obj?	writeConcern := Str:Obj?[:] { it.ordered=true }.add("w", 1).add("wtimeout", 0).add("j", false)
+	
 	new make(Connection connection, Uri mongoUrl, |This|? f := null) {
 		f?.call(this)
 		this.mongoUrl = mongoUrl

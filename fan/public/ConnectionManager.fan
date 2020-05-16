@@ -19,6 +19,10 @@ const mixin ConnectionManager {
 	**  - write operations never time out,
 	**  - write operations need not be committed to the journal.
 	abstract Str:Obj? writeConcern()
+
+	** The name of the database users are authenticated against.
+	** If null, users are authenticated against the current database.
+	abstract Str? authSource()
 	
 	** Makes a connection available to the given function.
 	** 
