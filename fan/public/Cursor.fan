@@ -252,6 +252,7 @@ class Cursor {
 			.add("hint", orderBy ?: hint)
 			.add("limit", limit ?: 0)
 			.add("skip", skip)
+			.exclude { it == null }
 		)["n"]->toInt
 	}
 

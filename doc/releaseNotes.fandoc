@@ -5,6 +5,7 @@ v1.1.10
 =======
  - New: Added 'ssl' and 'authSource' MongoDB connection option.
  - Chg: Database connections authenticate against the 'authSource', not themselves.
+ - Chg: Fixed 'Cursor.count()' to work with MongoDB 4.2.
 
 v1.1.8
 ======
