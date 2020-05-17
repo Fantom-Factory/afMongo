@@ -3,6 +3,7 @@ v1.1
 
 v1.1.10
 =======
+ - New: Support for MongoDB 4.2 and Altas clusters.
  - New: Added 'ssl' and 'authSource' MongoDB connection option.
  - Chg: Database connections authenticate against the 'authSource', not themselves.
  - Chg: Fixed 'Cursor.count()' to work with MongoDB 4.2.

@@ -1,8 +1,8 @@
-# Mongo v1.1.8
+# Mongo v1.1.10
 ---
 
-[![Written in: Fantom](http://img.shields.io/badge/written%20in-Fantom-lightgray.svg)](http://fantom-lang.org/)
-[![pod: v1.1.8](http://img.shields.io/badge/pod-v1.1.8-yellow.svg)](http://eggbox.fantomfactory.org/pods/afMongo)
+[![Written in: Fantom](http://img.shields.io/badge/written%20in-Fantom-lightgray.svg)](https://fantom-lang.org/)
+[![pod: v1.1.10](http://img.shields.io/badge/pod-v1.1.10-yellow.svg)](http://eggbox.fantomfactory.org/pods/afMongo)
 [![Licence: ISC](http://img.shields.io/badge/licence-ISC-blue.svg)](https://choosealicense.com/licenses/isc/)
 
 ## Overview
@@ -11,102 +11,99 @@ Mongo is a pure Fantom driver for [MongoDB v3.2+](http://www.mongodb.org/).
 
 Mongo driver features:
 
-- Compatible with MongoDB v3.2+
-- Standard and capped collections
-- Pooled connection manager for multi-threaded use and automatic connection fail over.
-- Write commands: `insert()`, `update()`, `delete()` and `findAndModify()`
-- Optimised queries for `findOne()` and `findAll()`
-- Aggregation commands: `aggregate()`, `distinct()`, `group()` and `mapReduce()`
-- Index support: `create()`, `ensure()` and `drop()`
-- User support: `create()`, `drop()`, `grant()` and `revoke()` roles
-- Server side `eval()` commands
-- Database authentication
-- Cursor support
-- Write concern support
-- Text indexes and text searching
-- Support for Replica Set connection URLs
+* Compatible with MongoDB v3.2+
+* Standard and capped collections
+* Pooled connection manager for multi-threaded use and automatic connection fail over.
+* Write commands: `insert()`, `update()`, `delete()` and `findAndModify()`
+* Optimised queries for `findOne()` and `findAll()`
+* Aggregation commands: `aggregate()`, `distinct()`, `group()` and `mapReduce()`
+* Index support: `create()`, `ensure()` and `drop()`
+* User support: `create()`, `drop()`, `grant()` and `revoke()` roles
+* Server side `eval()` commands
+* Database authentication
+* Cursor support
+* Write concern support
+* Text indexes and text searching
+* Support for Replica Set connection URLs
+
 
 Mongo driver has been written specifically for MongoDB v3.2 or newer.
 
 > **ALIEN-AID:** See [Morphia](http://eggbox.fantomfactory.org/pods/afMorphia) for a complete Fantom to MongoDB object mapping library!
 
-## Install
+
+## <a name="Install"></a>Install
 
 Install `Mongo` with the Fantom Pod Manager ( [FPM](http://eggbox.fantomfactory.org/pods/afFpm) ):
 
     C:\> fpm install afMongo
 
-Or install `Mongo` with [fanr](http://fantom.org/doc/docFanr/Tool.html#install):
+Or install `Mongo` with [fanr](https://fantom.org/doc/docFanr/Tool.html#install):
 
     C:\> fanr install -r http://eggbox.fantomfactory.org/fanr/ afMongo
 
-To use in a [Fantom](http://fantom-lang.org/) project, add a dependency to `build.fan`:
+To use in a [Fantom](https://fantom-lang.org/) project, add a dependency to `build.fan`:
 
     depends = ["sys 1.0", ..., "afMongo 1.1"]
 
-## Documentation
+## <a name="documentation"></a>Documentation
 
 Full API & fandocs are available on the [Eggbox](http://eggbox.fantomfactory.org/pods/afMongo/) - the Fantom Pod Repository.
 
-## Quick Start
+## <a name="quickStart"></a>Quick Start
 
-1. Start up an instance of MongoDB:
-
-        C:\> mongod
-        
-        MongoDB starting
-        db version v3.2.10
-        waiting for connections on port 27017
+1. Start up an instance of MongoDB:    C:\> mongod
+    
+    MongoDB starting
+    db version v3.2.10
+    waiting for connections on port 27017
 
 
-2. Create a text file called `Example.fan`
-
-        using afBson
-        using afMongo
-        using concurrent
-        
-        class Example {
-        
-            Void main() {
-                mongoClient := MongoClient(ActorPool(), `mongodb://localhost:27017`)
-                collection  := mongoClient.db("friends").collection("birds")
-        
-                documentIn  := [
-                    "_id"   : ObjectId(),
-                    "name"  : "Emma",
-                    "score" : 9
-                ]
-                collection.insert(documentIn)
-        
-                emma   := collection.findAll.first
-                result := PrettyPrinter { it.maxWidth = 20 }.print(emma)
-        
-                echo("Emma:")
-                echo(result)
-        
-                mongoClient.shutdown
-            }
+2. Create a text file called `Example.fan`    using afBson
+    using afMongo
+    using concurrent
+    
+    class Example {
+    
+        Void main() {
+            mongoClient := MongoClient(ActorPool(), `mongodb://localhost:27017`)
+            collection  := mongoClient.db("friends").collection("birds")
+    
+            documentIn  := [
+                "_id"   : ObjectId(),
+                "name"  : "Emma",
+                "score" : 9
+            ]
+            collection.insert(documentIn)
+    
+            emma   := collection.findAll.first
+            result := PrettyPrinter { it.maxWidth = 20 }.print(emma)
+    
+            echo("Emma:")
+            echo(result)
+    
+            mongoClient.shutdown
         }
+    }
 
 
-3. Run `Example.fan` as a Fantom script from the command line:
+3. Run `Example.fan` as a Fantom script from the command line:    C:\> fan Example.fan
+    
+          Alien-Factory
+      _____ ___ ___ ___ ___
+     |     | . |   | . | . |
+     |_|_|_|___|_|_|_  |___|
+                  |___|1.1.0
+    
+    Connected to MongoDB v3.2.10 (at mongodb://localhost:27017)
+    
+    Emma:
+    {
+      "_id"   : ObjectId("57fe499fa81320d933000001"),
+      "name"  : "Emma"
+      "score" : 9,
+    }
 
-        C:\> fan Example.fan
-        
-              Alien-Factory
-          _____ ___ ___ ___ ___
-         |     | . |   | . | . |
-         |_|_|_|___|_|_|_  |___|
-                      |___|1.1.0
-        
-        Connected to MongoDB v3.2.10 (at mongodb://localhost:27017)
-        
-        Emma:
-        {
-          "_id"   : ObjectId("57fe499fa81320d933000001"),
-          "name"  : "Emma"
-          "score" : 9,
-        }
 
 
 
@@ -114,13 +111,12 @@ Full API & fandocs are available on the [Eggbox](http://eggbox.fantomfactory.org
 
 [MongoClient](http://eggbox.fantomfactory.org/pods/afMongo/api/MongoClient) is the main entry point into `Mongo`. From there you can access all other components of MongoDB, namely [Database](http://eggbox.fantomfactory.org/pods/afMongo/api/Database), [Collection](http://eggbox.fantomfactory.org/pods/afMongo/api/Collection), [Index](http://eggbox.fantomfactory.org/pods/afMongo/api/Index) and [User](http://eggbox.fantomfactory.org/pods/afMongo/api/User).
 
-```
-MongoClient
- `-- Database
-      +-- Collection
-      |    `-- Index
-      `-- User
-```
+    MongoClient
+     `-- Database
+          +-- Collection
+          |    `-- Index
+          `-- User
+    
 
 ## Connecting
 
@@ -131,15 +127,14 @@ MongoClient
 
 When you create a `MongoClient` it immediately connects to MongoDB and verifies the version:
 
-```
-.    Alien-Factory
- _____ ___ ___ ___ ___
-|     | . |   | . | . |
-|_|_|_|___|_|_|_  |___|
-              |___|1.1.0
-
-Connected to MongoDB v3.2.10
-```
+    .    Alien-Factory
+     _____ ___ ___ ___ ___
+    |     | . |   | . | . |
+    |_|_|_|___|_|_|_  |___|
+                  |___|1.1.0
+    
+    Connected to MongoDB v3.2.10
+    
 
 Note that `ConnectionManagerPooled` will always query the supplied MongoDB host(s) to find the primary node, on which all read and write operations are performed.
 
@@ -149,29 +144,27 @@ Note that `ConnectionManagerPooled` will always query the supplied MongoDB host(
 
 A MongoDB database stores documents in collections. Use the `find()` methods to query a collection. Using the `friends` database in the [QuickStart Example](#quickStart) we could do:
 
-```
-collection.findOne( ["name":"Emma"] )       // --> return the doc where 'name == Emma'
-                                            //     ('Emma' must be unique)
-
-collection.findAll                          // --> return ALL docs in the collection
-collection.findAll( ["name":"Emma"] )       // --> return all docs where 'name == Emma'
-collection.findAll( ["score": ["\$gt":7]] ) // --> return all docs with 'score > 7'
-```
+    collection.findOne( ["name":"Emma"] )       // --> return the doc where 'name == Emma'
+                                                //     ('Emma' must be unique)
+    
+    collection.findAll                          // --> return ALL docs in the collection
+    collection.findAll( ["name":"Emma"] )       // --> return all docs where 'name == Emma'
+    collection.findAll( ["score": ["\$gt":7]] ) // --> return all docs with 'score > 7'
+    
 
 The `$gt` expression is an example of a [Query operator](http://docs.mongodb.org/manual/reference/operator/query/).
 
 To iterate over a *massive* collection without loading it all into memory, use a [Cursor](http://eggbox.fantomfactory.org/pods/afMongo/api/Cursor). `Cursors` download documents in batches, behind the scenes, as and when required. Create and use a `Cursors` by using the `find()` method:
 
-```
-collection.find( ["score": ["\$gt":2]] ) |cursor| {
-    cursor.batchSize = 10
-
-    while (cursor.hasNext)
-        doc := cursor.next
-        ...
+    collection.find( ["score": ["\$gt":2]] ) |cursor| {
+        cursor.batchSize = 10
+    
+        while (cursor.hasNext)
+            doc := cursor.next
+            ...
+        }
     }
-}
-```
+    
 
 ## Write Commands
 
@@ -200,14 +193,13 @@ To set a default user to be used by all connections, set the username and passwo
 
 Another way, that may also be used in conjunction with URL credentials, is to use an authenticated connection. Authenticated connections are bound to the database they are authenticated against.
 
-```
-client := MongoClient(conMgr)
-db     := client["database"]
-data   := db.authenticate("ZeroCool", "password") |authDb -> Obj?| {
-    ...
-    return authDb["top-secret"].findAll
-}
-```
+    client := MongoClient(conMgr)
+    db     := client["database"]
+    data   := db.authenticate("ZeroCool", "password") |authDb -> Obj?| {
+        ...
+        return authDb["top-secret"].findAll
+    }
+    
 
 All Mongo objects ( `Collection`, `Index`, `User`, etc...) created from the authenticated database will inherit the user credentials. Note that the database *must* be accessed via the `authDb` variable for the commands to be authenticated.
 
