@@ -18,15 +18,15 @@ internal class TestConMgrPooled : MongoTest {
 	}
 	
 	Void testMongoUriUserCreds() {		
-		verifyErrMsg(ArgErr#, ErrMsgs.connectionManager_badScheme(`dude://wotsup?`)) {
+		verifyErrMsg(ArgErr#, MongoErrMsgs.connectionManager_badScheme(`dude://wotsup?`)) {
 			conMgr := ConnectionManagerPooled(pool, `dude://wotsup?`)
 		}
 		
-		verifyErrMsg(ArgErr#, ErrMsgs.connectionManager_badUsernamePasswordCombo("user", "null", `mongodb://user@wotever`)) {
+		verifyErrMsg(ArgErr#, MongoErrMsgs.connectionManager_badUsernamePasswordCombo("user", "null", `mongodb://user@wotever`)) {
 			conMgr := ConnectionManagerPooled(pool, `mongodb://user@wotever`)
 		}
 
-		verifyErrMsg(ArgErr#, ErrMsgs.connectionManager_badUsernamePasswordCombo("null", "pass", `mongodb://:pass@wotever`)) {
+		verifyErrMsg(ArgErr#, MongoErrMsgs.connectionManager_badUsernamePasswordCombo("null", "pass", `mongodb://:pass@wotever`)) {
 			conMgr := ConnectionManagerPooled(pool, `mongodb://:pass@wotever`)
 		}
 
@@ -47,19 +47,19 @@ internal class TestConMgrPooled : MongoTest {
 	}
 		
 	Void testMongoUriPoolOptions() {
-		verifyErrMsg(ArgErr#, ErrMsgs.connectionManager_badInt("minPoolSize", "zero", -1, `mongodb://wotever?minPoolSize=-1`)) {
+		verifyErrMsg(ArgErr#, MongoErrMsgs.connectionManager_badInt("minPoolSize", "zero", -1, `mongodb://wotever?minPoolSize=-1`)) {
 			conMgr := ConnectionManagerPooled(pool, `mongodb://wotever?minPoolSize=-1`)
 		}
 		
-		verifyErrMsg(ArgErr#, ErrMsgs.connectionManager_badInt("maxPoolSize", "one", 0, `mongodb://wotever?maxPoolSize=0`)) {
+		verifyErrMsg(ArgErr#, MongoErrMsgs.connectionManager_badInt("maxPoolSize", "one", 0, `mongodb://wotever?maxPoolSize=0`)) {
 			conMgr := ConnectionManagerPooled(pool, `mongodb://wotever?maxPoolSize=0`)
 		}
 		
-		verifyErrMsg(ArgErr#, ErrMsgs.connectionManager_badMinMaxConnectionSize(2, 1, `mongodb://wotever?minPoolSize=2&maxPoolSize=1`)) {
+		verifyErrMsg(ArgErr#, MongoErrMsgs.connectionManager_badMinMaxConnectionSize(2, 1, `mongodb://wotever?minPoolSize=2&maxPoolSize=1`)) {
 			conMgr := ConnectionManagerPooled(pool, `mongodb://wotever?minPoolSize=2&maxPoolSize=1`)
 		}
 		
-		verifyErrMsg(ArgErr#, ErrMsgs.connectionManager_badInt("waitQueueTimeoutMS", "zero", -1, `mongodb://wotever?waitQueueTimeoutMS=-1`)) {
+		verifyErrMsg(ArgErr#, MongoErrMsgs.connectionManager_badInt("waitQueueTimeoutMS", "zero", -1, `mongodb://wotever?waitQueueTimeoutMS=-1`)) {
 			conMgr := ConnectionManagerPooled(pool, `mongodb://wotever?waitQueueTimeoutMS=-1`)
 		}
 
@@ -71,11 +71,11 @@ internal class TestConMgrPooled : MongoTest {
 	}
 
 	Void testMongoUriConnectionOptions() {
-		verifyErrMsg(ArgErr#, ErrMsgs.connectionManager_badInt("connectTimeoutMS", "zero", -1, `mongodb://wotever?connectTimeoutMS=-1`)) {
+		verifyErrMsg(ArgErr#, MongoErrMsgs.connectionManager_badInt("connectTimeoutMS", "zero", -1, `mongodb://wotever?connectTimeoutMS=-1`)) {
 			conMgr := ConnectionManagerPooled(pool, `mongodb://wotever?connectTimeoutMS=-1`)
 		}
 		
-		verifyErrMsg(ArgErr#, ErrMsgs.connectionManager_badInt("socketTimeoutMS", "zero", -1, `mongodb://wotever?socketTimeoutMS=-1`)) {
+		verifyErrMsg(ArgErr#, MongoErrMsgs.connectionManager_badInt("socketTimeoutMS", "zero", -1, `mongodb://wotever?socketTimeoutMS=-1`)) {
 			conMgr := ConnectionManagerPooled(pool, `mongodb://wotever?socketTimeoutMS=-1`)
 		}
 		
@@ -87,8 +87,8 @@ internal class TestConMgrPooled : MongoTest {
 	
 	Void testWarningsForUnknownQueryOptions() {
 		conMgr := ConnectionManagerPooled(pool, `mongodb://wotever?dude=wotever&dude2`)
-		verifyEq(logs[0].msg, LogMsgs.connectionManager_unknownUrlOption("dude", "wotever", `mongodb://wotever?dude=wotever&dude2`))
-		verifyEq(logs[1].msg, LogMsgs.connectionManager_unknownUrlOption("dude2", "true",   `mongodb://wotever?dude=wotever&dude2`))
+		verifyEq(logs[0].msg, "Unknown option in Mongo connection URL: dude=wotever - mongodb://wotever?dude=wotever&dude2")
+		verifyEq(logs[1].msg, "Unknown option in Mongo connection URL: dude2=true - mongodb://wotever?dude=wotever&dude2")
 	}
 
 	Void testMongoLabConnectionStr() {

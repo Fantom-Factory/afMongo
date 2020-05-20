@@ -43,6 +43,6 @@ internal enum class OpCode {
 	** Returns the BSON type for the given id.
 	** Throws an 'ArgErr' if invalid.
 	static new fromId(Int id, Bool checked := true) {
-		OpCode.vals.find { it.id == id } ?: (checked ? throw ArgErr(ErrMsgs.opCode_unknownId(id)) : null)
+		OpCode.vals.find { it.id == id } ?: (checked ? throw ArgErr(MongoErrMsgs.opCode_unknownId(id)) : null)
 	}
 }

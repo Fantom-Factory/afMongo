@@ -136,7 +136,7 @@ class Cursor {
 		set {
 			_querySent.check
 			if (it.size > 1 && it.ordered == false)
-				throw ArgErr(ErrMsgs.cursor_mapNotOrdered(it))
+				throw ArgErr(MongoErrMsgs.cursor_mapNotOrdered(it))
 			special["\$orderby"] = Utils.convertAscDesc(it) 
 		}
 	}
@@ -182,11 +182,11 @@ class Cursor {
 			getSome
 		else if (_resultIndex >= _results.size) {
 			if (_deadCursor.locked)
-				return null ?: (checked ? throw MongoCursorErr(ErrMsgs.cursor_noMoreData) : null)
+				return null ?: (checked ? throw MongoCursorErr(MongoErrMsgs.cursor_noMoreData) : null)
 			_getMore(false)
 		}
 		if (_resultIndex >= _results.size)
-			return null ?: (checked ? throw MongoCursorErr(ErrMsgs.cursor_noMoreData) : null)
+			return null ?: (checked ? throw MongoCursorErr(MongoErrMsgs.cursor_noMoreData) : null)
 		result := _results[_resultIndex++]
 		index++
 		_indexLocal++

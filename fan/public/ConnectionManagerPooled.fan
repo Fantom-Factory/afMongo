@@ -165,7 +165,7 @@ const class ConnectionManagerPooled : ConnectionManager {
 	** @see `http://docs.mongodb.org/manual/reference/connection-string/`
 	new makeFromUrl(ActorPool actorPool, Uri connectionUrl, |This|? f := null) {
 		if (connectionUrl.scheme != "mongodb")
-			throw ArgErr(ErrMsgs.connectionManager_badScheme(connectionUrl))
+			throw ArgErr(MongoErrMsgs.connectionManager_badScheme(connectionUrl))
 
 		mongoUrl				:= connectionUrl
 		this.connectionUrl		 = connectionUrl
@@ -182,19 +182,19 @@ const class ConnectionManagerPooled : ConnectionManager {
 		ssl				 		 =(mongoUrl.query["tls"]?.toBool ?: mongoUrl.query["ssl"]?.toBool) ?: false
 
 		if (minPoolSize < 0)
-			throw ArgErr(ErrMsgs.connectionManager_badInt("minPoolSize", "zero", minPoolSize, mongoUrl))
+			throw ArgErr(MongoErrMsgs.connectionManager_badInt("minPoolSize", "zero", minPoolSize, mongoUrl))
 		if (maxPoolSize < 1)
-			throw ArgErr(ErrMsgs.connectionManager_badInt("maxPoolSize", "one", maxPoolSize, mongoUrl))
+			throw ArgErr(MongoErrMsgs.connectionManager_badInt("maxPoolSize", "one", maxPoolSize, mongoUrl))
 		if (minPoolSize > maxPoolSize)
-			throw ArgErr(ErrMsgs.connectionManager_badMinMaxConnectionSize(minPoolSize, maxPoolSize, mongoUrl))		
+			throw ArgErr(MongoErrMsgs.connectionManager_badMinMaxConnectionSize(minPoolSize, maxPoolSize, mongoUrl))		
 		if (waitQueueTimeoutMs != null && waitQueueTimeoutMs < 0)
-			throw ArgErr(ErrMsgs.connectionManager_badInt("waitQueueTimeoutMS", "zero", waitQueueTimeoutMs, mongoUrl))
+			throw ArgErr(MongoErrMsgs.connectionManager_badInt("waitQueueTimeoutMS", "zero", waitQueueTimeoutMs, mongoUrl))
 		if (connectTimeoutMs != null && connectTimeoutMs < 0)
-			throw ArgErr(ErrMsgs.connectionManager_badInt("connectTimeoutMS", "zero", connectTimeoutMs, mongoUrl))
+			throw ArgErr(MongoErrMsgs.connectionManager_badInt("connectTimeoutMS", "zero", connectTimeoutMs, mongoUrl))
 		if (socketTimeoutMs != null && socketTimeoutMs < 0)
-			throw ArgErr(ErrMsgs.connectionManager_badInt("socketTimeoutMS", "zero", socketTimeoutMs, mongoUrl))
+			throw ArgErr(MongoErrMsgs.connectionManager_badInt("socketTimeoutMS", "zero", socketTimeoutMs, mongoUrl))
 		if (wtimeoutMs != null && wtimeoutMs < 0)
-			throw ArgErr(ErrMsgs.connectionManager_badInt("wtimeoutMS", "zero", wtimeoutMs, mongoUrl))
+			throw ArgErr(MongoErrMsgs.connectionManager_badInt("wtimeoutMS", "zero", wtimeoutMs, mongoUrl))
 
 		if (waitQueueTimeoutMs != null)
 			waitQueueTimeout = (waitQueueTimeoutMs * 1_000_000).toDuration
@@ -209,7 +209,7 @@ const class ConnectionManagerPooled : ConnectionManager {
 		password := mongoUrl.userInfo?.split(':')?.getSafe(1)?.trimToNull
 		
 		if ((username == null).xor(password == null))
-			throw ArgErr(ErrMsgs.connectionManager_badUsernamePasswordCombo(username, password, mongoUrl))
+			throw ArgErr(MongoErrMsgs.connectionManager_badUsernamePasswordCombo(username, password, mongoUrl))
 
 		if (database != null && database.startsWith("/"))
 			database = database[1..-1].trimToNull
@@ -283,7 +283,7 @@ const class ConnectionManagerPooled : ConnectionManager {
 	** All leased connections are authenticated against the default credentials.
 	override Obj? leaseConnection(|Connection->Obj?| c) {
 		if (!startupLock.locked)
-			throw MongoErr(ErrMsgs.connectionManager_notStarted)
+			throw MongoErr(MongoErrMsgs.connectionManager_notStarted)
 		shutdownLock.check
 
 		connection := checkOut
@@ -442,7 +442,7 @@ const class ConnectionManagerPooled : ConnectionManager {
 
 		// Bugger!
 		if (primary == null)
-			throw MongoErr(ErrMsgs.connectionManager_couldNotFindPrimary(connectionUrl))
+			throw MongoErr(MongoErrMsgs.connectionManager_couldNotFindPrimary(connectionUrl))
 
 		primaryAddress	:= primary.address
 		primaryPort		:= primary.port

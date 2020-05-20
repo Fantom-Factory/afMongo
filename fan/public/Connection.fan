@@ -59,7 +59,7 @@ class TcpConnection : Connection {
 			return this
 		}
 		catch (Err err)
-			throw IOErr(ErrMsgs.connection_couldNot(address.toStr, port, err.msg))		
+			throw IOErr(MongoErrMsgs.connection_couldNot(address.toStr, port, err.msg))		
 	}
 	
 	override InStream	in()		{ socket.in			}
@@ -69,7 +69,7 @@ class TcpConnection : Connection {
 	
 	override Void authenticate(Str databaseName, Str userName, Str password, Str? mechanism := null) {
 		if (mechanism != null && mechanism != "SCRAM-SHA-1" && mechanism != "MONGODB-CR")
-			throw ArgErr(ErrMsgs.connection_unknownAuthMechanism(mechanism, ["SCRAM-SHA-1", "MONGODB-CR"]))
+			throw ArgErr(MongoErrMsgs.connection_unknownAuthMechanism(mechanism, ["SCRAM-SHA-1", "MONGODB-CR"]))
 		
 		// https://github.com/mongodb/specifications/blob/master/source/auth/auth.rst#determining-server-version
 		if (mongoDbVer == null)
@@ -139,7 +139,7 @@ class TcpConnection : Connection {
 
 		// authenticate the server
 		if (serverSignature != serverProof)
-			throw MongoErr(ErrMsgs.connection_invalidServerSignature(serverSignature, serverProof))
+			throw MongoErr(MongoErrMsgs.connection_invalidServerSignature(serverSignature, serverProof))
 
 		// ---- 3rd message ----
 		serverThirdRes := Operation(this).runCommand("${databaseName}.\$cmd", map
@@ -148,7 +148,7 @@ class TcpConnection : Connection {
 			.add("payload", Buf())
 		)
 		if (serverThirdRes["done"] != true)
-			throw MongoErr(ErrMsgs.connection_scramNotDone(serverThirdRes.toStr))
+			throw MongoErr(MongoErrMsgs.connection_scramNotDone(serverThirdRes.toStr))
 	}
 	
 	private Buf xor(Buf key, Buf sig) {

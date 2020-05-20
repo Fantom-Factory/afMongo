@@ -147,7 +147,7 @@ internal class TestCursorDb : MongoDbTest {
 		verifyEq(cursor.index, 20)
 		verifyEq(cursor.hasNext, false)
 
-		verifyErrMsg(MongoCursorErr#, ErrMsgs.cursor_noMoreData) {
+		verifyErrMsg(MongoCursorErr#, MongoErrMsgs.cursor_noMoreData) {
 			cursor.next			
 		}
 	}

@@ -134,18 +134,18 @@ internal class TestCollectionDb : MongoDbTest {
 		two := collection.findOne(["data":42], false)
 		verifyNull(two)
 		
-		verifyErrMsg(MongoErr#, ErrMsgs.collection_findOneIsEmpty(collection.qname, ["data":42])) {
+		verifyErrMsg(MongoErr#, MongoErrMsgs.collection_findOneIsEmpty(collection.qname, ["data":42])) {
 			collection.findOne(["data":42])
 		}
 
 		collection.insert(["data":42])
 		collection.insert(["data":42])
-		verifyErrMsg(MongoErr#, ErrMsgs.collection_findOneHasMany(collection.qname, 2, ["data":42])) {
+		verifyErrMsg(MongoErr#, MongoErrMsgs.collection_findOneHasMany(collection.qname, 2, ["data":42])) {
 			collection.findOne(["data":42])
 		}
 
 		collection.insert(["data":42])
-		verifyErrMsg(MongoErr#, ErrMsgs.collection_findOneHasMany(collection.qname, 3, ["data":42])) {
+		verifyErrMsg(MongoErr#, MongoErrMsgs.collection_findOneHasMany(collection.qname, 3, ["data":42])) {
 			collection.findOne(["data":42])
 		}
 	}

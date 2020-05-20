@@ -27,14 +27,14 @@ class Operation {
 	** Runs the given Mongo command and returns the reply document.
 	Str:Obj? runCommand(Str qname, Str:Obj? cmd, Bool checked := true) {
 		if (cmd.size > 1 && !cmd.ordered)
-			throw ArgErr(ErrMsgs.operation_cmdNotOrdered(qname, cmd))
+			throw ArgErr(MongoErrMsgs.operation_cmdNotOrdered(qname, cmd))
 		
 		doc := query(qname, cmd, -1).document
 
 		if (checked && (doc["ok"] != 1f && doc["ok"] != 1)) {
 			// attempt to work out the cmd, usually the first key in the given doc
 			cname := cmd.keys.first
-			throw MongoCmdErr(ErrMsgs.operation_cmdFailed(cname, doc["errmsg"] ?: doc), [doc])
+			throw MongoCmdErr(MongoErrMsgs.operation_cmdFailed(cname, doc["errmsg"] ?: doc), [doc])
 		}
 		return doc
 	}
@@ -96,9 +96,9 @@ class Operation {
 		opCode	:= in.readInteger32
 		
 		if (opCode != OpCode.OP_REPLY.id)
-			throw MongoOpErr(ErrMsgs.operation_resOpCodeInvalid(opCode))
+			throw MongoOpErr(MongoErrMsgs.operation_resOpCodeInvalid(opCode))
 		if (requestId != null && requestId != resId)
-			throw MongoOpErr(ErrMsgs.operation_resIdMismatch(requestId, resId))
+			throw MongoOpErr(MongoErrMsgs.operation_resIdMismatch(requestId, resId))
     
 		resFlags	:= OpReplyFlags(in.readInteger32)
 		cursorId	:= in.readInteger64
@@ -114,7 +114,7 @@ class Operation {
 			// $err may not be a Str!
 			// see http://docs.mongodb.org/meta-driver/latest/legacy/error-handling-in-drivers/
 			errMsg := documents.first?.get("\$err")?.toStr
-			throw MongoOpErr(ErrMsgs.operation_queryFailure(errMsg))
+			throw MongoOpErr(MongoErrMsgs.operation_queryFailure(errMsg))
 		}
 			
 		return OpReplyResponse {

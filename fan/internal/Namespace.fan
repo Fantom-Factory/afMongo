@@ -38,33 +38,33 @@ internal const class Namespace {
 	
 	static Str validateDatabaseName(Str name) {
 		if (name.isEmpty)
-			throw ArgErr(ErrMsgs.namespace_nameCanNotBeEmpty("Database"))
+			throw ArgErr(MongoErrMsgs.namespace_nameCanNotBeEmpty("Database"))
 		
 		if (name.toBuf.size >= 64)
-			throw ArgErr(ErrMsgs.namespace_nameTooLong("Database", name, 64))
+			throw ArgErr(MongoErrMsgs.namespace_nameTooLong("Database", name, 64))
 		
 		if (name.any { invalidNameChars.contains(it) })
-			throw ArgErr(ErrMsgs.namespace_nameHasInvalidChars("Database", name, Str.fromChars(invalidNameChars)))
+			throw ArgErr(MongoErrMsgs.namespace_nameHasInvalidChars("Database", name, Str.fromChars(invalidNameChars)))
 
 		return name
 	}
 	
 	static Str validateCollectionName(Str name) {
 		if (name.isEmpty)
-			throw ArgErr(ErrMsgs.namespace_nameCanNotBeEmpty("Collection"))
+			throw ArgErr(MongoErrMsgs.namespace_nameCanNotBeEmpty("Collection"))
 		
 		if (name.any { it == '$' })
-			throw ArgErr(ErrMsgs.namespace_nameHasInvalidChars("Collection", name, "\$"))
+			throw ArgErr(MongoErrMsgs.namespace_nameHasInvalidChars("Collection", name, "\$"))
 
 		return name
 	}
 
 	static Str validateQname(Str name) {
 		if (name.isEmpty)
-			throw ArgErr(ErrMsgs.namespace_nameCanNotBeEmpty("Namespace"))
+			throw ArgErr(MongoErrMsgs.namespace_nameCanNotBeEmpty("Namespace"))
 
 		if (name.toBuf.size >= 123)
-			throw ArgErr(ErrMsgs.namespace_nameTooLong("Namespace", name, 123))
+			throw ArgErr(MongoErrMsgs.namespace_nameTooLong("Namespace", name, 123))
 
 		return name
 	}

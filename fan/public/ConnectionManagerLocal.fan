@@ -16,7 +16,7 @@ const class ConnectionManagerLocal : ConnectionManager {
 	
 	override Obj? leaseConnection(|Connection->Obj?| c) {
 		if (connectionRef.val == null)
-			throw MongoErr(ErrMsgs.connectionManager_noConnectionInThread)
+			throw MongoErr(MongoErrMsgs.connectionManager_noConnectionInThread)
 		return c(connectionRef.val)
 	}
 	

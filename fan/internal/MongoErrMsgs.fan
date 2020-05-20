@@ -1,5 +1,5 @@
 
-internal const class ErrMsgs {
+internal const class MongoErrMsgs {
 
 	static Str opCode_unknownId(Int id) {
 		"Could not find OpCode for id '${id}'"
@@ -76,14 +76,6 @@ internal const class ErrMsgs {
 	static Str cmd_writeErrs(Str what, Str colName, [Str:Obj?][] errs) {
 		"Errors ${what} '${colName}' - " + ((errs.size == 1) ? errs.first["errmsg"].toStr : errs.toStr)
 	}
-	
-//	static Str cmd_nothingHappened(Str what, [Str:Obj?] response) {
-//		"Nothing ${what}! ${response}"
-//	}
-	
-//	static Str collection_nameReserved(Str name) {
-//		"Collection names beginning with 'system.' are reserved: ${name}"
-//	}
 	
 	static Str connectionManager_badScheme(Uri mongoUrl) {
 		"Mongo connection URIs must start with the scheme 'mongodb://' - ${mongoUrl}"

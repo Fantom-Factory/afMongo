@@ -77,7 +77,7 @@ const class Index {
 	** @see `http://docs.mongodb.org/manual/reference/command/createIndexes/`
 	This create(Str:Obj key, Bool? unique := false, Str:Obj options := [:]) {
 		if (key.size > 1 && key.ordered == false)
-			throw ArgErr(ErrMsgs.cursor_mapNotOrdered(key))
+			throw ArgErr(MongoErrMsgs.cursor_mapNotOrdered(key))
 
 		// there's no createIndexMulti 'cos I figure no novice will need to create multiple indexes at once!
 		if (unique == true)	options.set("unique", unique)
@@ -120,7 +120,7 @@ const class Index {
 	** @see `http://docs.mongodb.org/manual/reference/command/createIndexes/`
 	Bool ensure(Str:Obj key, Bool? unique := false, Str:Obj options := [:]) {
 		if (key.size > 1 && key.ordered == false)
-			throw ArgErr(ErrMsgs.cursor_mapNotOrdered(key))
+			throw ArgErr(MongoErrMsgs.cursor_mapNotOrdered(key))
 
 		if (!exists) {
 			create(key, unique, options)

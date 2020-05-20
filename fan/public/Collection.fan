@@ -149,9 +149,9 @@ const class Collection {
 			// "If numberToReturn is 1 the server will treat it as -1 (closing the cursor automatically)."
 			// Means I can't use the isAlive() trick to check for more documents.
 			cursor.batchSize = 2
-			one := cursor.next(false) ?: (checked ? throw MongoErr(ErrMsgs.collection_findOneIsEmpty(qname, query)) : null)
+			one := cursor.next(false) ?: (checked ? throw MongoErr(MongoErrMsgs.collection_findOneIsEmpty(qname, query)) : null)
 			if (cursor.isAlive || cursor.next(false) != null)
-				throw MongoErr(ErrMsgs.collection_findOneHasMany(qname, cursor.count, query))
+				throw MongoErr(MongoErrMsgs.collection_findOneHasMany(qname, cursor.count, query))
 			return one
 		}
 	}
@@ -181,7 +181,7 @@ const class Collection {
 			if (sort is Str)	cursor.hint 	= sort
 			if (sort is Map)	cursor.orderBy  = sort
 			if (sort != null && sort isnot Str && sort isnot Map)
-				throw ArgErr(ErrMsgs.collection_findAllSortArgBad(sort))
+				throw ArgErr(MongoErrMsgs.collection_findAllSortArgBad(sort))
 			return cursor.toList
 		}
 	}
@@ -200,7 +200,7 @@ const class Collection {
 	@Operator
 	[Str:Obj?]? get(Obj? id, Bool checked := true) {
 		if (id == null)
-			return !checked ? null : (null ?: throw MongoErr(ErrMsgs.collection_findOneIsEmpty(qname, id)))
+			return !checked ? null : (null ?: throw MongoErr(MongoErrMsgs.collection_findOneIsEmpty(qname, id)))
 		return findOne(["_id" : id], checked)
 	}
 
@@ -389,7 +389,7 @@ const class Collection {
 		if (key is List)  { keydoc  = cmd.query.addList(key); keydoc.keys.each { keydoc[it] = 1 } }
 		if (key is Str)		keyf 	= key
 		if (keydoc == null && keyf == null)
-			throw ArgErr(ErrMsgs.collection_badKeyGroup(key))
+			throw ArgErr(MongoErrMsgs.collection_badKeyGroup(key))
 
 		group := cmd
 			.add("ns",			name)

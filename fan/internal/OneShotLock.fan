@@ -20,7 +20,7 @@ internal const class OneShotLock {
 	
 	Void check() {
 		if (lockFlag.val)
-			throw MongoErr(ErrMsgs.oneShotLock_violation(because))
+			throw MongoErr(MongoErrMsgs.oneShotLock_violation(because))
 	}
 	
 	override Str toStr() {

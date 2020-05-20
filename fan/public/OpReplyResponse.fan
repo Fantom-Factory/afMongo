@@ -28,9 +28,9 @@ class OpReplyResponse {
 	[Str:Obj?]? document(Bool checked := true) {
 		// always check for more than one, 'cos which are we to return!?
 		if (documents.size > 1)
-			throw MongoErr(ErrMsgs.opReply_tooMany(documents))
+			throw MongoErr(MongoErrMsgs.opReply_tooMany(documents))
 
-		return documents.getSafe(0) ?: (checked ? throw MongoErr(ErrMsgs.opReply_isEmpty) : null)
+		return documents.getSafe(0) ?: (checked ? throw MongoErr(MongoErrMsgs.opReply_isEmpty) : null)
 	}
 
 	@NoDoc
