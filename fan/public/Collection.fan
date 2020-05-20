@@ -533,7 +533,7 @@ const class Collection {
 
 	// ---- Private Methods -----------------------------------------------------------------------
 	
-	private Cmd cmd(Str? action := null) {
-		Cmd(conMgr, namespace, action)
+	private MongoCmd cmd(Str? action := null) {
+		MongoCmd(conMgr, namespace, action)
 	}	
 }

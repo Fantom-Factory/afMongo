@@ -111,8 +111,8 @@ const class User {
 	
 	// ---- Private Methods -----------------------------------------------------------------------
 	
-	private Cmd cmd(Str? action := null) {
-		return Cmd(conMgr, userNs, action)
+	private MongoCmd cmd(Str? action := null) {
+		return MongoCmd(conMgr, userNs, action)
 	}
 
 	// ---- Obj Overrides -------------------------------------------------------------------------

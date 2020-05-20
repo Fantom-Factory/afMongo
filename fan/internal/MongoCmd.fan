@@ -1,5 +1,5 @@
 
-internal class Cmd {
+internal class MongoCmd {
 	private const ConnectionManager conMgr
 	private const Namespace			namespace
 
