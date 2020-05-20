@@ -33,7 +33,7 @@ using inet::TcpSocket
 ** 
 ** Note this connection manager *is* safe for multi-threaded / web-application use.
 const class ConnectionManagerPooled : ConnectionManager {
-	private const Log				log				:= Utils.getLog(ConnectionManagerPooled#)
+	private const Log				log				:= ConnectionManagerPooled#.pod.log
 	private const OneShotLock		startupLock		:= OneShotLock("Connection Pool has been started")
 	private const OneShotLock		shutdownLock	:= OneShotLock("Connection Pool has been shutdown")
 	private const AtomicBool 		failingOverRef	:= AtomicBool(false)
@@ -608,7 +608,7 @@ internal class ConnectionManagerPoolState {
 }
 
 internal class HostDetails {
-	static const Log	log	:= Utils.getLog(HostDetails#)
+	static const Log	log	:= HostDetails#.pod.log
 	Str		address
 	Int		port
 	Bool	ssl

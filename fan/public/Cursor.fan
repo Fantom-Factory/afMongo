@@ -3,7 +3,7 @@
 **
 ** @see `http://docs.mongodb.org/manual/core/cursors/`
 class Cursor {
-	private static const Log	_log			:= Utils.getLog(Cursor#)
+	private static const Log	_log			:= Cursor#.pod.log
 	private OneShotLock			_querySent	:= OneShotLock("Query has been sent to MongoDB")
 	private OneShotLock			_deadCursor	:= OneShotLock("Cursor has been killed")
 	private Connection			_connection
@@ -137,7 +137,7 @@ class Cursor {
 			_querySent.check
 			if (it.size > 1 && it.ordered == false)
 				throw ArgErr(MongoErrMsgs.cursor_mapNotOrdered(it))
-			special["\$orderby"] = Utils.convertAscDesc(it) 
+			special["\$orderby"] = convertAscDesc(it) 
 		}
 	}
 	
@@ -360,6 +360,18 @@ class Cursor {
 	
 	private Str:Obj? _runCmd(Str:Obj? cmd) {
 		Operation(_connection).runCommand("${_nsCol.databaseName}.\$cmd", cmd)
+	}
+	
+	private static const Str[]	ascSynonymns	:= "asc       ascending  up  north heaven wibble".lower.split
+	private static const Str[]	dscSynonymns	:= "dsc desc descending down south  hell  wobble".lower.split
+
+	internal static [Str:Obj?] convertAscDesc(Str:Obj? doc) {
+		doc.map |v| { 
+			if (v isnot Str) return v
+			if (ascSynonymns.contains((v as Str).lower)) return Cursor.ASC
+			if (dscSynonymns.contains((v as Str).lower)) return Cursor.DESC
+			return v
+		}
 	}
 
 	// ---- Obj Overrides -------------------------------------------------------------------------

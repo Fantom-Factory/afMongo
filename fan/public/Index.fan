@@ -83,7 +83,7 @@ const class Index {
 		if (unique == true)	options.set("unique", unique)
 		cmd	.add("createIndexes", colNs.collectionName)
 			.add("indexes", 	[cmd
-				.add("key",		Utils.convertAscDesc(key))
+				.add("key",		Cursor.convertAscDesc(key))
 				.add("name",	name)
 				.addAll(options)
 				.query
@@ -131,7 +131,7 @@ const class Index {
 		
 		info := info
 		oldKeyMap := (Str:Obj?) info["key"]
-		newKeyMap := Map.make(oldKeyMap.typeof).addAll(Utils.convertAscDesc(key))
+		newKeyMap := Map.make(oldKeyMap.typeof).addAll(Cursor.convertAscDesc(key))
 		
 		if (info.size == options.size + 4 && oldKeyMap == newKeyMap && options.all |v, k| { info[k] == v })
 			return false

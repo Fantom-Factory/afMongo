@@ -14,7 +14,7 @@ using afBson::BsonWriter
 ** 
 ** @see `https://docs.mongodb.com/manual/reference/mongodb-wire-protocol/`
 class Operation {
-	private static const Log log	:= Utils.getLog(Operation#)
+	private static const Log log	:= Operation#.pod.log
 	private static const AtomicInt	requestIdGenerator	:= AtomicInt(0)
 
 	private Connection connection

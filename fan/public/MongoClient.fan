@@ -20,7 +20,7 @@ using inet
 **   data  := mongo["db"]["col"].findAll
 ** 
 const class MongoClient {
-	private static const Log 		log	:= Utils.getLog(MongoClient#)
+	private static const Log 		log	:= MongoClient#.pod.log
 	private const ConnectionManager conMgr
 	
 	@NoDoc	// I give no guarantee how long this field will stick around for!
