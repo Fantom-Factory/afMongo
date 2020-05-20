@@ -244,7 +244,7 @@ const class ConnectionManagerPooled : ConnectionManager {
 		query.remove("tls")
 		query.remove("authSource")
 		query.each |val, key| {
-			log.warn(LogMsgs.connectionManager_unknownUrlOption(key, val, mongoUrl))
+			log.warn("Unknown option in Mongo connection URL: ${key}=${val} - ${mongoUrl}")
 		}
 		
 		// allow the it-block to override the default settings
@@ -336,7 +336,7 @@ const class ConnectionManagerPooled : ConnectionManager {
 				return state.checkedOut.size
 			}
 			if (waitingOn > 0)
-				log.info(LogMsgs.connectionManager_waitingForConnectionsToClose(waitingOn, mongoUrl))
+				log.info("Waiting for ${waitingOn} connections to close on ${mongoUrl}...")
 			return waitingOn > 0 ? null : true
 		}
 		
@@ -465,7 +465,7 @@ const class ConnectionManagerPooled : ConnectionManager {
 			} 
 		}
 
-		log.info(LogMsgs.connectionManager_foundNewMaster(mongoUrl))
+		log.info("Found a new Master at ${mongoUrl}")
 	}
 	
 	private Void failOver() {
@@ -550,7 +550,7 @@ const class ConnectionManagerPooled : ConnectionManager {
 			// let's not swamp the logs the first time we can't connect
 			// 1.5 secs gives at least 6 connection attempts
 			if (con == null && totalNapTime > 1.5sec)
-				log.warn(LogMsgs.connectionManager_waitingForConnectionsToFree(maxPoolSize, mongoUrl))
+				log.warn("All ${maxPoolSize} are in use, waiting for one to become free on ${mongoUrl}...")
 
 			return con
 		}

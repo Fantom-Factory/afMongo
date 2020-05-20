@@ -327,14 +327,17 @@ class Cursor {
 		} else {
 			_resultIndex	= 0			
 			_results 	= reply.documents
-			if (index != (reply.cursorPos + skip))
-				_log.warn(LogMsgs.cursor_indexOutOfSync(index, reply.cursorPos + skip))
+			if (index != (reply.cursorPos + skip)) {
+				clientPos := index
+				serverPos :=reply.cursorPos + skip
+				_log.warn("Client index '${clientPos}' and server index '${serverPos}' are out of sync!")
+			}
 		}
 
 		if (!isAlive)
 			_deadCursor.lock
 	}
-	
+
 	private Int _getMoreQlimit() {
 		qlimit := batchSize ?: 0
 		if (limit != null) {
