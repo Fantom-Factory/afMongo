@@ -1,6 +1,6 @@
-using concurrent
-using afBson
-using inet
+using concurrent::AtomicInt
+using afBson::BsonReader
+using afBson::BsonWriter
 
 ** (Advanced)
 ** The low level transport mechanism that talks to MongoDB instances.

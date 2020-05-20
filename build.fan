@@ -26,5 +26,7 @@ class Build : BuildPod {
 
 		srcDirs = [`fan/`, `fan/internal/`, `fan/public/`, `fan/public/util/`, `test/`, `test/db-tests/`, `test/unit-tests/`, `test/utils/`]
 		resDirs = [`doc/`]
+		
+		meta["afBuild.uberPod"] = "afBson afConcurrent/Synchronized afConcurrent/SynchronizedState afConcurrent/LocalRef afConcurrent/ConcurrentBase64"
 	}
 }

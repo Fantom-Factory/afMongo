@@ -1,5 +1,3 @@
-using afConcurrent
-using inet
 
 ** Manages connections to a MongoDB instance.
 ** 

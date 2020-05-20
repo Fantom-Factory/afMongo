@@ -1,4 +1,4 @@
-using afConcurrent
+using afConcurrent::LocalRef
 
 @NoDoc	// Should be internal, but it might prove useful.
 const class ConnectionManagerLocal : ConnectionManager {

@@ -1,5 +1,5 @@
-using concurrent
-using afConcurrent
+using concurrent::ActorPool
+using afConcurrent::LocalRef
 
 internal class TestConMgrPooled : MongoTest {
 	ActorPool pool := ActorPool()
@@ -170,7 +170,7 @@ internal class TestConMgrPooled : MongoTest {
 	}
 
 	Void testBackoffFuncTotalNapTime() {
-		napTimeU := LocalRef("napTime")
+		napTimeU  := LocalRef("napTime")
 		napTime2U := LocalRef("napTime2")
 		conMgr := ConnectionManagerPooled(pool, `mongodb://wotever`) {
 			it.sleepFunc  = |Duration d| { napTimeU.val = napTimeU.val->plus(d)  }

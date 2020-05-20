@@ -1,4 +1,8 @@
-using afBson
+using afBson::Binary
+using afBson::MinKey
+using afBson::MaxKey
+using afBson::ObjectId
+using afBson::Timestamp
 
 ** Pretty prints MongoDB documents to a JSON-esque string.
 ** Useful for debugging.

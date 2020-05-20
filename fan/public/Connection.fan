@@ -1,5 +1,6 @@
-using inet
-using util
+using inet::IpAddr
+using inet::TcpSocket
+using util::Random
 
 ** Represents a connection to a MongoDB instance.
 ** All connections on creation should be connected to a MongoDB instance and ready to go.
