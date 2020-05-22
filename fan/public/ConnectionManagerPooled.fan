@@ -289,6 +289,27 @@ const class ConnectionManagerPooled : ConnectionManager {
 		connection := checkOut
 		try {
 			return c(connection)
+			
+		} catch (MongoOpErr e) {
+			err := e as Err
+			connection.close
+
+			// that shitty MongoDB Atlas doesn't tell us when the master has changed 
+			// instead we just get a "sys::IOErr: Unexpected end of stream"  
+			// when we attempt to read the reply
+			if (!err.msg.startsWith(MongoErrMsgs.operation_resInvalid))
+				throw err
+
+			// if the master URL has changed, then we've already found a new master!
+			if (connection.mongoUrl != mongoUrl)
+				throw err
+
+			// if we're still connected to the same master, lets play huntThePrimary!
+			failOver
+				
+			// even though Hunt the Primary succeeded, we still need to report the original error!
+			// it would be cool to just call the "c" func again, but we can't be sure it's idempotent
+			throw err
 
 		} catch (MongoErr e) {
 			err := e as Err
@@ -305,6 +326,7 @@ const class ConnectionManagerPooled : ConnectionManager {
 			failOver
 				
 			// even though Hunt the Primary succeeded, we still need to report the original error!
+			// it would be cool to just call the "c" func again, but we can't be sure it's idempotent
 			throw err
 			
 		} catch (Err err) {

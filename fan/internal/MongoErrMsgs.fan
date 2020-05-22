@@ -25,6 +25,10 @@ internal const class MongoErrMsgs {
 		"Query failed. MongoDB says: ${errMsg}"
 	}
 	
+	static Str operation_resInvalid() {
+		"Network issues reading response; dodgy MongoDB Atlas infrastructure suspected"
+	}
+	
 	static Str operation_cmdFailed(Str? cmd, Obj? errMsg) {
 		"Command '${cmd}' failed. MongoDB says: ${errMsg}"
 	}

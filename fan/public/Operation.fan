@@ -89,40 +89,44 @@ class Operation {
 	OpReplyResponse readReply(Int? requestId) {
 		in 		:= BsonReader(connection.in)
 		
-		// read std header
-		msgSize	:= in.readInteger32	// we ignore this and let the BsonReader check the size of the documents instead 
-		reqId	:= in.readInteger32	// we ignore this
-		resId	:= in.readInteger32
-		opCode	:= in.readInteger32
-		
-		if (opCode != OpCode.OP_REPLY.id)
-			throw MongoOpErr(MongoErrMsgs.operation_resOpCodeInvalid(opCode))
-		if (requestId != null && requestId != resId)
-			throw MongoOpErr(MongoErrMsgs.operation_resIdMismatch(requestId, resId))
-    
-		resFlags	:= OpReplyFlags(in.readInteger32)
-		cursorId	:= in.readInteger64
-		cursorPos	:= in.readInteger32
-		noOfDocs	:= in.readInteger32		
-		documents	:= [Str:Obj?][,] 
-
-		noOfDocs.times {
-			documents.add(in.readDocument)			
-		}
-
-		if (resFlags.containsAll(OpReplyFlags.queryFailure)) {
-			// $err may not be a Str!
-			// see http://docs.mongodb.org/meta-driver/latest/legacy/error-handling-in-drivers/
-			errMsg := documents.first?.get("\$err")?.toStr
-			throw MongoOpErr(MongoErrMsgs.operation_queryFailure(errMsg))
-		}
+		try {
+			// read std header
+			msgSize	:= in.readInteger32	// we ignore this and let the BsonReader check the size of the documents instead 
+			reqId	:= in.readInteger32	// we ignore this
+			resId	:= in.readInteger32
+			opCode	:= in.readInteger32
 			
-		return OpReplyResponse {
-			it.cursorId	 	= cursorId
-			it.cursorPos	= cursorPos
-			it.flags	 	= resFlags
-			it.documents	= documents
-		}
+			if (opCode != OpCode.OP_REPLY.id)
+				throw MongoOpErr(MongoErrMsgs.operation_resOpCodeInvalid(opCode))
+			if (requestId != null && requestId != resId)
+				throw MongoOpErr(MongoErrMsgs.operation_resIdMismatch(requestId, resId))
+	    
+			resFlags	:= OpReplyFlags(in.readInteger32)
+			cursorId	:= in.readInteger64
+			cursorPos	:= in.readInteger32
+			noOfDocs	:= in.readInteger32		
+			documents	:= [Str:Obj?][,] 
+	
+			noOfDocs.times {
+				documents.add(in.readDocument)			
+			}
+	
+			if (resFlags.containsAll(OpReplyFlags.queryFailure)) {
+				// $err may not be a Str!
+				// see http://docs.mongodb.org/meta-driver/latest/legacy/error-handling-in-drivers/
+				errMsg := documents.first?.get("\$err")?.toStr
+				throw MongoOpErr(MongoErrMsgs.operation_queryFailure(errMsg))
+			}
+				
+			return OpReplyResponse {
+				it.cursorId	 	= cursorId
+				it.cursorPos	= cursorPos
+				it.flags	 	= resFlags
+				it.documents	= documents
+			}
+			
+		} catch (IOErr ioErr)
+			throw MongoOpErr(MongoErrMsgs.operation_resInvalid, ioErr)
 	}
 	
 	
