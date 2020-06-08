@@ -475,12 +475,9 @@ const class Collection {
 
 		return conMgr.leaseConnection |con->Obj?| {
 			cursor := Cursor(con, namespace, cmd.query, cursorId, firstBat)
-			try {
-				return func(cursor)
-			} finally {
-				cursor.kill
-			}
-		}		
+			try return	func(cursor)
+			finally		cursor.kill
+		}
 	}
 	
 	// ---- Indexes -------------------------------------------------------------------------------

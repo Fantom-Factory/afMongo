@@ -87,9 +87,9 @@ class Operation {
 	** 
 	** 'requestId' may be 'null' when gulping down replies resulting from an *exhaust* query. 
 	OpReplyResponse readReply(Int? requestId) {
-		in 		:= BsonReader(connection.in)
-		
 		try {
+			in 		:= BsonReader(connection.in)
+
 			// read std header
 			msgSize	:= in.readInteger32	// we ignore this and let the BsonReader check the size of the documents instead 
 			reqId	:= in.readInteger32	// we ignore this
@@ -125,8 +125,11 @@ class Operation {
 				it.documents	= documents
 			}
 			
-		} catch (IOErr ioErr)
-			throw MongoOpErr(MongoErrMsgs.operation_resInvalid, ioErr)
+		} catch (MongoOpErr mongErr)
+			throw mongErr
+
+		catch (Err err)
+			throw MongoOpErr(MongoErrMsgs.operation_resInvalid, err)
 	}
 	
 	
