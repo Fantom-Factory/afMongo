@@ -24,23 +24,12 @@ const class PrettyPrinter {
 	** The maximum width of a list or map before it is broken up into separate lines.
 	const Int 	maxWidth	:= 80
 	
-	private const PrettyPrintOptions?	_ppOpts
-	
-	** Creates a 'PrettyPrinter' with the default pretty printing options. 
-	** May be either a 'PrettyPrintOptions' instance, or just 'false' to disable pretty printing. 
+	** Creates a 'PrettyPrinter'. Use an it-block to set pretty printing options. 
 	** 
 	**   syntax: fantom
-	**   printer := PrettyPrinter()
 	**   printer := PrettyPrinter { it.indent="\t"; it.maxWidth=40; }
 	new make(|This|? f := null) {
 		f?.call(this)
-		
-		if (prettyPrint) {
-			_ppOpts = PrettyPrintOptions {
-				it.maxWidth	= this.maxWidth
-				it.indent	= this.indent
-			}
-		}
 	}
 	
 	** Pretty prints the given MongoDB object / document to a 'Str'.
@@ -60,7 +49,7 @@ const class PrettyPrinter {
 	**   prettyPrinter.print(mongoDoc, out)
 	** 
 	This printToStream(Obj? obj, OutStream out) {
-		ctx := JsonWriteCtx(out, _ppOpts)
+		ctx := (MongoWriteCtx) (prettyPrint ? MongoWriteCtxPretty(out, indent, maxWidth) : MongoWriteCtxUgly(out))
 		_writeJsonToStream(ctx, obj)
 		ctx.finalise
 		return this
@@ -78,7 +67,7 @@ const class PrettyPrinter {
 	
 	// ---- private methods -----------------------------------------------------------------------
 
-	private This _writeJsonToStream(JsonWriteCtx ctx, Obj? obj) {
+	private This _writeJsonToStream(MongoWriteCtx ctx, Obj? obj) {
 		obj = convertHook(obj)
 			 if (obj is Str)		_writeJsonStr		(ctx, obj)
 		else if (obj is Map)		_writeJsonMap		(ctx, obj)
@@ -93,7 +82,7 @@ const class PrettyPrinter {
 		return this
 	}
 	
-	private Void _writeJsonMap(JsonWriteCtx ctx, Map map) {
+	private Void _writeJsonMap(MongoWriteCtx ctx, Map map) {
 		ctx.objectStart
 		notFirst := false
 		map.each |val, key| {
@@ -107,7 +96,7 @@ const class PrettyPrinter {
 		ctx.objectEnd
 	}
 
-	private Void _writeJsonList(JsonWriteCtx ctx, Obj?[] array) {
+	private Void _writeJsonList(MongoWriteCtx ctx, Obj?[] array) {
 		ctx.arrayStart
 		notFirst := false
 		array.each |item| {
@@ -118,9 +107,9 @@ const class PrettyPrinter {
 		ctx.arrayEnd
 	}
 
-	private Void _writeJsonStr(JsonWriteCtx ctx, Str str) {
+	private Void _writeJsonStr(MongoWriteCtx ctx, Str str) {
 		ctx.valueStart
-		ctx.writeChar(JsonToken.quote)
+		ctx.writeChar(MongoValWriter.quote)
 		str.each |char| {
 			if (char <= 0x7f) {
 				switch (char) {
@@ -142,51 +131,40 @@ const class PrettyPrinter {
 				ctx.writeChar('\\').writeChar('u').print(char.toHex(4))
 			}
 		}
-		ctx.writeChar(JsonToken.quote)
+		ctx.writeChar(MongoValWriter.quote)
 		ctx.valueEnd
 	}
 
-	private Void _writeJsonNull(JsonWriteCtx ctx) {
+	private Void _writeJsonNull(MongoWriteCtx ctx) {
 		ctx.valueStart.print("null").valueEnd
 	}
 
-	private Void _writeBsonBinary(JsonWriteCtx ctx, Obj obj) {
+	private Void _writeBsonBinary(MongoWriteCtx ctx, Obj obj) {
 		ctx.valueStart.print( ((Binary) obj).toJs ).valueEnd
 	}
 
-	private Void _writeBsonMinKey(JsonWriteCtx ctx, Obj obj) {
+	private Void _writeBsonMinKey(MongoWriteCtx ctx, Obj obj) {
 		ctx.valueStart.print( ((MinKey) obj).toJs ).valueEnd
 	}
 
-	private Void _writeBsonMaxKey(JsonWriteCtx ctx, Obj obj) {
+	private Void _writeBsonMaxKey(MongoWriteCtx ctx, Obj obj) {
 		ctx.valueStart.print( ((MaxKey) obj).toJs ).valueEnd
 	}
 
-	private Void _writeBsonObjId(JsonWriteCtx ctx, Obj obj) {
+	private Void _writeBsonObjId(MongoWriteCtx ctx, Obj obj) {
 		ctx.valueStart.print( ((ObjectId) obj).toJs ).valueEnd
 	}
 
-	private Void _writeBsonTimestamp(JsonWriteCtx ctx, Obj obj) {
+	private Void _writeBsonTimestamp(MongoWriteCtx ctx, Obj obj) {
 		ctx.valueStart.print( ((Timestamp) obj).toJs ).valueEnd
 	}
 
-	private Void _writeObj(JsonWriteCtx ctx, Obj obj) {
+	private Void _writeObj(MongoWriteCtx ctx, Obj obj) {
 		ctx.valueStart.print(obj).valueEnd
 	}
 }
 
-internal mixin JsonWriteCtx {
-	static new make(OutStream out, Obj? prettyPrintOptions) {
-		if (prettyPrintOptions != null) {
-			if (prettyPrintOptions == false)
-				return JsonWriteCtxUgly(out)
-
-			ppOpts := prettyPrintOptions == true ? PrettyPrintOptions() : prettyPrintOptions 
-			return JsonWriteCtxPretty(out, ppOpts)
-		}
-		return JsonWriteCtxUgly(out)
-	}
-	
+internal mixin MongoWriteCtx {
 	abstract This valueStart()
 	abstract This print(Obj s)
 	abstract This writeChar(Int char)
@@ -202,19 +180,25 @@ internal mixin JsonWriteCtx {
 	abstract Void objectEnd()
 
 	abstract Void finalise()
+
+	virtual Str ppIndent()   { "" }
+	virtual Int ppMaxWidth() { -1 }
 }
 
-internal class JsonWriteCtxPretty : JsonWriteCtx {
+internal class MongoWriteCtxPretty : MongoWriteCtx {
 	private OutStream 			out
-	private PrettyPrintOptions	ppOpts
 	private Int 				indent		:= 0
 	
-	private JsonValWriter?		last
-	private JsonValWriter[]		valWriters	:= JsonValWriter[,]
+	private MongoValWriter?		last
+	private MongoValWriter[]	valWriters	:= MongoValWriter[,]
 
-	new make(OutStream out, PrettyPrintOptions ppOpts) {
-		this.out	= out
-		this.ppOpts	= ppOpts
+	override Str				ppIndent
+	override Int				ppMaxWidth
+
+	new make(OutStream out, Str ppIndent, Int ppMaxWidth) {
+		this.out		= out
+		this.ppIndent	= ppIndent
+		this.ppMaxWidth	= ppMaxWidth
 	}
 	
 	override This print(Obj s) {
@@ -227,14 +211,14 @@ internal class JsonWriteCtxPretty : JsonWriteCtx {
 		return this
 	}
 
-	override This valueStart()	{ valWriters.push(JsonValWriterLit(ppOpts)); return this }
+	override This valueStart()	{ valWriters.push(MongoValWriterLit(this)); return this }
 	override This valueEnd()	{ writerEnd	}
 	
-	override Void arrayStart()	{ valWriters.push(JsonValWriterList(ppOpts)) }
+	override Void arrayStart()	{ valWriters.push(MongoValWriterList(this)) }
 	override Void arrayItem()	{ }
 	override Void arrayEnd()	{ writerEnd	}
 	
-	override Void objectStart()	{ valWriters.push(JsonValWriterMap(ppOpts)) }
+	override Void objectStart()	{ valWriters.push(MongoValWriterMap(this)) }
 	override Void objectKey()	{ }
 	override Void objectVal()	{ }
 	override Void objectEnd()	{ writerEnd	}
@@ -249,10 +233,18 @@ internal class JsonWriteCtxPretty : JsonWriteCtx {
 	}
 }
 
-internal abstract class JsonValWriter {
-	PrettyPrintOptions	ppOpts
+internal abstract class MongoValWriter {
+	static const Int objectStart	:= '{'
+	static const Int objectEnd		:= '}'
+	static const Int colon			:= ':'
+	static const Int arrayStart		:= '['
+	static const Int arrayEnd		:= ']'
+	static const Int comma			:= ','
+	static const Int quote			:= '"'
 
-	new make(PrettyPrintOptions ppOpts) {
+	MongoWriteCtx	ppOpts
+
+	new make(MongoWriteCtx ppOpts) {
 		this.ppOpts	= ppOpts
 	}
 	
@@ -262,21 +254,21 @@ internal abstract class JsonValWriter {
 	abstract Str  str()
 }
 
-internal class JsonValWriterLit : JsonValWriter {
+internal class MongoValWriterLit : MongoValWriter {
 	private StrBuf	value	:= StrBuf(32)
 	
-	new make(PrettyPrintOptions ppOpts) : super(ppOpts) { }
+	new make(MongoWriteCtx ppOpts) : super(ppOpts) { }
 
 	override Void writeJson(Obj ob)	{ value.add(ob)	}
 	override Void writeChar(Int ch)	{ value.addChar(ch)	}
 	override Str str() 				{ value.toStr		}
 }
 
-internal class JsonValWriterList : JsonValWriter {
+internal class MongoValWriterList : MongoValWriter {
 	private Int		size	:= 1
 	private Str[]	list	:= Str[,]
 
-	new make(PrettyPrintOptions ppOpts) : super(ppOpts) { }
+	new make(MongoWriteCtx ppOpts) : super(ppOpts) { }
 
 	override Void add(Str item)	{
 		list.add(item)
@@ -286,37 +278,37 @@ internal class JsonValWriterList : JsonValWriter {
 	override Str str() {
 		size -= 2
 		size += 1
-		if (size > ppOpts.maxWidth) {
+		if (size > ppOpts.ppMaxWidth) {
 			// bufSize is only approx unless we start counting the lines in items
-			bufSize := size + (list.size * ppOpts.indent.size * 2)
+			bufSize := size + (list.size * ppOpts.ppIndent.size * 2)
 			json := StrBuf(bufSize)
-			json.addChar(JsonToken.arrayStart).addChar('\n')
+			json.addChar(MongoValWriter.arrayStart).addChar('\n')
 			list.each |item, i| {
 				lines := item.splitLines
 				lines.each |line, j| {
-					json.add(ppOpts.indent).add(line)
+					json.add(ppOpts.ppIndent).add(line)
 					if (j < lines.size-1)
 						json.addChar('\n')
 				}
 				if (i < list.size - 1)
-					json.addChar(JsonToken.comma)
+					json.addChar(MongoValWriter.comma)
 				json.addChar('\n')
 			}
-			json.addChar(JsonToken.arrayEnd)
+			json.addChar(MongoValWriter.arrayEnd)
 			return json.toStr
 		} else
 			return "[" + list.join(", ") + "]"
 	}
 }
 
-internal class JsonValWriterMap : JsonValWriter {	
+internal class MongoValWriterMap : MongoValWriter {	
 	private Str[]	keys		:= Str[,]
 	private Str[]	vals		:= Str[,]
 	private Int		size		:= 1
 	private Int		maxKeySize	:= 0
 	private Int		maxValSize	:= 0
 	
-	new make(PrettyPrintOptions ppOpts) : super(ppOpts) { }
+	new make(MongoWriteCtx ppOpts) : super(ppOpts) { }
 
 	override Void add(Str item) {
 		(keys.size > vals.size ? vals : keys).add(item)
@@ -331,18 +323,18 @@ internal class JsonValWriterMap : JsonValWriter {
 		size -= 2
 		size += 1
 		maxKeySize := maxKeySize + 1
-		if (size > ppOpts.maxWidth) {
+		if (size > ppOpts.ppMaxWidth) {
 			// bufSize is only approx unless we start counting the lines in vals
-			bufSize := (keys.size * maxKeySize) + (vals.size * maxValSize) + (keys.size * ppOpts.indent.size * 2)
+			bufSize := (keys.size * maxKeySize) + (vals.size * maxValSize) + (keys.size * ppOpts.ppIndent.size * 2)
 			json := StrBuf(bufSize)
-			json.addChar(JsonToken.objectStart).addChar('\n')
+			json.addChar(MongoValWriter.objectStart).addChar('\n')
 			
 			keys.each |key, i| {
 				val := vals[i]
 				
-				json.add(ppOpts.indent)
+				json.add(ppOpts.ppIndent)
 				json.add(key.justl(maxKeySize))
-				json.addChar(JsonToken.colon)
+				json.addChar(MongoValWriter.colon)
 				json.addChar(' ')
 				
 				lines := val.splitLines
@@ -350,32 +342,32 @@ internal class JsonValWriterMap : JsonValWriter {
 				if (lines.size > 1)
 					lines.eachRange(1..-1) |line, j| {
 						json.addChar('\n')
-						json.add(ppOpts.indent).add(line)
+						json.add(ppOpts.ppIndent).add(line)
 					}
 				if (i < keys.size - 1)
-					json.addChar(JsonToken.comma)
+					json.addChar(MongoValWriter.comma)
 				json.addChar('\n')
 			}
 			
-			json.addChar(JsonToken.objectEnd)
+			json.addChar(MongoValWriter.objectEnd)
 			return json.toStr
 
 		} else {
 			json := StrBuf(size)
-			json.addChar(JsonToken.objectStart)
+			json.addChar(MongoValWriter.objectStart)
 			keys.each |key, i| {
 				val := vals[i]
-				json.add(key).addChar(JsonToken.colon).addChar(' ').add(val)
+				json.add(key).addChar(MongoValWriter.colon).addChar(' ').add(val)
 				if (i < keys.size - 1)
-					json.addChar(JsonToken.comma).addChar(' ')
+					json.addChar(MongoValWriter.comma).addChar(' ')
 			}
-			json.addChar(JsonToken.objectEnd)
+			json.addChar(MongoValWriter.objectEnd)
 			return json.toStr
 		}
 	}
 }
 
-internal class JsonWriteCtxUgly : JsonWriteCtx {
+internal class MongoWriteCtxUgly : MongoWriteCtx {
 	private OutStream	out
 
 	new make(OutStream out) {
@@ -392,43 +384,17 @@ internal class JsonWriteCtxUgly : JsonWriteCtx {
 		return this
 	}
 	
-	override This valueStart()		{ this									}
-	override This valueEnd()		{ this									}
+	override This valueStart()		{ this										}
+	override This valueEnd()		{ this										}
 	
-	override Void arrayStart()		{ out.writeChar(JsonToken.arrayStart)	}
-	override Void arrayItem()		{ out.writeChar(JsonToken.comma)		}
-	override Void arrayEnd()		{ out.writeChar(JsonToken.arrayEnd)		}
+	override Void arrayStart()		{ out.writeChar(MongoValWriter.arrayStart)	}
+	override Void arrayItem()		{ out.writeChar(MongoValWriter.comma)		}
+	override Void arrayEnd()		{ out.writeChar(MongoValWriter.arrayEnd)	}
 
-	override Void objectStart()		{ out.writeChar(JsonToken.objectStart)	}
-	override Void objectKey()		{ out.writeChar(JsonToken.colon)		}
-	override Void objectVal()		{ out.writeChar(JsonToken.comma)		}
-	override Void objectEnd()		{ out.writeChar(JsonToken.objectEnd)	}
+	override Void objectStart()		{ out.writeChar(MongoValWriter.objectStart)	}
+	override Void objectKey()		{ out.writeChar(MongoValWriter.colon)		}
+	override Void objectVal()		{ out.writeChar(MongoValWriter.comma)		}
+	override Void objectEnd()		{ out.writeChar(MongoValWriter.objectEnd)	}
 
-	override Void finalise()		{ 										}
-}
-
-internal mixin JsonToken {
-	static const Int objectStart	:= '{'
-	static const Int objectEnd		:= '}'
-	static const Int colon			:= ':'
-	static const Int arrayStart		:= '['
-	static const Int arrayEnd		:= ']'
-	static const Int comma			:= ','
-	static const Int quote			:= '"'
-}
-
-internal const class PrettyPrintOptions {
-
-	** The indent string used to indent the document.
-	const Str 	indent		:= "  "
-
-	** The maximum width of a list or map before it is broken up into separate lines.
-	const Int 	maxWidth	:= 80	
-
-	** Default 'it-block' ctor.
-	new make(|This|? in := null) { in?.call(this) }
-	
-	override Str toStr() {
-		"indent=${indent.toCode}, maxWidth = ${maxWidth}"
-	}
+	override Void finalise()		{ 											}
 }
