@@ -1,5 +1,11 @@
 v1.1
 ****
+v1.1.12
+=======
+ - New: Added 'ConnectionManagerPooled.isConnectedToMaster()'.
+ - Chg: Exposed ConnectionManager in 'Collection' and 'Database' classes.
+ - Chg: Better handling of network IO errors.
+ - Bug: Fixed potential deadlock during failovers.
 
 v1.1.10
 =======

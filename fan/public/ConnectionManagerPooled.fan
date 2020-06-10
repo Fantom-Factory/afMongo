@@ -451,8 +451,12 @@ const class ConnectionManagerPooled : ConnectionManager {
 			isConnectedToMasterRef.val = false
 			failingOverRef.val = true
 			try	{
+				oldUrl := this.mongoUrl
 				huntThePrimary
 				emptyPool
+				newUrl := this.mongoUrl
+				
+				log.warn("MongoDB Master failed over from $oldUrl to $newUrl")
 				
 				// we're an unsung hero - we've established a new master connection and nobody knows! 
 				isConnectedToMasterRef.val = true
