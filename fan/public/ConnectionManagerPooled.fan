@@ -37,6 +37,7 @@ const class ConnectionManagerPooled : ConnectionManager {
 	private const OneShotLock		startupLock				:= OneShotLock("Connection Pool has been started")
 	private const OneShotLock		shutdownLock			:= OneShotLock("Connection Pool has been shutdown")
 	private const AtomicBool 		failingOverRef			:= AtomicBool(false)
+	private const AtomicBool 		isConnectedToMasterRef	:= AtomicBool(false)
 	private const Synchronized		failOverThread
 	private const SynchronizedState connectionState
 
@@ -264,6 +265,7 @@ const class ConnectionManagerPooled : ConnectionManager {
 		startupLock.lock
 		
 		huntThePrimary
+		isConnectedToMasterRef.val = true
 
 		// connect x times
 		pool := TcpConnection[,]
@@ -290,7 +292,7 @@ const class ConnectionManagerPooled : ConnectionManager {
 		try {
 			return c(connection)
 			
-		} catch (MongoOpErr e) {
+		} catch (MongoIoErr e) {
 			err := e as Err
 			connection.close
 
@@ -392,6 +394,13 @@ const class ConnectionManagerPooled : ConnectionManager {
 		}
 	}
 	
+	** Returns 'true' if we'er currently connected to a Master node and can accept write cmds.
+	** 
+	** Returns 'false' during failovers and games of "Hunt the Primary".
+	Bool isConnectedToMaster() {
+		isConnectedToMasterRef.val
+	}
+	
 	** (Advanced)
 	** Searches the replica set for the Master node and instructs all new connections to connect to it.
 	** Throws 'MongoErr' if a primary can not be found. 
@@ -401,6 +410,7 @@ const class ConnectionManagerPooled : ConnectionManager {
 		mongoUrl := HuntThePrimary(connectionUrl, ssl).huntThePrimary
 
 		mongoUrlRef.val = mongoUrl
+		isConnectedToMasterRef.val = true
 
 		// set our connection factory
 		connectionState.sync |ConnectionManagerPoolState state| {
@@ -438,12 +448,14 @@ const class ConnectionManagerPooled : ConnectionManager {
 
 		// it doesn't matter if a race condition means we play huntThePrimary twice in succession
 		failOverThread.async |->| {
+			isConnectedToMasterRef.val = false
 			failingOverRef.val = true
 			try	{
 				huntThePrimary
 				emptyPool
 				
 				// we're an unsung hero - we've established a new master connection and nobody knows! 
+				isConnectedToMasterRef.val = true
 				
 			} catch (Err err) {
 				log.warn("Could not find new Master", err)
