@@ -171,7 +171,7 @@ const class ConnectionManagerPooled : ConnectionManager {
 		mongoUrl				:= connectionUrl
 		this.connectionUrl		 = connectionUrl
 		this.connectionState	 = SynchronizedState(actorPool, ConnectionManagerPoolState#)
-		this.failOverThread		 = Synchronized(actorPool)
+		this.failOverThread		 = connectionState.lock
 		this.minPoolSize 		 = mongoUrl.query["minPoolSize"]?.toInt ?: minPoolSize
 		this.maxPoolSize 		 = mongoUrl.query["maxPoolSize"]?.toInt ?: maxPoolSize
 		waitQueueTimeoutMs		:= mongoUrl.query["waitQueueTimeoutMS"]?.toInt
