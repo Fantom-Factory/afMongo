@@ -2,7 +2,9 @@ using afBson::Code
 
 ** Represents a MongoDB database.
 const class Database {
-	internal const ConnectionManager conMgr
+
+	** The underlying connection manager.
+	const ConnectionManager conMgr
 	
 	** The name of the database.
 	const Str name

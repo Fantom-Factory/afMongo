@@ -5,7 +5,8 @@ const class Collection {
 	
 	private const Namespace	namespace
 	
-	internal const ConnectionManager conMgr
+	** The underlying connection manager.
+	const ConnectionManager conMgr
 
 	** The qualified name of the collection. 
 	** It takes the form of: 
