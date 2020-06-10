@@ -3,7 +3,7 @@ using afBson
 using concurrent
 
 internal
-class Example {
+class MongoExample {
 	
 	Void main() {
 		mongoClient := MongoClient(ActorPool(), `mongodb://localhost:27017`)
