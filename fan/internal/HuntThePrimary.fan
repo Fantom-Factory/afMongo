@@ -73,21 +73,6 @@ class HuntThePrimary {
 		mongoUrl := `mongodb://${primaryAddress}:${primaryPort}`
 		if (connectionUrl.pathStr.trimToNull != null)
 			mongoUrl = mongoUrl.plusSlash.plusName(connectionUrl.path.first) 
-		
-
-//		mongoUrlRef.val = mongoUrl
-//
-//		// set our connection factory
-//		connectionState.sync |ConnectionManagerPoolState state| {
-//			state.connectionFactory = |->Connection| {
-//				socket := ssl ? TcpSocket.makeTls : TcpSocket.make
-//				socket.options.connectTimeout = connectTimeout
-//				socket.options.receiveTimeout = socketTimeout
-//				return TcpConnection(socket).connect(IpAddr(primaryAddress), primaryPort) {
-//					it.mongoUrl = mongoUrlRef.val
-//				}
-//			} 
-//		}
 
 		log.info("Found a new Master at ${mongoUrl}")
 		
@@ -117,11 +102,11 @@ internal class HostDetails {
 	This populate() {
 		contacted = true
 		
-		connection := TcpConnection(ssl)
+		connection	:= TcpConnection(ssl)
+		mongUrl		:= `mongodb://${address}:${port}`
+		conMgr		:= ConnectionManagerLocal(connection, ssl ? mongUrl.plusQuery(["ssl":"true"]) : mongUrl)
 		try {
 			connection.connect(IpAddr(address), port)
-			mongUrl	:= `mongodb://${address}:${port}`
-			conMgr	:= ConnectionManagerLocal(connection, ssl ? mongUrl.plusQuery(["ssl":"true"]) : mongUrl)
 			details := Database(conMgr, "admin").runCmd(["ismaster":1])
 		
 			isPrimary 	= details["ismaster"]  == true			// '== true' to avoid NPEs if key doesn't exist
@@ -133,7 +118,7 @@ internal class HostDetails {
 			// if a replica is down, simply log it and move onto the next one!
 			log.warn("Could not connect to Host ${address}:${port} :: ${err.typeof.name} - ${err.msg}")
 
-		} finally connection.close
+		} finally conMgr.shutdown
 		
 		return this
 	}

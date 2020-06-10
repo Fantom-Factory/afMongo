@@ -33,10 +33,10 @@ using inet::TcpSocket
 ** 
 ** Note this connection manager *is* safe for multi-threaded / web-application use.
 const class ConnectionManagerPooled : ConnectionManager {
-	private const Log				log				:= ConnectionManagerPooled#.pod.log
-	private const OneShotLock		startupLock		:= OneShotLock("Connection Pool has been started")
-	private const OneShotLock		shutdownLock	:= OneShotLock("Connection Pool has been shutdown")
-	private const AtomicBool 		failingOverRef	:= AtomicBool(false)
+	private const Log				log						:= ConnectionManagerPooled#.pod.log
+	private const OneShotLock		startupLock				:= OneShotLock("Connection Pool has been started")
+	private const OneShotLock		shutdownLock			:= OneShotLock("Connection Pool has been shutdown")
+	private const AtomicBool 		failingOverRef			:= AtomicBool(false)
 	private const Synchronized		failOverThread
 	private const SynchronizedState connectionState
 
@@ -332,10 +332,9 @@ const class ConnectionManagerPooled : ConnectionManager {
 			// protocols are out of sync - rendering any future use of the connection useless.
 			connection.close
 			throw err
-			
-		} finally {
+
+		} finally
 			checkIn(connection)
-		}
 	}
 	
 	** Closes all connections. 
@@ -407,10 +406,10 @@ const class ConnectionManagerPooled : ConnectionManager {
 		connectionState.sync |ConnectionManagerPoolState state| {
 			state.connectionFactory = |->Connection| {
 				socket := ssl ? TcpSocket.makeTls : TcpSocket.make
-				socket.options.connectTimeout = connectTimeout
-				socket.options.receiveTimeout = socketTimeout
+				socket.options.connectTimeout = this.connectTimeout
+				socket.options.receiveTimeout = this.socketTimeout
 				return TcpConnection(socket).connect(IpAddr(mongoUrl.host), mongoUrl.port) {
-					it.mongoUrl = mongoUrlRef.val
+					it.mongoUrl = mongoUrl
 				}
 			} 
 		}
@@ -426,7 +425,6 @@ const class ConnectionManagerPooled : ConnectionManager {
 			}
 			state.checkedOut.each { it.forceCloseOnCheckIn = true }
 		}
-	
 		// re-connect x times
 		pool := TcpConnection[,]
 		minPoolSize.times { pool.push(checkOut) }
@@ -455,47 +453,13 @@ const class ConnectionManagerPooled : ConnectionManager {
 			}
 		}
 	}
-	
-	** Implements a truncated binary exponential backoff algorithm. *Damn, I'm good!*
-	** Returns 'null' if the operation timed out.
-	** 
-	** @see `http://en.wikipedia.org/wiki/Exponential_backoff`
-	internal Obj? backoffFunc(|Duration totalNapTime->Obj?| func, Duration timeout) {
-		result			:= null
-		c				:= 0
-		i				:= 10
-		totalNapTime	:= 0ms
-		
-		while (result == null && totalNapTime < timeout) {
-
-			result = func.call(totalNapTime)
-
-			if (result == null) {
-				if (++c > i) c = i	// truncate the exponentiation ~ 10 secs
-				napTime := (randomFunc(0..<2.pow(c)) * 10 * 1000000).toDuration
-
-				// don't over sleep!
-				if ((totalNapTime + napTime) > timeout)
-					napTime = timeout - totalNapTime 
-
-				sleepFunc(napTime)
-				totalNapTime += napTime
-				
-				// if we're about to quit, lets have 1 more last ditch attempt!
-				if (totalNapTime >= timeout)
-					result = func.call(totalNapTime)
-			}
-		}
-		
-		return result
-	}
 
 	private TcpConnection checkOut() {
 		connectionFunc := |Duration totalNapTime->TcpConnection?| {
 			con := connectionState.sync |ConnectionManagerPoolState state->Unsafe?| {
 				while (!state.checkedIn.isEmpty) {
 					connection := state.checkedIn.pop
-					
+
 					// check the connection is still alive - the server may have closed it during a fail over
 					if (!connection.isClosed) {
 						state.checkedOut.push(connection)
@@ -508,7 +472,6 @@ const class ConnectionManagerPooled : ConnectionManager {
 					state.checkedOut.push(connection)
 					return Unsafe(connection)
 				}
-				
 				return null
 			}?->val
 			
@@ -563,6 +526,40 @@ const class ConnectionManagerPooled : ConnectionManager {
 				else
 					state.checkedIn.push(conn)
 		}
+	}
+	
+	** Implements a truncated binary exponential backoff algorithm. *Damn, I'm good!*
+	** Returns 'null' if the operation timed out.
+	** 
+	** @see `http://en.wikipedia.org/wiki/Exponential_backoff`
+	internal Obj? backoffFunc(|Duration totalNapTime->Obj?| func, Duration timeout) {
+		result			:= null
+		c				:= 0
+		i				:= 10
+		totalNapTime	:= 0ms
+		
+		while (result == null && totalNapTime < timeout) {
+
+			result = func.call(totalNapTime)
+
+			if (result == null) {
+				if (++c > i) c = i	// truncate the exponentiation ~ 10 secs
+				napTime := (randomFunc(0..<2.pow(c)) * 10 * 1000000).toDuration
+
+				// don't over sleep!
+				if ((totalNapTime + napTime) > timeout)
+					napTime = timeout - totalNapTime 
+
+				sleepFunc(napTime)
+				totalNapTime += napTime
+				
+				// if we're about to quit, lets have 1 more last ditch attempt!
+				if (totalNapTime >= timeout)
+					result = func.call(totalNapTime)
+			}
+		}
+		
+		return result
 	}
 }
 
