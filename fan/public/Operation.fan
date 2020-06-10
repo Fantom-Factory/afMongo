@@ -8,9 +8,12 @@ using afBson::BsonWriter
 ** This is, actually, the only class you need to talk to a MongoDB instance!
 ** All other classes merely wrap calls to this. 
 ** 
-** This class, and the BSON reader / writer classes, have been optomised for memory efficiency. 
+** This class, and the BSON reader / writer classes, have been optimised for memory efficiency. 
 ** Feel free to send your 16Mb+ documents to MongoDB for they'll be streamed straight out over 
 ** the socket. 
+** 
+** 'MongoOpErrs' are thrown for any networking issues, which subsequently invoke a Master failover 
+** in the Connection Manager.
 ** 
 ** @see `https://docs.mongodb.com/manual/reference/mongodb-wire-protocol/`
 class Operation {
@@ -129,7 +132,7 @@ class Operation {
 			throw mongErr
 
 		catch (Err err)
-			throw MongoOpErr(MongoErrMsgs.operation_resInvalid, err)
+			throw MongoIoErr(MongoErrMsgs.operation_invalid, err)
 	}
 	
 	
@@ -140,20 +143,24 @@ class Operation {
 	** without the use of 'Buf()'. Given people tend to save 20Mb Objects in Mongo, this is a good 
 	** thing!
 	private Int sendMsg(OpCode opCode, Int msgSize, |BsonWriter| outFunc) {
-		requestId 	:= requestIdGenerator.incrementAndGet
-		out 		:= BsonWriter(connection.out)
-		
-		// write std header
-		out.writeInteger32(msgSize + 16)
-		out.writeInteger32(requestId)
-		out.writeInteger32(0)
-		out.writeInteger32(opCode.id)
-		
-		// write msg
-		outFunc.call(out)
-		out.flush
-		
-		return requestId
+		try {
+			requestId 	:= requestIdGenerator.incrementAndGet
+			out 		:= BsonWriter(connection.out)
+			
+			// write std header
+			out.writeInteger32(msgSize + 16)
+			out.writeInteger32(requestId)
+			out.writeInteger32(0)
+			out.writeInteger32(opCode.id)
+			
+			// write msg
+			outFunc.call(out)
+			out.flush
+			
+			return requestId
+
+		} catch (Err err)
+			throw MongoIoErr(MongoErrMsgs.operation_invalid, err)
 	}
 }
 

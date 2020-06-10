@@ -9,6 +9,11 @@ const class MongoOpErr : MongoErr {
 	new make(Str msg := "", Err? cause := null) : super(msg, cause) { }
 }
 
+@NoDoc
+const class MongoIoErr : MongoErr {
+	new make(Str msg := "", Err? cause := null) : super(msg, cause) { }
+}
+
 ** Wraps errors returned from a MongoDB Cmd.
 const class MongoCmdErr : MongoErr {
 	
