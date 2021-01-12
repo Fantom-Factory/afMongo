@@ -26,7 +26,7 @@ internal const class MongoErrMsgs {
 	}
 	
 	static Str operation_invalid() {
-		"Network issues detected; dodgy MongoDB Atlas infrastructure suspected"
+		"MongoDB network issues detected"
 	}
 	
 	static Str operation_cmdFailed(Str? cmd, Obj? errMsg) {
