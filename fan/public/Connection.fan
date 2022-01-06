@@ -50,7 +50,7 @@ class TcpConnection : Connection {
 
 	** Creates a new TCP Socket
 	new make(Bool ssl) {
-		this.socket = ssl ? TcpSocket.makeTls : TcpSocket.make
+		this.socket = ssl ? TcpSocket().upgradeTls : TcpSocket()
 	}
 	
 	This connect(IpAddr address := IpAddr("127.0.0.1"), Int port := 27017) {

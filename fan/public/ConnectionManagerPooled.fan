@@ -415,7 +415,7 @@ const class ConnectionManagerPooled : ConnectionManager {
 		// set our connection factory
 		connectionState.sync |ConnectionManagerPoolState state| {
 			state.connectionFactory = |->Connection| {
-				socket := ssl ? TcpSocket.makeTls : TcpSocket.make
+				socket := ssl ? TcpSocket().upgradeTls : TcpSocket()
 				socket.options.connectTimeout = this.connectTimeout
 				socket.options.receiveTimeout = this.socketTimeout
 				return TcpConnection(socket).connect(IpAddr(mongoUrl.host), mongoUrl.port) {

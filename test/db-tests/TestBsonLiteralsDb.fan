@@ -28,8 +28,8 @@ internal class TestBsonLiteralsDb : MongoDbTest {
 			"code_w_scope"	: Code("func() { ... }", ["wot":"ever"]),
 			"timestamp"		: Timestamp(500, 69),
 			"int64"			: 666,
-			"minKey"		: MinKey(),
-			"maxKey"		: MaxKey()
+			"minKey"		: MinKey.val,
+			"maxKey"		: MaxKey.val,
 		]
 	}
 
@@ -55,7 +55,7 @@ internal class TestBsonLiteralsDb : MongoDbTest {
 		verifyEq(doc["code_w_scope"]->scope,	Str:Obj?["wot":"ever"])
 		verifyEq(doc["timestamp"],	Timestamp(500, 69))
 		verifyEq(doc["int64"],		666)
-		verifyEq(doc["minKey"],		MinKey())
-		verifyEq(doc["maxKey"],		MaxKey())
+		verifyEq(doc["minKey"],		MinKey.val)
+		verifyEq(doc["maxKey"],		MaxKey.val)
 	}
 }
