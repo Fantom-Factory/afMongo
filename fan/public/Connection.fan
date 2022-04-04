@@ -50,6 +50,7 @@ class TcpConnection : Connection {
 
 	** Creates a new TCP Socket
 	new make(Bool ssl) {
+		// FIXME make work with ALL versions of Fantom - see Butter
 		this.socket = ssl ? TcpSocket().upgradeTls : TcpSocket()
 	}
 	
@@ -59,7 +60,7 @@ class TcpConnection : Connection {
 			return this
 		}
 		catch (Err err)
-			throw IOErr(MongoErrMsgs.connection_couldNot(address.toStr, port, err.msg))		
+			throw IOErr(MongoErrMsgs.connection_couldNot(address.toStr, port, err.msg), err)		
 	}
 	
 	override InStream	in()		{ socket.in			}

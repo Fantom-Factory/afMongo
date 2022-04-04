@@ -1,5 +1,11 @@
 v1.1
 ****
+
+v1.1.14
+=======
+ - New: Updated to be compatible with Fantom 1.0.77.
+ - Chg: When 'TcpConnection' throws an 'IOErr' on TCP connection, the cause is no longer lost.
+
 v1.1.12
 =======
  - New: Added 'ConnectionManagerPooled.isConnectedToMaster()'.

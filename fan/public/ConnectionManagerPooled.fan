@@ -415,6 +415,7 @@ const class ConnectionManagerPooled : ConnectionManager {
 		// set our connection factory
 		connectionState.sync |ConnectionManagerPoolState state| {
 			state.connectionFactory = |->Connection| {
+				// FIXME make work with ALL versions of Fantom - see Butter
 				socket := ssl ? TcpSocket().upgradeTls : TcpSocket()
 				socket.options.connectTimeout = this.connectTimeout
 				socket.options.receiveTimeout = this.socketTimeout
