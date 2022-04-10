@@ -554,12 +554,30 @@ const class ConnectionManagerPooled : ConnectionManager {
 			state.checkedOut.removeSame(conn)
 
 			// make sure we don't save stale connections
-			if (!conn.isClosed)
+			if (!conn.isClosed) {
+				
+				if (conn.forceCloseOnCheckIn) {
+					conn.close
+					return
+				}
+				
 				// only keep the min pool size
-				if (conn.forceCloseOnCheckIn || state.checkedIn.size >= minPoolSize)
+				if (state.checkedIn.size >= minPoolSize) {
+					
+					// if there are msgs still to be processed, don't bother closing as we're likely to just be re-opened again
+					queueSize := connectionState.lock.actor.queueSize
+					if (queueSize == 0) {
+						
+						// keep the socket open for 30 secs to ease open / close throttling
+						
 						conn.close
-				else
+						return
+					}
+				}
+
+				// else keep the connection alive for re-use
 				state.checkedIn.push(conn)
+			}
 		}
 	}
 	
