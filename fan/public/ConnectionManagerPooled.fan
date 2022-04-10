@@ -415,15 +415,33 @@ const class ConnectionManagerPooled : ConnectionManager {
 		// set our connection factory
 		connectionState.sync |ConnectionManagerPoolState state| {
 			state.connectionFactory = |->Connection| {
-				// FIXME make work with ALL versions of Fantom - see Butter
-				socket := ssl ? TcpSocket().upgradeTls : TcpSocket()
-				socket.options.connectTimeout = this.connectTimeout
-				socket.options.receiveTimeout = this.socketTimeout
+				socket := newSocket
 				return TcpConnection(socket).connect(IpAddr(mongoUrl.host), mongoUrl.port) {
 					it.mongoUrl = mongoUrl
 				}
 			} 
 		}
+	}
+	
+	** Retain backwards compatibility with all recent versions of Fantom.
+	private TcpSocket newSocket() {
+		socket	 := null as TcpSocket
+		oldSkool := Pod.find("inet").version < Version("1.0.77")
+		if (oldSkool) {
+			socket = ssl ? TcpSocket#.method("makeTls").call : TcpSocket#.method("make").call
+			socket->options->connectTimeout = this.connectTimeout
+			socket->options->receiveTimeout = this.socketTimeout
+		}
+		else {
+			config := Method.findMethod("inet::SocketConfig.cur").call->copy(Field.makeSetFunc([
+				Field.findField("inet::SocketConfig.connectTimeout") : this.connectTimeout,
+				Field.findField("inet::SocketConfig.receiveTimeout") : this.socketTimeout,
+			]))
+			socket = TcpSocket#.method("make").call(config)
+			if (ssl)
+				socket = socket->upgradeTls
+		}
+		return socket
 	}
 	
 	** (Advanced)
@@ -534,14 +552,14 @@ const class ConnectionManagerPooled : ConnectionManager {
 		connectionState.sync |ConnectionManagerPoolState state| {
 			conn := (TcpConnection) unsafeConnection.val
 			state.checkedOut.removeSame(conn)
-			
+
 			// make sure we don't save stale connections
 			if (!conn.isClosed)
 				// only keep the min pool size
 				if (conn.forceCloseOnCheckIn || state.checkedIn.size >= minPoolSize)
-					conn.close
+						conn.close
 				else
-					state.checkedIn.push(conn)
+				state.checkedIn.push(conn)
 		}
 	}
 	

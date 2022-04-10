@@ -50,8 +50,7 @@ class TcpConnection : Connection {
 
 	** Creates a new TCP Socket
 	new make(Bool ssl) {
-		// FIXME make work with ALL versions of Fantom - see Butter
-		this.socket = ssl ? TcpSocket().upgradeTls : TcpSocket()
+		this.socket = newSocket(ssl)
 	}
 	
 	This connect(IpAddr address := IpAddr("127.0.0.1"), Int port := 27017) {
@@ -179,6 +178,21 @@ class TcpConnection : Connection {
 		} catch (Err err) {
 			if (checked) throw err
 		}
+	}
+
+	
+	** Retain backwards compatibility with all recent versions of Fantom.
+	private static TcpSocket newSocket(Bool ssl) {
+		socket	 := null as TcpSocket
+		oldSkool := Pod.find("inet").version < Version("1.0.77")
+		if (oldSkool)
+			socket = ssl ? TcpSocket#.method("makeTls").call : TcpSocket#.method("make").call
+		else {
+			socket = TcpSocket#.method("make").call
+			if (ssl)
+				socket = socket->upgradeTls
+		}
+		return socket
 	}
 
 	// ---- Obj Overrides -------------------------------------------------------------------------
