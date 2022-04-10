@@ -1,7 +1,6 @@
 using concurrent::AtomicRef
 using afConcurrent::SynchronizedState
 using inet::IpAddr
-using inet::TcpSocket
 
 class HuntThePrimary {
 	private const Log	log				:= HuntThePrimary#.pod.log
@@ -70,9 +69,10 @@ class HuntThePrimary {
 		primaryPort		:= primary.port
 		
 		// remove user credentials and other crud from the url
-		mongoUrl := `mongodb://${primaryAddress}:${primaryPort}`
-		if (connectionUrl.pathStr.trimToNull != null)
-			mongoUrl = mongoUrl.plusSlash.plusName(connectionUrl.path.first) 
+		mongoUrl		:= `mongodb://${primaryAddress}:${primaryPort}`
+		databaseName	:= connectionUrl.path.first?.trimToNull
+		if (databaseName != null)
+			mongoUrl = mongoUrl.plusSlash.plusName(databaseName) 
 
 		log.info("Found a new Master at ${mongoUrl}")
 		
@@ -116,7 +116,7 @@ internal class HostDetails {
 			
 		} catch (Err err) {
 			// if a replica is down, simply log it and move onto the next one!
-			log.warn("Could not connect to Host ${address}:${port} :: ${err.typeof.name} - ${err.msg}")
+			log.warn("Could not connect to Host ${address}:${port} :: ${err.typeof.name} - ${err.msg}", err)
 
 		} finally conMgr.shutdown
 		

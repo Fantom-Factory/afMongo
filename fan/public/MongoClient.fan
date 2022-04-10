@@ -9,7 +9,7 @@ using inet
 ** 
 **   syntax: fantom
 ** 
-**   mongo := MongoClient(ActorPool(), "127.0.0.1", 27017)
+**   mongo := MongoClient(ActorPool(), `mongodb://localhost:27017`)
 **   data  := mongo.db("db").collection("col").findAll
 ** 
 ** Or using defaults and shorthand notation:
