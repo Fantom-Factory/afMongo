@@ -1,11 +1,11 @@
-using build
+using build::BuildPod
 
 class Build : BuildPod {
 
 	new make() {
 		podName = "afMongo"
 		summary = "A pure Fantom driver for MongoDB"
-		version = Version("1.2.0")
+		version = Version("1.1.14")
 
 		meta = [
 			"pod.dis"		: "Mongo",
@@ -14,13 +14,13 @@ class Build : BuildPod {
 		]
 
 		depends = [
-			"sys        1.0.77 - 1.0", 
-			"inet       1.0.77 - 1.0",
-			"util       1.0.77 - 1.0",	// for Random()
-			"concurrent 1.0.77 - 1.0",
+			"sys        1.0.69 - 1.0", 
+			"inet       1.0.69 - 1.0",
+			"util       1.0.69 - 1.0",	// for Random()
+			"concurrent 1.0.69 - 1.0",
 
 			// ---- Core ------------------------
-			"afConcurrent 1.0.26 - 1.0",
+			"afConcurrent 1.0.18 - 1.0",
 			"afBson       1.1.2  - 1.1"
 		]
 
