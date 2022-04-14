@@ -1,4 +1,4 @@
-using afBson::Code
+//using afBson::Code
 
 ** Represents a MongoDB database.
 const class Database {
@@ -114,30 +114,6 @@ const class Database {
 	@Operator
 	Collection get(Str collectionName) {
 		collection(collectionName)
-	}
-
-	// ---- Users ---------------------------------------------------------------------------------
-	
-	** Returns all the index names of this collection.
-	Str[] userNames() {
-		users := ([Str:Obj?][]) cmd.add("usersInfo", 1).run["users"]
-		return users.map |user->Str| { user["user"] }.sort
-	}
-	
-	** Returns a 'User' with the given name.
-	** 
-	** Note this just instantiates the Fantom object, it does not create anything in the database. 
-	User user(Str userName) {
-		User(conMgr, name, userName)
-	}
-	
-	** Drops ALL users from this database. *Be careful!*
-	** 
-	** Returns the number of users dropped.
-	**
-	** @see `http://docs.mongodb.org/manual/reference/command/dropAllUsersFromDatabase/`
-	Int dropAllUsers() {
-		cmd.add("dropAllUsersFromDatabase", 1).run["n"]->toInt
 	}
 	
 	// ---- Private Methods -----------------------------------------------------------------------
