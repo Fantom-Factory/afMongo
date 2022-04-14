@@ -107,11 +107,14 @@ internal class HostDetails {
 		conMgr		:= ConnectionManagerLocal(connection, ssl ? mongUrl.plusQuery(["ssl":"true"]) : mongUrl)
 		try {
 			connection.connect(IpAddr(address), port)
+			
+			// I have a feeling, the "hello" cmd only works via OP_MSG on Mongo v4.4 or later
+			// so lets keep it running the legacy "isMaster" until I migrate my prod databases
 			details := Database(conMgr, "admin").runCmd(["isMaster":1])
-//			details	:= Operation(connection).runCommand("admin", [:]{ordered=true}.add("isMaster",1))
 		
-			isPrimary 	= details["ismaster"]  == true			// '== true' to avoid NPEs if key doesn't exist
-			isSecondary	= details["secondary"] == true			// '== true' to avoid NPEs if key doesn't exist in standalone instances  
+			// "ismaster" for "isMaster" cmds, and "isWritablePrimary" for "hello" cmds.
+			isPrimary 	= details["ismaster"]  == true || details["isWritablePrimary"] == true
+			isSecondary	= details["secondary"] == true
 			primary		= details["primary"]					// standalone instances don't have primary information
 			hosts		= details["hosts"] ?: Obj#.emptyList	// standalone instances don't have hosts information
 			

@@ -1,15 +1,9 @@
 using util::Random
 
-** See [Driver Authentication]`https://github.com/mongodb/specifications/blob/master/source/auth/auth.rst`
-const mixin MongoAuthMech {
-	
-	abstract Void authenticate(Connection conn, MongoCreds creds)
-	
-}
-
 ** Mongo Credentials used to authenticate connections.
 ** 
 ** See `https://github.com/mongodb/specifications/blob/master/source/auth/auth.rst`.
+@NoDoc	// advanced use only
 const class MongoCreds {
 	** Maybe one of:
 	**  - 'SCRAM-SHA-1`
@@ -33,6 +27,14 @@ const class MongoCreds {
 		if (this.props == null)
 			this.props = Str:Obj?[:]
 	}
+}
+
+** See [Driver Authentication]`https://github.com/mongodb/specifications/blob/master/source/auth/auth.rst`
+@NoDoc	// advanced use only
+const mixin MongoAuthMech {
+	
+	abstract Void authenticate(Connection conn, MongoCreds creds)
+	
 }
 
 internal const class MongoAuthScramSha1 : MongoAuthMech {
