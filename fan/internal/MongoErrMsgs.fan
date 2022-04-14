@@ -81,42 +81,6 @@ internal const class MongoErrMsgs {
 		"Errors ${what} '${colName}' - " + ((errs.size == 1) ? errs.first["errmsg"].toStr : errs.toStr)
 	}
 	
-	static Str connectionManager_badScheme(Uri mongoUrl) {
-		"Mongo connection URIs must start with the scheme 'mongodb://' - ${mongoUrl}"
-	}
-	
-	static Str connectionManager_badUsernamePasswordCombo(Str? username, Str? password, Uri mongoUrl) {
-		"Either both the username and password should be provided, or neither. username=$username, password=$password, url=$mongoUrl"
-	}
-	
-	static Str connectionManager_badInt(Str what, Str min, Int val, Uri mongoUrl) {
-		"$what must be greater than $min! val=$val, uri=$mongoUrl"
-	}
-	
-	static Str connectionManager_badMinMaxConnectionSize(Int min, Int max, Uri mongoUrl) {
-		"Minimum number of connections must not be greater than the maximum! min=$min, max=$max, url=$mongoUrl"
-	}
-	
-	static Str connectionManager_notStarted() {
-		"ConnectionManager has not started"
-	}
-	
-	static Str connectionManager_couldNotFindPrimary(Uri mongoUrl) {
-		"Could not find the primary node with RelicaSet connection URL ${mongoUrl}"
-	}
-	
-	static Str connectionManager_noConnectionInThread() {
-		"No connection is available in this thread!?"
-	}
-	
-	static Str connection_couldNot(Str ipAddr, Int port, Str errMsg) {
-		"Could not connect to MongoDB at `${ipAddr}:${port}` - ${errMsg}"
-	}
-	
-	static Str connection_unknownAuthMechanism(Str mechanism, Str[] supportedMechanisms) {
-		"Unknown authentication mechanism '${mechanism}', only the following are currently supported: " + supportedMechanisms.join(", ")
-	}
-	
 	static Str stripSys(Str str) {
 		str.replace("sys::", "")
 	}

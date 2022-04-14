@@ -49,7 +49,7 @@ class TcpConnection : Connection {
 			return this
 		}
 		catch (Err err)
-			throw IOErr(MongoErrMsgs.connection_couldNot(address.toStr, port, err.msg), err)		
+			throw IOErr("Could not connect to MongoDB at `${address}:${port}` - ${err.msg}", err)
 	}
 	
 	override InStream	in()		{ socket.in			}

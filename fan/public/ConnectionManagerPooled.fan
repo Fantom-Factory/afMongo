@@ -158,7 +158,7 @@ const class ConnectionManagerPooled : ConnectionManager {
 	** @see `http://docs.mongodb.org/manual/reference/connection-string/`
 	new makeFromUrl(ActorPool actorPool, Uri connectionUrl, |This|? f := null) {
 		if (connectionUrl.scheme != "mongodb")
-			throw ArgErr(MongoErrMsgs.connectionManager_badScheme(connectionUrl))
+			throw ArgErr("Mongo connection URIs must start with the scheme 'mongodb://' - ${connectionUrl}")
 
 		mongoUrl				:= connectionUrl
 		this.connectionUrl		 = connectionUrl
@@ -178,19 +178,19 @@ const class ConnectionManagerPooled : ConnectionManager {
 		authMechProps			:= mongoUrl.query["authMechanismProperties"]?.trimToNull
 
 		if (minPoolSize < 0)
-			throw ArgErr(MongoErrMsgs.connectionManager_badInt("minPoolSize", "zero", minPoolSize, mongoUrl))
+			throw ArgErr(errMsg_badInt("minPoolSize", "zero", minPoolSize, mongoUrl))
 		if (maxPoolSize < 1)
-			throw ArgErr(MongoErrMsgs.connectionManager_badInt("maxPoolSize", "one", maxPoolSize, mongoUrl))
+			throw ArgErr(errMsg_badInt("maxPoolSize", "one", maxPoolSize, mongoUrl))
 		if (minPoolSize > maxPoolSize)
-			throw ArgErr(MongoErrMsgs.connectionManager_badMinMaxConnectionSize(minPoolSize, maxPoolSize, mongoUrl))		
+			throw ArgErr(errMsg_badMinMaxConnectionSize(minPoolSize, maxPoolSize, mongoUrl))		
 		if (waitQueueTimeoutMs != null && waitQueueTimeoutMs < 0)
-			throw ArgErr(MongoErrMsgs.connectionManager_badInt("waitQueueTimeoutMS", "zero", waitQueueTimeoutMs, mongoUrl))
+			throw ArgErr(errMsg_badInt("waitQueueTimeoutMS", "zero", waitQueueTimeoutMs, mongoUrl))
 		if (connectTimeoutMs != null && connectTimeoutMs < 0)
-			throw ArgErr(MongoErrMsgs.connectionManager_badInt("connectTimeoutMS", "zero", connectTimeoutMs, mongoUrl))
+			throw ArgErr(errMsg_badInt("connectTimeoutMS", "zero", connectTimeoutMs, mongoUrl))
 		if (socketTimeoutMs != null && socketTimeoutMs < 0)
-			throw ArgErr(MongoErrMsgs.connectionManager_badInt("socketTimeoutMS", "zero", socketTimeoutMs, mongoUrl))
+			throw ArgErr(errMsg_badInt("socketTimeoutMS", "zero", socketTimeoutMs, mongoUrl))
 		if (wtimeoutMs != null && wtimeoutMs < 0)
-			throw ArgErr(MongoErrMsgs.connectionManager_badInt("wtimeoutMS", "zero", wtimeoutMs, mongoUrl))
+			throw ArgErr(errMsg_badInt("wtimeoutMS", "zero", wtimeoutMs, mongoUrl))
 
 		if (waitQueueTimeoutMs != null)
 			waitQueueTimeout = (waitQueueTimeoutMs * 1_000_000).toDuration
@@ -205,7 +205,7 @@ const class ConnectionManagerPooled : ConnectionManager {
 		password := mongoUrl.userInfo?.split(':')?.getSafe(1)?.trimToNull
 		
 		if ((username == null).xor(password == null))
-			throw ArgErr(MongoErrMsgs.connectionManager_badUsernamePasswordCombo(username, password, mongoUrl))
+			throw ArgErr(errMsg_badUsernamePasswordCombo(username, password, mongoUrl))
 
 		if (database != null && database.startsWith("/"))
 			database = database[1..-1].trimToNull
@@ -310,7 +310,7 @@ const class ConnectionManagerPooled : ConnectionManager {
 	** All leased connections are authenticated against the default credentials.
 	override Obj? leaseConnection(|Connection->Obj?| c) {
 		if (!startupLock.locked)
-			throw MongoErr(MongoErrMsgs.connectionManager_notStarted)
+			throw MongoErr("ConnectionManager has not started")
 		shutdownLock.check
 
 		connection := checkOut
@@ -639,6 +639,22 @@ const class ConnectionManagerPooled : ConnectionManager {
 		}
 		
 		return result
+	}
+	
+	private static Str errMsg_badInt(Str what, Str min, Int val, Uri mongoUrl) {
+		"$what must be greater than $min! val=$val, uri=$mongoUrl"
+	}
+	
+	private static Str errMsg_badMinMaxConnectionSize(Int min, Int max, Uri mongoUrl) {
+		"Minimum number of connections must not be greater than the maximum! min=$min, max=$max, url=$mongoUrl"
+	}
+		
+	private static Str errMsg_unknownAuthMechanism(Str mechanism, Str[] supportedMechanisms) {
+		"Unknown authentication mechanism '${mechanism}', only the following are currently supported: " + supportedMechanisms.join(", ")
+	}
+	
+	private static Str errMsg_badUsernamePasswordCombo(Str? username, Str? password, Uri mongoUrl) {
+		"Either both the username and password should be provided, or neither. username=$username, password=$password, url=$mongoUrl"
 	}
 }
 

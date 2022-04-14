@@ -18,15 +18,15 @@ internal class TestConMgrPooled : MongoTest {
 	}
 	
 	Void testMongoUriUserCreds() {		
-		verifyErrMsg(ArgErr#, MongoErrMsgs.connectionManager_badScheme(`dude://wotsup?`)) {
+		verifyErrMsg(ArgErr#, "Mongo connection URIs must start with the scheme 'mongodb://' - dude://wotsup?") {
 			conMgr := ConnectionManagerPooled(pool, `dude://wotsup?`)
 		}
 		
-		verifyErrMsg(ArgErr#, MongoErrMsgs.connectionManager_badUsernamePasswordCombo("user", "null", `mongodb://user@wotever`)) {
+		verifyErrMsg(ArgErr#, "Either both the username and password should be provided, or neither. username=user, password=null, url=mongodb://user@wotever") {
 			conMgr := ConnectionManagerPooled(pool, `mongodb://user@wotever`)
 		}
 
-		verifyErrMsg(ArgErr#, MongoErrMsgs.connectionManager_badUsernamePasswordCombo("null", "pass", `mongodb://:pass@wotever`)) {
+		verifyErrMsg(ArgErr#, "Either both the username and password should be provided, or neither. username=null, password=pass, url=mongodb://:pass@wotever") {
 			conMgr := ConnectionManagerPooled(pool, `mongodb://:pass@wotever`)
 		}
 
@@ -53,19 +53,19 @@ internal class TestConMgrPooled : MongoTest {
 	}
 		
 	Void testMongoUriPoolOptions() {
-		verifyErrMsg(ArgErr#, MongoErrMsgs.connectionManager_badInt("minPoolSize", "zero", -1, `mongodb://wotever?minPoolSize=-1`)) {
+		verifyErrMsg(ArgErr#, "minPoolSize must be greater than zero! val=-1, uri=mongodb://wotever?minPoolSize=-1") {
 			conMgr := ConnectionManagerPooled(pool, `mongodb://wotever?minPoolSize=-1`)
 		}
 		
-		verifyErrMsg(ArgErr#, MongoErrMsgs.connectionManager_badInt("maxPoolSize", "one", 0, `mongodb://wotever?maxPoolSize=0`)) {
+		verifyErrMsg(ArgErr#, "maxPoolSize must be greater than one! val=0, uri=mongodb://wotever?maxPoolSize=0") {
 			conMgr := ConnectionManagerPooled(pool, `mongodb://wotever?maxPoolSize=0`)
 		}
 		
-		verifyErrMsg(ArgErr#, MongoErrMsgs.connectionManager_badMinMaxConnectionSize(2, 1, `mongodb://wotever?minPoolSize=2&maxPoolSize=1`)) {
+		verifyErrMsg(ArgErr#, "Minimum number of connections must not be greater than the maximum! min=2, max=1, url=mongodb://wotever?minPoolSize=2&maxPoolSize=1") {
 			conMgr := ConnectionManagerPooled(pool, `mongodb://wotever?minPoolSize=2&maxPoolSize=1`)
 		}
 		
-		verifyErrMsg(ArgErr#, MongoErrMsgs.connectionManager_badInt("waitQueueTimeoutMS", "zero", -1, `mongodb://wotever?waitQueueTimeoutMS=-1`)) {
+		verifyErrMsg(ArgErr#, "waitQueueTimeoutMS must be greater than zero! val=-1, uri=mongodb://wotever?waitQueueTimeoutMS=-1") {
 			conMgr := ConnectionManagerPooled(pool, `mongodb://wotever?waitQueueTimeoutMS=-1`)
 		}
 
@@ -77,11 +77,11 @@ internal class TestConMgrPooled : MongoTest {
 	}
 
 	Void testMongoUriConnectionOptions() {
-		verifyErrMsg(ArgErr#, MongoErrMsgs.connectionManager_badInt("connectTimeoutMS", "zero", -1, `mongodb://wotever?connectTimeoutMS=-1`)) {
+		verifyErrMsg(ArgErr#, "connectTimeoutMS must be greater than zero! val=-1, uri=mongodb://wotever?connectTimeoutMS=-1") {
 			conMgr := ConnectionManagerPooled(pool, `mongodb://wotever?connectTimeoutMS=-1`)
 		}
 		
-		verifyErrMsg(ArgErr#, MongoErrMsgs.connectionManager_badInt("socketTimeoutMS", "zero", -1, `mongodb://wotever?socketTimeoutMS=-1`)) {
+		verifyErrMsg(ArgErr#, "socketTimeoutMS must be greater than zero! val=-1, uri=mongodb://wotever?socketTimeoutMS=-1") {
 			conMgr := ConnectionManagerPooled(pool, `mongodb://wotever?socketTimeoutMS=-1`)
 		}
 		

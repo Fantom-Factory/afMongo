@@ -63,7 +63,7 @@ class HuntThePrimary {
 
 		// Bugger!
 		if (primary == null)
-			throw MongoErr(MongoErrMsgs.connectionManager_couldNotFindPrimary(connectionUrl))
+			throw MongoErr("Could not find the primary node with RelicaSet connection URL ${connectionUrl}")
 
 		primaryAddress	:= primary.address
 		primaryPort		:= primary.port
@@ -107,7 +107,8 @@ internal class HostDetails {
 		conMgr		:= ConnectionManagerLocal(connection, ssl ? mongUrl.plusQuery(["ssl":"true"]) : mongUrl)
 		try {
 			connection.connect(IpAddr(address), port)
-			details := Database(conMgr, "admin").runCmd(["ismaster":1])
+			details := Database(conMgr, "admin").runCmd(["isMaster":1])
+//			details	:= Operation(connection).runCommand("admin", [:]{ordered=true}.add("isMaster",1))
 		
 			isPrimary 	= details["ismaster"]  == true			// '== true' to avoid NPEs if key doesn't exist
 			isSecondary	= details["secondary"] == true			// '== true' to avoid NPEs if key doesn't exist in standalone instances  
