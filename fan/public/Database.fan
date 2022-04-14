@@ -38,22 +38,6 @@ const class Database {
 		this.cmd("cmd").addAll(cmd).run
 	}
 
-	** Evaluates a JavaScript function on the database server.
-	**  
-	**   syntax: fantom
-	** 
-	**   scope := ["y":2]
-	**   func  := Code("function (x) { return x + y; }", scope)
-	**   xy    := db.eval(func, [3f])  // --> 5.0
-	** 
-	** @see `http://docs.mongodb.org/manual/reference/command/eval/`
-	Obj? eval(Code func, Obj?[] args := [,], Bool noLock := false) {
-		cmd	.add("eval",	func)
-			.add("args", 	args)
-			.add("nolock", 	noLock)
-			.run["retval"]
-	}
-
 	** Executes the given function passing in a database (connection) that has been authenticated 
 	** with the given user. Within the function, the authenticated database may be used as often 
 	** as you wish.
