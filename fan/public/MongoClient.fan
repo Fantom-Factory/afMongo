@@ -50,38 +50,17 @@ const class MongoClient {
 		runAdminCmd(["listDatabases": 1])["databases"]
 	}
 
-	** Returns a list of database commands. 
-	** 
-	** @see `http://docs.mongodb.org/manual/reference/command/listCommands/`
-	[Str:Obj?] listCommands() {
-		runAdminCmd(["listCommands": 1])["commands"]
-	}
-
 	** Returns a build summary
 	** 
 	** @see `http://docs.mongodb.org/manual/reference/command/buildInfo/`
 	[Str:Obj?] buildInfo() {
 		runAdminCmd(["buildInfo": 1])
 	}
-
-	** Returns info about the underlying MongoDB system.
-	** 
-	** @see `http://docs.mongodb.org/manual/reference/command/hostInfo/`
-	[Str:Obj?] hostInfo() {
-		runAdminCmd(["hostInfo": 1])
-	}	
-
-	** Returns an overview of the database process’s state.
-	** 
-	** @see `http://docs.mongodb.org/manual/reference/command/serverStatus/`
-	[Str:Obj?] serverStatus() {
-		runAdminCmd(["serverStatus": 1])
-	}
 	
 	// ---- Database ------------------------------------------------------------------------------
 
 	** Returns all the database names on the MongoDB instance. 
-	Str[] databaseNames() {
+	Str[] listDatabaseNames() {
 		listDatabases.map |db->Str| { db["name"] }.sort
 	}
 
@@ -115,7 +94,7 @@ const class MongoClient {
 	private Void startup() {
 		conMgr.startup
 		
-		minVersion	 := Version("2.6.0")
+		minVersion	 := Version("3.6.0")
 		buildVersion := buildInfo["version"]
 		mongoVersion := Version.fromStr(buildVersion, false)
 		banner		 := logBanner.val ? "\n${logo}" : "" 
@@ -131,7 +110,7 @@ const class MongoClient {
 	
 	private Str logo() {
 		"
-		      Alien-Factory     
+		      Fantom-Factory     
 		  _____ ___ ___ ___ ___ 
 		 |     | . |   | . | . |
 		 |_|_|_|___|_|_|_  |___|
