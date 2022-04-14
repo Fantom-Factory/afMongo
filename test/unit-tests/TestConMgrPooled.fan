@@ -31,18 +31,24 @@ internal class TestConMgrPooled : MongoTest {
 		}
 
 		conMgr := ConnectionManagerPooled(pool, `mongodb://user:pass@wotever/puppies`)
-		verifyEq(conMgr.defaultDatabase, "puppies")
-		verifyEq(conMgr.defaultUsername, "user")
-		verifyEq(conMgr.defaultPassword, "pass")
+		verifyEq(conMgr.mongoCreds.source, "puppies")
+		verifyEq(conMgr.mongoCreds.username, "user")
+		verifyEq(conMgr.mongoCreds.password, "pass")
 
-		conMgr = ConnectionManagerPooled(pool, `mongodb://user:pass@wotever`)
-		verifyEq(conMgr.defaultDatabase, "admin")
+		verify(logs.isEmpty)
+	}	
 
-		conMgr = ConnectionManagerPooled(pool, `mongodb://user:pass@wotever/`)
-		verifyEq(conMgr.defaultDatabase, "admin")
+	Void testMongoUriAuthMech() {		
+		conMgr := ConnectionManagerPooled(pool, `mongodb://user:pass@wotever/puppies?authSource=kinesis&authMechanism=pacificRim&authMechanismProperties=cannon:Plasmacaster,,,turbine:NuclearVortex`)
+		verifyEq(conMgr.mongoCreds.mechanism,	"pacificRim")
+		verifyEq(conMgr.mongoCreds.source, 		"kinesis")
+		verifyEq(conMgr.mongoCreds.username,	"user")
+		verifyEq(conMgr.mongoCreds.password,	"pass")
+		verifyEq(conMgr.mongoCreds.props,		Str:Obj?[
+			"cannon"	: "Plasmacaster",
+			"turbine"	: "NuclearVortex",
+		])
 
-		conMgr = ConnectionManagerPooled(pool, `mongodb://wotever/puppies`)
-		verifyEq(conMgr.defaultDatabase, null)
 		verify(logs.isEmpty)
 	}
 		
@@ -93,11 +99,11 @@ internal class TestConMgrPooled : MongoTest {
 
 	Void testMongoLabConnectionStr() {
 		conMgr	:= ConnectionManagerPooled(pool, `mongodb://user:pass@ds999999-a0.mlab.com:55555,@ds999999-a1.mlab.com:44444/stackhub?replicaSet=rs-ds059296`)
-		verifyEq(conMgr.defaultDatabase,	"stackhub")
-		verifyEq(conMgr.defaultUsername,	"user")
-		verifyEq(conMgr.defaultPassword,	"pass")
-		verifyEq(conMgr.connectionUrl.host,	"ds999999-a0.mlab.com:55555,@ds999999-a1.mlab.com")
-		verifyEq(conMgr.connectionUrl.port,	44444)
+		verifyEq(conMgr.mongoCreds.source,		"stackhub")
+		verifyEq(conMgr.mongoCreds.username,	"user")
+		verifyEq(conMgr.mongoCreds.password,	"pass")
+		verifyEq(conMgr.connectionUrl.host,		"ds999999-a0.mlab.com:55555,@ds999999-a1.mlab.com")
+		verifyEq(conMgr.connectionUrl.port,		44444)
 
 		hg := conMgr.connectionUrl.host.split(',')
 		hostList := (HostDetails[]) hg.map { HostDetails(it, false) }

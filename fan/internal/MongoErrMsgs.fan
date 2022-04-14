@@ -117,14 +117,6 @@ internal const class MongoErrMsgs {
 		"Unknown authentication mechanism '${mechanism}', only the following are currently supported: " + supportedMechanisms.join(", ")
 	}
 	
-	static Str connection_invalidServerSignature(Str client, Str server) {
-		"Server sent invalid SCRAM signature '${server}' - was expecting '${client}'"
-	}
-	
-	static Str connection_scramNotDone(Str serverResponse) {
-		"SCRAM authentication did not complete - ${serverResponse}"
-	}
-	
 	static Str stripSys(Str str) {
 		str.replace("sys::", "")
 	}

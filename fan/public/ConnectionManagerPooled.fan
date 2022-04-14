@@ -57,20 +57,8 @@ const class ConnectionManagerPooled : ConnectionManager {
 	**  - write operations need not be committed to the journal.
 	override const Str:Obj? writeConcern := ["w": 1, "wtimeout": 0, "j": false]
 	
-	** The default database connections are authenticated against.
-	** 
-	** Set via the `connectionUrl`.
-	const Str?	defaultDatabase
-	
-	** The default username connections are authenticated with.
-	** 
-	** Set via the `connectionUrl`.
-	const Str?	defaultUsername
-	
-	** The default password connections are authenticated with.
-	** 
-	** Set via the `connectionUrl`.
-	const Str?	defaultPassword
+	** The credentials (if any) used to authenticate connections against MongoDB. 
+	override const MongoCreds? mongoCreds
 	
 	** The original URL this 'ConnectionManager' was configured with.
 	** May contain authentication details.
@@ -134,9 +122,11 @@ const class ConnectionManagerPooled : ConnectionManager {
 	** Defaults to 'false'. 
 	const Bool ssl := false
 	
-	@NoDoc
-	override Str? authSource() { defaultDatabase }
-
+	** The auth mechanisms used for authenticating connections.
+	const Str:MongoAuthMech	authMechs		:= [
+		"SCRAM-SHA-1"	: MongoAuthScramSha1(),
+	]
+	
 	// used to test the backoff func
 	internal const |Range->Int|	randomFunc	:= |Range r->Int| { r.random }
 	internal const |Duration| 	sleepFunc	:= |Duration napTime| { Actor.sleep(napTime) }
@@ -147,17 +137,19 @@ const class ConnectionManagerPooled : ConnectionManager {
 	**   conMgr := ConnectionManagerPooled(ActorPool(), `mongodb://localhost:27017`)
 	** 
 	** The following URL options are supported:
-	**  - [minPoolSize]`https://docs.mongodb.com/manual/reference/connection-string/#urioption.minPoolSize`
-	**  - [maxPoolSize]`https://docs.mongodb.com/manual/reference/connection-string/#urioption.maxPoolSize`
-	**  - [waitQueueTimeoutMS]`https://docs.mongodb.com/manual/reference/connection-string/#urioption.waitQueueTimeoutMS`
-	**  - [connectTimeoutMS]`https://docs.mongodb.com/manual/reference/connection-string/#urioption.connectTimeoutMS`
-	**  - [socketTimeoutMS]`https://docs.mongodb.com/manual/reference/connection-string/#urioption.socketTimeoutMS`
-	**  - [w]`https://docs.mongodb.com/manual/reference/connection-string/#urioption.w`
-	**  - [wtimeoutMS]`https://docs.mongodb.com/manual/reference/connection-string/#urioption.wtimeoutMS`
-	**  - [journal]`https://docs.mongodb.com/manual/reference/connection-string/#urioption.journal`
-	**  - [ssl]`https://docs.mongodb.com/manual/reference/connection-string/#urioption.ssl`
-	**  - [tls]`https://docs.mongodb.com/manual/reference/connection-string/#urioption.tls`
-	**  - [authSource]`https://docs.mongodb.com/manual/reference/connection-string/#urioption.authSource`
+	**  - 'minPoolSize'
+	**  - 'maxPoolSize'
+	**  - 'waitQueueTimeoutMS'
+	**  - 'connectTimeoutMS'
+	**  - 'socketTimeoutMS'
+	**  - 'w'
+	**  - 'wtimeoutMS'
+	**  - 'journal'
+	**  - 'ssl'
+	**  - 'tls'
+	**  - 'authSource'
+	**  - 'authMechanism'
+	**  - 'authMechanismProperties'
 	** 
 	** URL examples:
 	**  - 'mongodb://username:password@example1.com/database?maxPoolSize=50'
@@ -180,7 +172,10 @@ const class ConnectionManagerPooled : ConnectionManager {
 		w						:= mongoUrl.query["w"]
 		wtimeoutMs		 		:= mongoUrl.query["wtimeoutMS"]?.toInt
 		journal			 		:= mongoUrl.query["journal"]?.toBool
-		ssl				 		 =(mongoUrl.query["tls"]?.toBool ?: mongoUrl.query["ssl"]?.toBool) ?: false
+		this.ssl		 		 =(mongoUrl.query["tls"]?.toBool ?: mongoUrl.query["ssl"]?.toBool) ?: false
+		authSource				:= mongoUrl.query["authSource"]?.trimToNull
+		authMech				:= mongoUrl.query["authMechanism"]?.trimToNull
+		authMechProps			:= mongoUrl.query["authMechanismProperties"]?.trimToNull
 
 		if (minPoolSize < 0)
 			throw ArgErr(MongoErrMsgs.connectionManager_badInt("minPoolSize", "zero", minPoolSize, mongoUrl))
@@ -205,7 +200,7 @@ const class ConnectionManagerPooled : ConnectionManager {
 			socketTimeout = (socketTimeoutMs * 1_000_000).toDuration
 
 		// authSource trumps defaultauthdb 
-		database := mongoUrl.query["authSource"]?.trimToNull ?: mongoUrl.pathStr.trimToNull
+		database := authSource ?: mongoUrl.pathStr.trimToNull
 		username := mongoUrl.userInfo?.split(':')?.getSafe(0)?.trimToNull
 		password := mongoUrl.userInfo?.split(':')?.getSafe(1)?.trimToNull
 		
@@ -219,10 +214,38 @@ const class ConnectionManagerPooled : ConnectionManager {
 		if (username == null && password == null)	// a default database has no meaning without credentials
 			database = null
 		
-		defaultDatabase = database
-		defaultUsername = username
-		defaultPassword = password
+		if (authMech != null) {
+			props	:= Str:Obj?[:] { it.ordered = true }
+			authMechProps?.split(',')?.each |pair| {
+				if (pair.size > 0) {
+					key := pair
+					val := null
+					idx := pair.index(":")
+					if (idx != null) {
+						key = pair[0..<idx]
+						val = pair[idx+1..-1]
+					}
+					props[key] = val
+				}
+			}
+			this.mongoCreds	= MongoCreds {
+				it.mechanism	= authMech
+				it.source		= database
+				it.username		= username
+				it.password		= password
+				it.props		= props
+			}
+		}
 		
+		// set some default creds
+		if (this.mongoCreds == null && username != null && password != null)
+			this.mongoCreds	= MongoCreds {
+				it.mechanism	= "SCRAM-SHA-1"
+				it.source		= database
+				it.username		= username
+				it.password		= password
+			}
+			
 		writeConcern := Str:Obj?[:] { it.ordered=true }.add("w", 1).add("wtimeout", 0).add("j", false)
 		if (w != null)
 			writeConcern["w"] = Int.fromStr(w, 10, false) != null ? w.toInt : w
@@ -244,6 +267,8 @@ const class ConnectionManagerPooled : ConnectionManager {
 		query.remove("ssl")
 		query.remove("tls")
 		query.remove("authSource")
+		query.remove("authMechanism")
+		query.remove("authMechanismProperties")
 		query.each |val, key| {
 			log.warn("Unknown option in Mongo connection URL: ${key}=${val} - ${mongoUrl}")
 		}
@@ -538,11 +563,12 @@ const class ConnectionManagerPooled : ConnectionManager {
 			throw ioErr ?: MongoErr("Argh! Can not connect to Master! All ${maxPoolSize} are in use!")
 		}
 		
-		// ensure all connections that are initially leased are authenticated as the default user
-		// specifically do the check here so you can always *brute force* an authentication on a connection
-		if (defaultDatabase != null && connection.authentications[defaultDatabase] != defaultUsername)
-			connection.authenticate(defaultDatabase, defaultUsername, defaultPassword)
-		
+		// ensure all connections are authenticated
+		if (mongoCreds != null && connection.isAuthenticated == false) {
+			authMechs[mongoCreds.mechanism].authenticate(connection, mongoCreds)
+			connection.isAuthenticated = true
+		}
+	
 		return connection
 	}
 	

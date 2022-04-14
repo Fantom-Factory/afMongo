@@ -10,6 +10,9 @@ const mixin ConnectionManager {
 	** It *should not* contain any user credentials and *should* be safe to log. 
 	abstract Uri? mongoUrl()
 	
+	** The credentials (if any) used to authenticate connections against MongoDB.
+	abstract MongoCreds? mongoCreds()
+	
 	** The default write concern that all write operations use if none supplied.
 	** 
 	** Defaults to '["w": 1, "wtimeout": 0, "j": false]'
@@ -18,10 +21,6 @@ const mixin ConnectionManager {
 	**  - write operations need not be committed to the journal.
 	abstract Str:Obj? writeConcern()
 
-	** The name of the database users are authenticated against.
-	** If null, users are authenticated against the current database.
-	abstract Str? authSource()
-	
 	** Makes a connection available to the given function.
 	** 
 	** What ever is returned from the func is returned from the method.

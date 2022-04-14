@@ -37,36 +37,6 @@ const class Database {
 	[Str:Obj?] runCmd(Str:Obj? cmd) {
 		this.cmd("cmd").addAll(cmd).run
 	}
-
-	** Executes the given function passing in a database (connection) that has been authenticated 
-	** with the given user. Within the function, the authenticated database may be used as often 
-	** as you wish.
-	** 
-	**   syntax: fantom
-	** 
-	**   data := db.authenticate("ZeroCool", "password") |authDb -> Obj?| {
-	** 
-	**       return authDb["top-secret"].findAll
-	**   }
-	** 
-	** All Mongo objects ( 'Collection', 'Index', 'User', etc...) created from the authenticated
-	** database will inherit the user credentials.
-	Obj? authenticate(Str userName, Str password, |Database db->Obj?| func) {
-		// run outside the closure so we only ever lease one connection at a time
-		return conMgr.leaseConnection |connection->Obj?| {
-			connection.authenticate(conMgr.authSource ?: name, userName, password)
-			try {
-				cm := ConnectionManagerLocal(connection, conMgr.mongoUrl)
-				db := Database(cm, name)
-				return func.call(db)
-			
-			} finally {
-				// don't interfere with any other exception in progress
-				// the connection is closed on Err anyway, so nothing to worry about if this fails.
-				connection.logout(name, false)
-			}
-		}
-	}
 	
 	// ---- Diagnostics  --------------------------------------------------------------------------
 	
