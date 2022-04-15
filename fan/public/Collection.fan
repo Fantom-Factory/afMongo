@@ -251,7 +251,7 @@ const class Collection {
 	** 
 	** @see `http://docs.mongodb.org/manual/reference/command/insert/`
 	[Str:Obj?] insertMulti([Str:Obj?][] inserts, Bool? ordered := null, [Str:Obj?]? writeConcern := null) {
-		cmd("insert")
+		cmd()
 			.add("insert",			name)
 			.add("documents",		inserts)
 			.add("ordered",			ordered)
@@ -277,7 +277,7 @@ const class Collection {
 	** 	
 	** @see `http://docs.mongodb.org/manual/reference/command/delete/`
 	[Str:Obj?] deleteMulti([Str:Obj?][] deletes, Bool? ordered := null, [Str:Obj?]? writeConcern := null) {
-		cmd("delete")
+		cmd()
 			.add("delete",			name)
 			.add("deletes",			deletes)
 			.add("ordered",			ordered)
@@ -320,7 +320,7 @@ const class Collection {
 	** 
 	** @see `http://docs.mongodb.org/manual/reference/command/update/`
 	[Str:Obj?] updateMulti([Str:Obj?][] updates, Bool? ordered := null, [Str:Obj?]? writeConcern := null) {
-		cmd("update")
+		cmd()
 			.add("update",			name)
 			.add("updates",			updates)
 			.add("ordered",			ordered)
@@ -536,7 +536,7 @@ const class Collection {
 
 	// ---- Private Methods -----------------------------------------------------------------------
 	
-	private MongoCmd cmd(Str? action := null) {
-		MongoCmd(conMgr, namespace, action)
+	private MongoCmd cmd() {
+		MongoCmd(conMgr, namespace.databaseName)
 	}	
 }
