@@ -393,79 +393,10 @@ const class Collection {
 		cmd.add("count", name).run["n"]->toInt
 	}
 
-	** Finds the distinct values for a specified field.
-	** 
-	** @see `http://docs.mongodb.org/manual/reference/command/distinct/`
-	Obj[] distinct(Str field, [Str:Obj?]? query := null) {
-		cmd	.add("distinct",	name)
-			.add("key", 		field)
-			.add("query",		query)
-			.run["values"]
-	}
-	
-	** Groups documents by the specified key and performs simple aggregation functions. 
-	** 
-	** 'key' must either be a list of field names ( 'Str[]' ) or a function that creates a 
-	** "key object" ( 'Str' ).  
-	**
-	** The 'options' parameter is merged with the Mongo command and may contain the following:
-	** 
-	**   table:
-	**   Options   Type  Desc
-	**   -------   ----  ----
-	**   cond      Doc   Determines which documents in the collection to process.
-	**   finalize  Func  Runs on each item in the result set before the final value is returned.
-	**  
-	** @see `http://docs.mongodb.org/manual/reference/command/group/`
-	[Str:Obj?][] group(Obj key, [Str:Obj?] initial, Code reduceFunc, [Str:Obj?]? options := null) {
-		keydoc := ([Str:Obj?]?) null; keyf := (Str?) null
-		if (key is List)  { keydoc  = cmd.query.addList(key); keydoc.keys.each { keydoc[it] = 1 } }
-		if (key is Str)		keyf 	= key
-		if (keydoc == null && keyf == null)
-			throw ArgErr(MongoErrMsgs.collection_badKeyGroup(key))
-	
-		group := cmd
-			.add("ns",			name)
-			.add("key",			keydoc)
-			.add("\$keyf",		keyf)
-			.add("initial",		initial)
-			.add("\$reduce",	reduceFunc)
-			.addAll(options)
-		
-		return cmd.add("group", group.query).run["retval"]
-	}
-	
-	** Run a map-reduce aggregation operation over the collection.
-	** 
-	
-	** Performs an aggregation operation using a sequence of stage-based manipulations.
-	** 
-	** The 'options' parameter is merged with the Mongo command and may contain the following:
-	**
-	**   table: 
-	**   Options       Type  Desc  
-	**   -------       ----  ----
-	**   explain       Bool  Returns pipeline processing information.
-	**   allowDiskUse  Bool  If 'true' allows temp data to be stored on disk.
-	**   cursor        Doc   Controls the cursor creation.
-	** 
 	** @see 
 	**  - `http://docs.mongodb.org/manual/reference/command/aggregate/`
 	**  - `http://docs.mongodb.org/manual/reference/aggregation/`
-	@Deprecated { msg="Removed in MongoDB v3.6.x - instead use: aggregateCursor(pipeline) |cur| { cur.toList }" }
-	[Str:Obj?][] aggregate([Str:Obj?][] pipeline, [Str:Obj?]? options := null) {
-		cmd	.add("aggregate",	name)
-			.add("pipeline", 	pipeline)
-			.addAll(options)
-			.run["result"]
-	}
-
-	** Same as 'aggregate()' but returns a cursor to iterate over the results.
-	** 
-	** @see 
-	**  - `http://docs.mongodb.org/manual/reference/command/aggregate/`
-	**  - `http://docs.mongodb.org/manual/reference/aggregation/`
-	Obj? aggregateCursor([Str:Obj?][] pipeline, |Cursor->Obj?| func) {
+	Obj? aggregate([Str:Obj?][] pipeline, |Cursor->Obj?| func) {
 		
 		// FIXME
 		throw UnsupportedErr()
