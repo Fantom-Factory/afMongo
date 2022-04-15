@@ -41,28 +41,7 @@ const class MongoClient {
 		startup()
 	}
 	
-	// ---- Diagnostics ---------------------------------------------------------------------------
-
-	** Returns a list of existing databases with some basic statistics. 
-	** 
-	** @see `http://docs.mongodb.org/manual/reference/command/listDatabases/`
-	[Str:Obj?][] listDatabases() {
-		runAdminCmd(["listDatabases": 1])["databases"]
-	}
-
-	** Returns a build summary
-	** 
-	** @see `http://docs.mongodb.org/manual/reference/command/buildInfo/`
-	[Str:Obj?] buildInfo() {
-		runAdminCmd(["buildInfo": 1])
-	}
-	
-	// ---- Database ------------------------------------------------------------------------------
-
-	** Returns all the database names on the MongoDB instance. 
-	Str[] listDatabaseNames() {
-		listDatabases.map |db->Str| { db["name"] }.sort
-	}
+	// ---- Mongo Client ------------------------
 
 	** Returns a 'Database' with the given name.
 	** 
@@ -76,9 +55,38 @@ const class MongoClient {
 	Database get(Str dbName) {
 		db(dbName)
 	}
-
-	// ---- Other ---------------------------------------------------------------------------------
 	
+	// ---- Stable API --------------------------
+	
+	** Returns a list of existing databases with some basic statistics. 
+	** 
+	** @see `http://docs.mongodb.org/manual/reference/command/listDatabases/`
+	[Str:Obj?][] listDatabases() {
+		runAdminCmd(["listDatabases" : 1])["databases"]
+	}
+	
+	Str:Obj? ping() {
+		runAdminCmd(["ping" : 1])
+	}
+	
+	// TODO hello / isMaster
+
+	// ---- Other -------------------------------
+
+	** Returns a build summary
+	** 
+	** @see `http://docs.mongodb.org/manual/reference/command/buildInfo/`
+	[Str:Obj?] buildInfo() {
+		runAdminCmd(["buildInfo": 1])
+	}
+	
+	** Returns all the database names on the MongoDB instance. 
+	Str[] listDatabaseNames() {
+		listDatabases.map |db->Str| { db["name"] }.sort
+	}
+
+	** **For Power Users!**
+	** 
 	** Runs a command against the admin database. Convenience for:
 	** 
 	**   db("admin").runCmd(cmd)
@@ -90,6 +98,8 @@ const class MongoClient {
 	Void shutdown() {
 		conMgr.shutdown
 	}
+	
+	// ---- Private -----------------------------
 	
 	private Void startup() {
 		conMgr.startup

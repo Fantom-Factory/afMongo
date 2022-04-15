@@ -155,8 +155,8 @@ const class Index {
 
 	// ---- Private Methods -----------------------------------------------------------------------
 	
-	private MongoCmd cmd(Str? action := null) {
-		MongoCmd(conMgr, colNs, action)
+	private MongoCmd cmd() {
+		MongoCmd(conMgr, colNs.databaseName)
 	}	
 	
 	// ---- Obj Overrides -------------------------------------------------------------------------

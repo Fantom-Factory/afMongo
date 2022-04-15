@@ -25,10 +25,6 @@ internal const class MongoErrMsgs {
 		"MongoDB network issues detected"
 	}
 	
-	static Str operation_cmdFailed(Str? cmd, Obj? errMsg) {
-		"Command '${cmd}' failed. MongoDB says: ${errMsg}"
-	}
-	
 	static Str opReply_tooMany([Str:Obj?][] docs) {
 		"Expected ONE document but OpReply has ${docs.size}! - ${docs}"
 	}
@@ -73,10 +69,6 @@ internal const class MongoErrMsgs {
 		stripSys("Group key must be either a Str[] (field names) or a Str (function), not ${key.typeof.signature} ${key}")
 	}
 
-	static Str cmd_writeErrs(Str what, Str colName, [Str:Obj?][] errs) {
-		"Errors ${what} '${colName}' - " + ((errs.size == 1) ? errs.first["errmsg"].toStr : errs.toStr)
-	}
-	
 	static Str stripSys(Str str) {
 		str.replace("sys::", "")
 	}
