@@ -24,8 +24,6 @@ internal class TestBsonLiteralsDb : MongoDbTest {
 			"date"			: now,
 			"null"			: null,
 			"regex"			: "wotever".toRegex,
-			"code"			: Code("func() { ... }"),
-			"code_w_scope"	: Code("func() { ... }", ["wot":"ever"]),
 			"timestamp"		: Timestamp(500, 69),
 			"int64"			: 666,
 			"minKey"		: MinKey.val,
@@ -49,10 +47,6 @@ internal class TestBsonLiteralsDb : MongoDbTest {
 		verifyEq(doc["date"], 		now)
 		verifyEq(doc["null"], 		null)
 		verifyEq(doc["regex"], 		"wotever".toRegex)
-		verifyEq(doc["code"]->code,				"func() { ... }")
-		verifyEq(doc["code"]->scope->isEmpty,	true)
-		verifyEq(doc["code_w_scope"]->code,		"func() { ... }")
-		verifyEq(doc["code_w_scope"]->scope,	Str:Obj?["wot":"ever"])
 		verifyEq(doc["timestamp"],	Timestamp(500, 69))
 		verifyEq(doc["int64"],		666)
 		verifyEq(doc["minKey"],		MinKey.val)
