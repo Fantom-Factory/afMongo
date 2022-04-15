@@ -1,5 +1,4 @@
-using concurrent
-using inet
+using concurrent::ActorPool
 
 ** A MongoDB client.
 ** 
@@ -22,9 +21,6 @@ using inet
 const class MongoClient {
 	private static const Log 		log	:= MongoClient#.pod.log
 	private const ConnectionManager conMgr
-	
-	@NoDoc	// I give no guarantee how long this field will stick around for!
-	static const AtomicBool logBanner := AtomicBool(true)
 	
 	** Creates a 'MongoClient' with the given 'ConnectionManager'. 
 	** This is the preferred ctor.
@@ -104,18 +100,9 @@ const class MongoClient {
 	private Void startup() {
 		conMgr.startup
 		
-		minVersion	 := Version("3.6.0")
 		buildVersion := buildInfo["version"]
-		mongoVersion := Version.fromStr(buildVersion, false)
-		banner		 := logBanner.val ? "\n${logo}" : "" 
-		log.info("${banner}\nConnected to MongoDB v${buildVersion} (at ${conMgr.mongoUrl})\n")
-
-		if (mongoVersion < minVersion) {
-			msg := "** WARNING: This driver is ONLY compatible with MongoDB v${minVersion} or greater **"
-			log.warn(Str.defVal.padl(msg.size, '*'))
-			log.warn(msg)
-			log.warn(Str.defVal.padl(msg.size, '*'))
-		}
+		banner		 := "\n${logo}\nConnected to MongoDB v${buildVersion} (at ${conMgr.mongoUrl})\n"
+		log.info(banner)
 	}
 	
 	private Str logo() {

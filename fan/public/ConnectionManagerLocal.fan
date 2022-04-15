@@ -4,8 +4,7 @@ using afConcurrent::LocalRef
 const class ConnectionManagerLocal : ConnectionManager {
 	private  const Unsafe		connectionRef
 	override const Uri?			mongoUrl	
-	override const MongoCreds?	mongoCreds
-	override const Str:Obj?		writeConcern	:= Str:Obj?[:] { it.ordered=true }.add("w", 1).add("wtimeout", 0).add("j", false)
+	override const [Str:Obj?]?	writeConcern
 	
 	new make(Connection connection, Uri mongoUrl) {
 		this.mongoUrl		= mongoUrl

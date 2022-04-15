@@ -47,235 +47,37 @@ const class ConnectionManagerPooled : ConnectionManager {
 	** This value is unavailable (returns 'null') until 'startup()' is called. 
 	override Uri? mongoUrl() { mongoUrlRef.val }
 	private const AtomicRef mongoUrlRef := AtomicRef(null)
+	
+	** The parsed Mongo Connection URL.	
+	const MongoConnUrl mongoConnUrl
 
-	** The default write concern for all write operations. 
-	** Set by specifying the 'w', 'wtimeoutMS' and 'journal' connection string options. 
-	** 
-	** Defaults to '["w": 1, "wtimeout": 0, "j": false]'
-	**  - write operations are acknowledged,
-	**  - write operations never time out,
-	**  - write operations need not be committed to the journal.
-	override const Str:Obj? writeConcern := ["w": 1, "wtimeout": 0, "j": false]
-	
-	** The credentials (if any) used to authenticate connections against MongoDB. 
-	override const MongoCreds? mongoCreds
-	
-	** The original URL this 'ConnectionManager' was configured with.
-	** May contain authentication details.
-	** 
-	**   mongodb://username:password@example1.com/puppies?maxPoolSize=50
-	const Uri	connectionUrl
-	
-	** The minimum number of database connections this pool should keep open.
-	** They are initially created during 'startup()'.
-	** 
-	** Set via the [minPoolSize]`https://docs.mongodb.com/manual/reference/connection-string/#urioption.minPoolSize` connection string option.
-	** Defaults to 1.
-	** 
-	**   mongodb://example.com/puppies?minPoolSize=50
-	const Int 	minPoolSize	:= 1
-
-	** The maximum number of database connections this pool is allowed open.
-	** This is the maximum number of concurrent users you expect your application to have.
-	** 
-	** Set via the [maxPoolSize]`https://docs.mongodb.org/manual/reference/connection-string/#urioption.maxPoolSize` connection string option.
-	** Defaults to 10.
-	** 
-	**   mongodb://example.com/puppies?maxPoolSize=10
-	const Int 	maxPoolSize	:= 10
-	
-	** The maximum time a thread can wait for a connection to become available.
-	** 
-	** Set via the [maxPoolSize]`https://docs.mongodb.org/manual/reference/connection-string/#urioption.waitQueueTimeoutMS` connection string option.
-	** Defaults to 15 seconds.
-	** 
-	**   mongodb://example.com/puppies?waitQueueTimeoutMS=10
-	const Duration	waitQueueTimeout := 15sec
-
-	** If specified, this is the time to attempt a connection before timing out.
-	** If 'null' (the default) then a system timeout is used.
-	** 
-	** Set via the [connectTimeoutMS]`https://docs.mongodb.org/manual/reference/connection-string/#urioption.connectTimeoutMS` connection string option.
-	** 
-	**   mongodb://example.com/puppies?connectTimeoutMS=2500
-	** 
-	** Equates to `inet::SocketOptions.connectTimeout`.
-	const Duration? connectTimeout
-	
-	** If specified, this is the time to attempt a send or receive on a socket before the attempt times out.
-	** 'null' (the default) indicates an infinite timeout.
-	** 
-	** Set via the [socketTimeoutMS]`https://docs.mongodb.org/manual/reference/connection-string/#urioption.socketTimeoutMS` connection string option.
-	** 
-	**   mongodb://example.com/puppies?socketTimeoutMS=2500
-	** 
-	** Equates to `inet::SocketOptions.receiveTimeout`.
-	const Duration? socketTimeout
-
-	** When the connection pool is shutting down, this is the amount of time to wait for all connections for close before they are forcibly closed.
+	** When the connection pool is shutting down, this is the amount of time to wait for all 
+	** connections for close before they are forcibly closed.
 	** 
 	** Defaults to '2sec'. 
 	const Duration? shutdownTimeout	:= 2sec
-	
-	** Specifies an SSL connection. Set to 'true' for Atlas databases.
-	** 
-	** Defaults to 'false'. 
-	const Bool ssl := false
-	
-	** The auth mechanisms used for authenticating connections.
-	const Str:MongoAuthMech	authMechs		:= [
-		"SCRAM-SHA-1"	: MongoAuthScramSha1(),
-	]
 	
 	// used to test the backoff func
 	internal const |Range->Int|	randomFunc	:= |Range r->Int| { r.random }
 	internal const |Duration| 	sleepFunc	:= |Duration napTime| { Actor.sleep(napTime) }
 	
-	** Create a 'ConnectionManager' from a [Mongo Connection URL]`http://docs.mongodb.org/manual/reference/connection-string/`.
+	** Create a 'ConnectionManager' from a Mongo Connection URL.
 	** If user credentials are supplied, they are used as default authentication for each connection.
 	** 
-	**   conMgr := ConnectionManagerPooled(ActorPool(), `mongodb://localhost:27017`)
-	** 
-	** The following URL options are supported:
-	**  - 'minPoolSize'
-	**  - 'maxPoolSize'
-	**  - 'waitQueueTimeoutMS'
-	**  - 'connectTimeoutMS'
-	**  - 'socketTimeoutMS'
-	**  - 'w'
-	**  - 'wtimeoutMS'
-	**  - 'journal'
-	**  - 'ssl'
-	**  - 'tls'
-	**  - 'authSource'
-	**  - 'authMechanism'
-	**  - 'authMechanismProperties'
-	** 
-	** URL examples:
-	**  - 'mongodb://username:password@example1.com/database?maxPoolSize=50'
-	**  - 'mongodb://example2.com?minPoolSize=10&maxPoolSize=50&ssl=true'
-	** 
-	** @see `http://docs.mongodb.org/manual/reference/connection-string/`
+	**   connMgr := ConnectionManagerPooled(ActorPool(), `mongodb://localhost:27017`)
 	new makeFromUrl(ActorPool actorPool, Uri connectionUrl, |This|? f := null) {
-		if (connectionUrl.scheme != "mongodb")
-			throw ArgErr("Mongo connection URIs must start with the scheme 'mongodb://' - ${connectionUrl}")
+		this.connectionState	= SynchronizedState(actorPool, ConnectionManagerPoolState#)
+		this.mongoConnUrl		= MongoConnUrl(connectionUrl)
+		this.failOverThread		= connectionState.lock
 
-		mongoUrl				:= connectionUrl
-		this.connectionUrl		 = connectionUrl
-		this.connectionState	 = SynchronizedState(actorPool, ConnectionManagerPoolState#)
-		this.failOverThread		 = connectionState.lock
-		this.minPoolSize 		 = mongoUrl.query["minPoolSize"]?.toInt ?: minPoolSize
-		this.maxPoolSize 		 = mongoUrl.query["maxPoolSize"]?.toInt ?: maxPoolSize
-		waitQueueTimeoutMs		:= mongoUrl.query["waitQueueTimeoutMS"]?.toInt
-		connectTimeoutMs		:= mongoUrl.query["connectTimeoutMS"]?.toInt
-		socketTimeoutMs 		:= mongoUrl.query["socketTimeoutMS"]?.toInt
-		w						:= mongoUrl.query["w"]
-		wtimeoutMs		 		:= mongoUrl.query["wtimeoutMS"]?.toInt
-		journal			 		:= mongoUrl.query["journal"]?.toBool
-		this.ssl		 		 =(mongoUrl.query["tls"]?.toBool ?: mongoUrl.query["ssl"]?.toBool) ?: false
-		authSource				:= mongoUrl.query["authSource"]?.trimToNull
-		authMech				:= mongoUrl.query["authMechanism"]?.trimToNull
-		authMechProps			:= mongoUrl.query["authMechanismProperties"]?.trimToNull
-
-		if (minPoolSize < 0)
-			throw ArgErr(errMsg_badInt("minPoolSize", "zero", minPoolSize, mongoUrl))
-		if (maxPoolSize < 1)
-			throw ArgErr(errMsg_badInt("maxPoolSize", "one", maxPoolSize, mongoUrl))
-		if (minPoolSize > maxPoolSize)
-			throw ArgErr(errMsg_badMinMaxConnectionSize(minPoolSize, maxPoolSize, mongoUrl))		
-		if (waitQueueTimeoutMs != null && waitQueueTimeoutMs < 0)
-			throw ArgErr(errMsg_badInt("waitQueueTimeoutMS", "zero", waitQueueTimeoutMs, mongoUrl))
-		if (connectTimeoutMs != null && connectTimeoutMs < 0)
-			throw ArgErr(errMsg_badInt("connectTimeoutMS", "zero", connectTimeoutMs, mongoUrl))
-		if (socketTimeoutMs != null && socketTimeoutMs < 0)
-			throw ArgErr(errMsg_badInt("socketTimeoutMS", "zero", socketTimeoutMs, mongoUrl))
-		if (wtimeoutMs != null && wtimeoutMs < 0)
-			throw ArgErr(errMsg_badInt("wtimeoutMS", "zero", wtimeoutMs, mongoUrl))
-
-		if (waitQueueTimeoutMs != null)
-			waitQueueTimeout = (waitQueueTimeoutMs * 1_000_000).toDuration
-		if (connectTimeoutMs != null)
-			connectTimeout = (connectTimeoutMs * 1_000_000).toDuration
-		if (socketTimeoutMs != null)
-			socketTimeout = (socketTimeoutMs * 1_000_000).toDuration
-
-		// authSource trumps defaultauthdb 
-		database := authSource ?: mongoUrl.pathStr.trimToNull
-		username := mongoUrl.userInfo?.split(':')?.getSafe(0)?.trimToNull
-		password := mongoUrl.userInfo?.split(':')?.getSafe(1)?.trimToNull
-		
-		if ((username == null).xor(password == null))
-			throw ArgErr(errMsg_badUsernamePasswordCombo(username, password, mongoUrl))
-
-		if (database != null && database.startsWith("/"))
-			database = database[1..-1].trimToNull
-		if (username != null && password != null && database == null)
-			database = "admin"
-		if (username == null && password == null)	// a default database has no meaning without credentials
-			database = null
-		
-		if (authMech != null) {
-			props	:= Str:Obj?[:] { it.ordered = true }
-			authMechProps?.split(',')?.each |pair| {
-				if (pair.size > 0) {
-					key := pair
-					val := null
-					idx := pair.index(":")
-					if (idx != null) {
-						key = pair[0..<idx]
-						val = pair[idx+1..-1]
-					}
-					props[key] = val
-				}
-			}
-			this.mongoCreds	= MongoCreds {
-				it.mechanism	= authMech
-				it.source		= database
-				it.username		= username
-				it.password		= password
-				it.props		= props
-			}
-		}
-		
-		// set some default creds
-		if (this.mongoCreds == null && username != null && password != null)
-			this.mongoCreds	= MongoCreds {
-				it.mechanism	= "SCRAM-SHA-1"
-				it.source		= database
-				it.username		= username
-				it.password		= password
-			}
-			
-		writeConcern := Str:Obj?[:] { it.ordered=true }.add("w", 1).add("wtimeout", 0).add("j", false)
-		if (w != null)
-			writeConcern["w"] = Int.fromStr(w, 10, false) != null ? w.toInt : w
-		if (wtimeoutMs != null)
-			writeConcern["wtimeout"] = wtimeoutMs
-		if (journal != null)
-			writeConcern["j"] = journal
-		this.writeConcern = writeConcern
-
-		query := mongoUrl.query.rw
-		query.remove("minPoolSize")
-		query.remove("maxPoolSize")
-		query.remove("waitQueueTimeoutMS")
-		query.remove("connectTimeoutMS")
-		query.remove("socketTimeoutMS")
-		query.remove("w")
-		query.remove("wtimeoutMS")
-		query.remove("journal")
-		query.remove("ssl")
-		query.remove("tls")
-		query.remove("authSource")
-		query.remove("authMechanism")
-		query.remove("authMechanismProperties")
-		query.each |val, key| {
-			log.warn("Unknown option in Mongo connection URL: ${key}=${val} - ${mongoUrl}")
-		}
-		
 		// allow the it-block to override the default settings
 		// no validation occurs - only used for testing.
 		f?.call(this)
+	}
+	
+	** The default write concern that all write operations should use.
+	override [Str:Obj?]? writeConcern() {
+		mongoConnUrl.writeConcern
 	}
 	
 	** Creates the initial pool and establishes 'minPoolSize' connections with the server.
@@ -294,8 +96,8 @@ const class ConnectionManagerPooled : ConnectionManager {
 
 		// connect x times
 		pool := TcpConnection[,]
-		minPoolSize.times { pool.push(checkOut) }
-		minPoolSize.times { checkIn(pool.pop) }
+		mongoConnUrl.minPoolSize.times { pool.push(checkOut) }
+		mongoConnUrl.minPoolSize.times { checkIn(pool.pop) }
 		
 		return this
 	}
@@ -432,7 +234,7 @@ const class ConnectionManagerPooled : ConnectionManager {
 	** 
 	** This method should be followed with a call to 'emptyPool()'.  
 	Void huntThePrimary() {
-		mongoUrl := HuntThePrimary(connectionUrl, ssl).huntThePrimary
+		mongoUrl := HuntThePrimary(mongoConnUrl.connectionUrl, mongoConnUrl.tls).huntThePrimary
 
 		mongoUrlRef.val = mongoUrl
 		isConnectedToMasterRef.val = true
@@ -453,17 +255,17 @@ const class ConnectionManagerPooled : ConnectionManager {
 		socket	 := null as TcpSocket
 		oldSkool := Pod.find("inet").version < Version("1.0.77")
 		if (oldSkool) {
-			socket = ssl ? TcpSocket#.method("makeTls").call : TcpSocket#.method("make").call
-			socket->options->connectTimeout = this.connectTimeout
-			socket->options->receiveTimeout = this.socketTimeout
+			socket = mongoConnUrl.tls ? TcpSocket#.method("makeTls").call : TcpSocket#.method("make").call
+			socket->options->connectTimeout = mongoConnUrl.connectTimeout
+			socket->options->receiveTimeout = mongoConnUrl.socketTimeout
 		}
 		else {
 			config := Method.findMethod("inet::SocketConfig.cur").call->copy(Field.makeSetFunc([
-				Field.findField("inet::SocketConfig.connectTimeout") : this.connectTimeout,
-				Field.findField("inet::SocketConfig.receiveTimeout") : this.socketTimeout,
+				Field.findField("inet::SocketConfig.connectTimeout") : mongoConnUrl.connectTimeout,
+				Field.findField("inet::SocketConfig.receiveTimeout") : mongoConnUrl.socketTimeout,
 			]))
 			socket = TcpSocket#.method("make").call(config)
-			if (ssl)
+			if (mongoConnUrl.tls)
 				socket = socket->upgradeTls
 		}
 		return socket
@@ -481,8 +283,8 @@ const class ConnectionManagerPooled : ConnectionManager {
 		}
 		// re-connect x times
 		pool := TcpConnection[,]
-		minPoolSize.times { pool.push(checkOut) }
-		minPoolSize.times { checkIn(pool.pop) }
+		mongoConnUrl.minPoolSize.times { pool.push(checkOut) }
+		mongoConnUrl.minPoolSize.times { checkIn(pool.pop) }
 	}
 	
 	private Void failOver() {
@@ -527,7 +329,7 @@ const class ConnectionManagerPooled : ConnectionManager {
 					}
 				}
 
-				if (state.checkedOut.size < maxPoolSize) {
+				if (state.checkedOut.size < mongoConnUrl.maxPoolSize) {
 					connection := state.connectionFactory()
 					state.checkedOut.push(connection)
 					return Unsafe(connection)
@@ -538,34 +340,35 @@ const class ConnectionManagerPooled : ConnectionManager {
 			// let's not swamp the logs the first time we can't connect
 			// 1.5 secs gives at least 6 connection attempts
 			if (con == null && totalNapTime > 1.5sec)
-				log.warn("All ${maxPoolSize} are in use, waiting for one to become free on ${mongoUrl}...")
+				log.warn("All ${mongoConnUrl.maxPoolSize} are in use, waiting for one to become free on ${mongoUrl}...")
 
 			return con
 		}
 
 		connection	:= null as TcpConnection
 		ioErr		:= null as Err
-		try connection = backoffFunc(connectionFunc, waitQueueTimeout)
+		try connection = backoffFunc(connectionFunc, mongoConnUrl.waitQueueTimeout)
 		
 		// sys::IOErr: Could not connect to MongoDB at `dsXXXXXX-a0.mlab.com:59296` - java.net.ConnectException: Connection refused
 		catch (IOErr ioe)
 			ioErr = ioe
 
 		if (connection == null || ioErr != null) {
-			if (noOfConnectionsInUse == maxPoolSize)
-				throw MongoErr("Argh! No more connections! All ${maxPoolSize} are in use!")
+			if (noOfConnectionsInUse == mongoConnUrl.maxPoolSize)
+				throw MongoErr("Argh! No more connections! All ${mongoConnUrl.maxPoolSize} are in use!")
 			
 			// it would appear the database is down ... :(			
 			// so lets kick off a game of huntThePrimary in the background ...
 			failOver
 
 			// ... and report an error - 'cos we can't wait longer than 'waitQueueTimeout'
-			throw ioErr ?: MongoErr("Argh! Can not connect to Master! All ${maxPoolSize} are in use!")
+			throw ioErr ?: MongoErr("Argh! Can not connect to Master! All ${mongoConnUrl.maxPoolSize} are in use!")
 		}
 		
 		// ensure all connections are authenticated
+		mongoCreds := mongoConnUrl.mongoCreds
 		if (mongoCreds != null && connection.isAuthenticated == false) {
-			authMechs[mongoCreds.mechanism].authenticate(connection, mongoCreds)
+			mongoConnUrl.authMechs[mongoCreds.mechanism].authenticate(connection, mongoCreds)
 			connection.isAuthenticated = true
 		}
 	
@@ -588,7 +391,7 @@ const class ConnectionManagerPooled : ConnectionManager {
 				}
 				
 				// only keep the min pool size
-				if (state.checkedIn.size >= minPoolSize) {
+				if (state.checkedIn.size >= mongoConnUrl.minPoolSize) {
 					
 					// if there are msgs still to be processed, don't bother closing as we're likely to just be re-opened again
 					queueSize := connectionState.lock.actor.queueSize
@@ -639,22 +442,6 @@ const class ConnectionManagerPooled : ConnectionManager {
 		}
 		
 		return result
-	}
-	
-	private static Str errMsg_badInt(Str what, Str min, Int val, Uri mongoUrl) {
-		"$what must be greater than $min! val=$val, uri=$mongoUrl"
-	}
-	
-	private static Str errMsg_badMinMaxConnectionSize(Int min, Int max, Uri mongoUrl) {
-		"Minimum number of connections must not be greater than the maximum! min=$min, max=$max, url=$mongoUrl"
-	}
-		
-	private static Str errMsg_unknownAuthMechanism(Str mechanism, Str[] supportedMechanisms) {
-		"Unknown authentication mechanism '${mechanism}', only the following are currently supported: " + supportedMechanisms.join(", ")
-	}
-	
-	private static Str errMsg_badUsernamePasswordCombo(Str? username, Str? password, Uri mongoUrl) {
-		"Either both the username and password should be provided, or neither. username=$username, password=$password, url=$mongoUrl"
 	}
 }
 

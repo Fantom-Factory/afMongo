@@ -10,16 +10,8 @@ const mixin ConnectionManager {
 	** It *should not* contain any user credentials and *should* be safe to log. 
 	abstract Uri? mongoUrl()
 	
-	** The credentials (if any) used to authenticate connections against MongoDB.
-	abstract MongoCreds? mongoCreds()
-	
-	** The default write concern that all write operations use if none supplied.
-	** 
-	** Defaults to '["w": 1, "wtimeout": 0, "j": false]'
-	**  - write operations are acknowledged,
-	**  - write operations never time out,
-	**  - write operations need not be committed to the journal.
-	abstract Str:Obj? writeConcern()
+	** The default write concern that all write operations should use.
+	abstract [Str:Obj?]? writeConcern()
 
 	** Makes a connection available to the given function.
 	** 
