@@ -1,6 +1,5 @@
 using concurrent::AtomicInt
-using afBson::BsonReader
-using afBson::BsonWriter
+using afBson::BsonIO
 
 ** (Advanced)
 ** The low level transport mechanism that talks to MongoDB instances.
@@ -28,139 +27,96 @@ class Operation {
 	}
 
 	** Runs the given Mongo command and returns the reply document.
-	Str:Obj? runCommand(Str qname, Str:Obj? cmd, Bool checked := true) {
+	Str:Obj? runCommand(Str? dbName, Str:Obj? cmd, Bool checked := true) {
 		if (cmd.size > 1 && !cmd.ordered)
-			throw ArgErr(MongoErrMsgs.operation_cmdNotOrdered(qname, cmd))
+			throw ArgErr(MongoErrMsgs.operation_cmdNotOrdered(dbName, cmd))
 		
-		doc := query(qname, cmd, -1).document
-
-		if (checked && (doc["ok"] != 1f && doc["ok"] != 1)) {
-			// attempt to work out the cmd, usually the first key in the given doc
-			cname := cmd.keys.first
-			throw MongoCmdErr(MongoErrMsgs.operation_cmdFailed(cname, doc["errmsg"] ?: doc), [doc])
-		}
-		return doc
-	}
-
-	** Queries MongoDB for documents in a collection.
-	** 
-	** @see `https://docs.mongodb.com/manual/reference/mongodb-wire-protocol/#op-query`
-	OpReplyResponse query(Str qname, Str:Obj? query, Int limit := 0, Int skip := 0, [Str:Obj?]? fields := null, OpQueryFlags flags := OpQueryFlags.none) {
-		sizer	:= BsonWriter(null)
-		msgSize	:= 4 + sizer.sizeCString(qname) + 4 + 4 + sizer.sizeDocument(query) + sizer.sizeDocument(fields)
-		reqId 	:= sendMsg(OpCode.OP_QUERY, msgSize) |out| {
-			out.writeInteger32(flags.value)
-			out.writeCString(qname)
-			out.writeInteger32(skip)
-			out.writeInteger32(limit)
-			out.writeDocument(query)
-			out.writeDocument(fields)
-		}		
-		return readReply(reqId)
-	}
-
-	** Asks MongoDB for more documents from a query.
-	** 
-	** @see `https://docs.mongodb.com/manual/reference/mongodb-wire-protocol/#op-get-more`
-	OpReplyResponse getMore(Str qname, Int limit, Int cursorId) {
-		sizer	:= BsonWriter(null)
-		msgSize	:= 4 + sizer.sizeCString(qname) + 4 + 8
-		reqId 	:= sendMsg(OpCode.OP_GET_MORE, msgSize) |out| {
-			out.writeInteger32(0)
-			out.writeCString(qname)
-			out.writeInteger32(limit)
-			out.writeInteger64(cursorId)
-		}
-		return readReply(reqId)
-	}
-
-	** Closes the given active cursors in the database.
-	** 
-	** @see `https://docs.mongodb.com/manual/reference/mongodb-wire-protocol/#op-kill-cursors`
-	Void killCursors(Int[] cursorIds) {
-		msgSize	:= 4 + 4 + (cursorIds.size * 8)
-		sendMsg(OpCode.OP_KILL_CURSORS, msgSize) |out| {
-			out.writeInteger32(0)
-			out.writeInteger32(cursorIds.size)
-			cursorIds.each { out.writeInteger64(it) }			
-		}
-	}
+		if (dbName != null && dbName.contains("."))
+			dbName = dbName.split('.').first
 	
-	** Reads a reply from the server.
-	** 
-	** 'requestId' may be 'null' when gulping down replies resulting from an *exhaust* query. 
-	OpReplyResponse readReply(Int? requestId) {
-		try {
-			in 		:= BsonReader(connection.in)
-
-			// read std header
-			msgSize	:= in.readInteger32	// we ignore this and let the BsonReader check the size of the documents instead 
-			reqId	:= in.readInteger32	// we ignore this
-			resId	:= in.readInteger32
-			opCode	:= in.readInteger32
+		// https://github.com/mongodb/specifications/blob/master/source/message/OP_MSG.rst
+		
+		reqId	:= requestIdGenerator.incrementAndGet
+		out		:= connection.out
+		out.endian	= Endian.little
+		
+		cmd		= cmd.rw
+//		if (dbName != null)
+		cmd["\$db"]	= dbName ?: "admin"
+		// we could *also* set $readPreference here - {"mode":"primary"} 
+		
+		echo("REQ: $reqId")
+		PrettyPrinter().print(cmd) { echo(it) }
+		echo
+		
+		cmdBuf	:= BsonIO().writeDocument(cmd)	
+		msgSize	:= cmdBuf.size
+		
+		// write std header
+		out.writeI4(msgSize + 16 + 5)
+		out.writeI4(reqId)
+		out.writeI4(0)		// resId
+		out.writeI4(2013)	// OP_MSG opCode
 			
-			if (opCode != OpCode.OP_REPLY.id)
-				throw MongoOpErr(MongoErrMsgs.operation_resOpCodeInvalid(opCode))
-			if (requestId != null && requestId != resId)
-				throw MongoOpErr(MongoErrMsgs.operation_resIdMismatch(requestId, resId))
-	    
-			resFlags	:= OpReplyFlags(in.readInteger32)
-			cursorId	:= in.readInteger64
-			cursorPos	:= in.readInteger32
-			noOfDocs	:= in.readInteger32		
-			documents	:= [Str:Obj?][,] 
-	
-			noOfDocs.times {
-				documents.add(in.readDocument)			
-			}
-	
-			if (resFlags.containsAll(OpReplyFlags.queryFailure)) {
-				// $err may not be a Str!
-				// see http://docs.mongodb.org/meta-driver/latest/legacy/error-handling-in-drivers/
-				errMsg := documents.first?.get("\$err")?.toStr
-				throw MongoOpErr(MongoErrMsgs.operation_queryFailure(errMsg))
-			}
-				
-			return OpReplyResponse {
-				it.cursorId	 	= cursorId
-				it.cursorPos	= cursorPos
-				it.flags	 	= resFlags
-				it.documents	= documents
-			}
-			
-		} catch (MongoOpErr mongErr)
-			throw mongErr
+		// write OP_MSG
+		out.writeI4(0)		// flagBits
+		out.write(0)		// section payloadType == 0
+		out.writeBuf(cmdBuf.flip)
+		
+		out.flush
+		
+		
+		in		:= connection.in
+		in.endian	= Endian.little
+		
+		// read std header
+		msgSize	 = in.readU4
+		reqId	= in.readU4		// should be the same
+		resId	:= in.readU4	// keep for logs
+		opCode	:= in.readU4	// should be OP_MSG
+		
+		if (opCode != 2013)
+			throw Err("Wot not a OP_MSG!? $opCode")
+		
+		flagBits	:= in.readU4
+		if (flagBits != 0)
+			throw Err("Wot, got Flags!? ${flagBits.toHex}")
+		
+		payloadType	:= in.read
+		if (payloadType != 0)
+			throw Err("Wot, payload not type 0!? $payloadType")
 
-		catch (Err err)
-			throw MongoIoErr(MongoErrMsgs.operation_invalid, err)
+		resDoc	:= BsonIO().readDocument(in)
+		
+		echo("RES: $resId")
+		PrettyPrinter().print(resDoc) { echo(it) }
+		echo
+		
+		if (checked && resDoc["ok"] != 1f)
+			throw Err("Bad op")
+//			throw MongoCmdErr(MongoErrMsgs.operation_cmdFailed(cname, doc["errmsg"] ?: doc), [doc])
+		
+		return resDoc
+
+//	dbName := qname.split('.').first
+//	doc := query(dbName, "RIBBIT", cmd, -1).document
+//
+////		doc := query(qname, cmd, -1).document
+//
+//		if (checked && (doc["ok"] != 1f && doc["ok"] != 1)) {
+//			// attempt to work out the cmd, usually the first key in the given doc
+//			cname := cmd.keys.first
+//			throw MongoCmdErr(MongoErrMsgs.operation_cmdFailed(cname, doc["errmsg"] ?: doc), [doc])
+//		}
+//		return doc
 	}
 	
+	static Str operation_cmdFailed(Str? cmd, Obj? errMsg) {
+		"Command '${cmd}' failed. MongoDB says: ${errMsg}"
+	}
 	
-
-	// ---- Private Methods ----
-	
-	** 'msgSize' and 'outFunc' ensure we can stream the entire msg straight out to the MongoDB
-	** without the use of 'Buf()'. Given people tend to save 20Mb Objects in Mongo, this is a good 
-	** thing!
-	private Int sendMsg(OpCode opCode, Int msgSize, |BsonWriter| outFunc) {
-		try {
-			requestId 	:= requestIdGenerator.incrementAndGet
-			out 		:= BsonWriter(connection.out)
-			
-			// write std header
-			out.writeInteger32(msgSize + 16)
-			out.writeInteger32(requestId)
-			out.writeInteger32(0)
-			out.writeInteger32(opCode.id)
-			
-			// write msg
-			outFunc.call(out)
-			out.flush
-			
-			return requestId
-
-		} catch (Err err)
-			throw MongoIoErr(MongoErrMsgs.operation_invalid, err)
+	static Str operation_resOpCodeInvalid(Int opCode) {
+		"Response OpCode from MongoDB '${opCode}' should be : {OpCode.OP_REPLY.id} - {OpCode.OP_REPLY.name}"
 	}
 }
 
