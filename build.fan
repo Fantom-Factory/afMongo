@@ -14,19 +14,19 @@ class Build : BuildPod {
 		]
 
 		depends = [
-			"sys        1.0.69 - 1.0", 
-			"inet       1.0.69 - 1.0",
-			"util       1.0.69 - 1.0",	// for Random()
-			"concurrent 1.0.69 - 1.0",
+			"sys          1.0.71 - 1.0", 
+			"inet         1.0.71 - 1.0",
+			"util         1.0.71 - 1.0",	// for Random()
+			"concurrent   1.0.71 - 1.0",
 
 			// ---- Core ------------------------
-			"afConcurrent 1.0.18 - 1.0",
-			"afBson       1.1.2  - 1.1"
+			"afConcurrent 1.0.26 - 1.0",
+			"afBson       2.0.0  - 2.0"
 		]
 
 		srcDirs = [`fan/`, `fan/internal/`, `fan/public/`, `fan/public/util/`, `test/`, `test/db-tests/`, `test/unit-tests/`, `test/utils/`]
 		resDirs = [`doc/`]
 		
-		meta["afBuild.uberPod"] = "afBson afConcurrent/Synchronized afConcurrent/SynchronizedState afConcurrent/LocalRef afConcurrent/ConcurrentBase64"
+		meta["afBuild.uberPod"] = "afBson afConcurrent/Synchronized afConcurrent/SynchronizedState"
 	}
 }

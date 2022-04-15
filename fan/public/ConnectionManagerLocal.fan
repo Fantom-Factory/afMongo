@@ -2,15 +2,14 @@ using afConcurrent::LocalRef
 
 @NoDoc	// Should be internal, but it might prove useful.
 const class ConnectionManagerLocal : ConnectionManager {
-	private const LocalRef		connectionRef	:= LocalRef("afMongo.connection")
+	private  const Unsafe		connectionRef
 	override const Uri?			mongoUrl	
 	override const MongoCreds?	mongoCreds
 	override const Str:Obj?		writeConcern	:= Str:Obj?[:] { it.ordered=true }.add("w", 1).add("wtimeout", 0).add("j", false)
 	
-	new make(Connection connection, Uri mongoUrl, |This|? f := null) {
-		f?.call(this)
-		this.mongoUrl = mongoUrl
-		this.connectionRef.val = connection
+	new make(Connection connection, Uri mongoUrl) {
+		this.mongoUrl		= mongoUrl
+		this.connectionRef	= Unsafe(connection)
 	}
 	
 	override Obj? leaseConnection(|Connection->Obj?| c) {
@@ -19,13 +18,12 @@ const class ConnectionManagerLocal : ConnectionManager {
 		return c(connectionRef.val)
 	}
 	
-	override ConnectionManager startup() {
+	override This startup() {
 		return this
 	}
 
-	override ConnectionManager shutdown() {
+	override This shutdown() {
 		(connectionRef.val as Connection)?.close
-		connectionRef.cleanUp
 		return this
 	}
 }

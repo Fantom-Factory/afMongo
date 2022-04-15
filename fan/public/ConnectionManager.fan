@@ -26,16 +26,14 @@ const mixin ConnectionManager {
 	** What ever is returned from the func is returned from the method.
 	abstract Obj? leaseConnection(|Connection->Obj?| c)
 	
-	// Can't return 'This' because of Plastic Proxies.
 	** Does what ever the 'ConnectionManager' needs to do to initialise itself.
 	** 
 	** Often this would be create database connections or other network related activity that it 
 	** may not wish to do inside a ctor.
-	abstract ConnectionManager startup()
+	abstract This startup()
 	
-	// Can't return 'This' because of Plastic Proxies.
 	** Closes all MongoDB connections.
-	abstract ConnectionManager shutdown()
+	abstract This shutdown()
 }
 
 

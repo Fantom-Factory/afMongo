@@ -283,7 +283,7 @@ const class ConnectionManagerPooled : ConnectionManager {
 	** If a connection URL to a replica set is given (a connection URL with multiple hosts) then 
 	** the hosts are queried to find the primary. The primary is currently used for all read and 
 	** write operations. 
-	override ConnectionManager startup() {
+	override This startup() {
 		shutdownLock.check
 		if (startupLock.locked)
 			return this
@@ -368,7 +368,7 @@ const class ConnectionManagerPooled : ConnectionManager {
 	** Initially waits for 'shutdownTimeout' for connections to finish what they're doing before 
 	** they're closed. After that, all open connections are forcibly closed regardless of whether 
 	** they're in use or not.
-	override ConnectionManager shutdown() {
+	override This shutdown() {
 		if (!startupLock.locked)
 			return this
 		shutdownLock.lock
