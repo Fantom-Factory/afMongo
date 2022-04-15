@@ -402,7 +402,7 @@ const class Collection {
 			.add("query",		query)
 			.run["values"]
 	}
-
+	
 	** Groups documents by the specified key and performs simple aggregation functions. 
 	** 
 	** 'key' must either be a list of field names ( 'Str[]' ) or a function that creates a 
@@ -437,27 +437,6 @@ const class Collection {
 	
 	** Run a map-reduce aggregation operation over the collection.
 	** 
-	** If 'out' is a Str, it specifies the name of a collection to store the results.
-	** If 'out' is a Map, it specifies the action to take. 
-	** 
-	** The 'options' parameter is merged with the Mongo command and may contain the following:
-	** 
-	**   table:
-	**   Options   Type  Desc  
-	**   -------   ----  ----
-	**   query     Doc   The selection criteria for input documents.
-	**   sort      Doc   Sorts the input documents.
-	**   limit     Int   The maximum number of documents given to the map function.
-	**   finalize  Func  Follows the 'reduce' method and modifies the output.
-	**   scope     Doc   global variables used in the 'map', 'reduce' and 'finalize' functions.
-	**   out       Obj   If a 'Str' then it's the name of a collection to store the results in, if a Doc, then it specifies the action to take.
-	**   jsMode    Bool  If 'false' (default) objects from the 'map' function are converted into BSON before being handed to the 'finalize' function.
-	**   verbose   Bool  If 'true' (default) then timing information is returned in the result.
-	** 
-	** Note if an 'out' option is not specified, it is taken to be *inline* and the returned document contains the results.
-	** 
-	** @see `http://docs.mongodb.org/manual/reference/command/mapReduce/`
-	[Str:Obj?] mapReduce(Code mapFunc, Code reduceFunc, [Str:Obj?]? options := null) {
 	
 	** Performs an aggregation operation using a sequence of stage-based manipulations.
 	** 
