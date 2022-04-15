@@ -11,7 +11,7 @@ internal class TestCursorDb : MongoDbTest {
 		col.drop
 		10.times |i| { col.insert(["data":i+1]) }
 		col.conMgr.leaseConnection |c| { connection = c }	// very cheeky! Leaking refs! Make sure minPoolSize is at least 1 - else it gets closed!
-		cursor = Cursor(connection, Namespace(col.qname), [:])
+		cursor = Cursor(connection, col.qname, [:])
 	}
 	
 	Void testItr() {
@@ -24,7 +24,7 @@ internal class TestCursorDb : MongoDbTest {
 		verifyEq(docs, 10)
 
 		docs = 0
-		cursor = Cursor(connection, Namespace(col.qname), [:])
+		cursor = Cursor(connection, col.qname, [:])
 		cursor.skip = 3
 		while (cursor.hasNext) {
 			doc := cursor.next
@@ -40,7 +40,7 @@ internal class TestCursorDb : MongoDbTest {
 		verifyEq(list.size, 10)
 		verifyEq(list[0]["data"], 1)
 
-		cursor = Cursor(connection, Namespace(col.qname), [:])
+		cursor = Cursor(connection, (col.qname), [:])
 		cursor.projection = ["data-2":1]
 		list = cursor.toList
 		verifyEq(list.size, 10)
@@ -53,14 +53,14 @@ internal class TestCursorDb : MongoDbTest {
 		verifyEq(list[0]["data"],  1)
 		verifyEq(list[9]["data"], 10)
 
-		cursor = Cursor(connection, Namespace(col.qname), [:])
+		cursor = Cursor(connection, (col.qname), [:])
 		cursor.skip = 3
 		list = cursor.toList
 		verifyEq(list.size, 7)
 		verifyEq(list[0]["data"],  4)
 		verifyEq(list[6]["data"], 10)
 
-		cursor = Cursor(connection, Namespace(col.qname), [:])
+		cursor = Cursor(connection, (col.qname), [:])
 		cursor.limit = 3
 		cursor.skip = 5
 		list = cursor.toList
@@ -68,7 +68,7 @@ internal class TestCursorDb : MongoDbTest {
 		verifyEq(list[0]["data"],  6)
 		verifyEq(list[2]["data"],  8)
 
-		cursor = Cursor(connection, Namespace(col.qname), [:])
+		cursor = Cursor(connection, (col.qname), [:])
 		cursor.limit = 30
 		cursor.skip = 5
 		list = cursor.toList
@@ -85,7 +85,7 @@ internal class TestCursorDb : MongoDbTest {
 		verifyEq(list[0]["data"],  3)
 		verifyEq(list[7]["data"], 10)
 
-		cursor = Cursor(connection, Namespace(col.qname), [:])
+		cursor = Cursor(connection, (col.qname), [:])
 		cursor.batchSize = 2
 		cursor.next
 		cursor.next
@@ -94,7 +94,7 @@ internal class TestCursorDb : MongoDbTest {
 		verifyEq(list[0]["data"],  3)
 		verifyEq(list[7]["data"], 10)
 
-		cursor = Cursor(connection, Namespace(col.qname), [:])
+		cursor = Cursor(connection, (col.qname), [:])
 		cursor.batchSize = 2
 		cursor.skip = 1
 		cursor.next
@@ -104,7 +104,7 @@ internal class TestCursorDb : MongoDbTest {
 		verifyEq(list[0]["data"],  4)
 		verifyEq(list[6]["data"], 10)
 
-		cursor = Cursor(connection, Namespace(col.qname), [:])
+		cursor = Cursor(connection, (col.qname), [:])
 		cursor.batchSize = 2
 		cursor.skip = 1
 		cursor.limit = 30
@@ -115,7 +115,7 @@ internal class TestCursorDb : MongoDbTest {
 		verifyEq(list[0]["data"],  4)
 		verifyEq(list[6]["data"], 10)
 
-		cursor = Cursor(connection, Namespace(col.qname), [:])
+		cursor = Cursor(connection, (col.qname), [:])
 		cursor.batchSize = 2
 		cursor.skip = 1
 		cursor.limit = 5
@@ -134,14 +134,14 @@ internal class TestCursorDb : MongoDbTest {
 		verifyEq(cursor.hasNext, true)
 		verifyEq(cursor.next["data"], 1)
 		
-		cursor = Cursor(connection, Namespace(col.qname), [:])
+		cursor = Cursor(connection, (col.qname), [:])
 		cursor.skip = 2
 		verifyEq(cursor.index, 2)
 		verifyEq(cursor.count, 8)
 		verifyEq(cursor.hasNext, true)
 		verifyEq(cursor.next["data"], 3)
 		
-		cursor = Cursor(connection, Namespace(col.qname), [:])
+		cursor = Cursor(connection, (col.qname), [:])
 		cursor.skip = 20
 		verifyEq(cursor.count, 0)
 		verifyEq(cursor.index, 20)

@@ -41,18 +41,6 @@ internal const class MongoErrMsgs {
 		"No more data"
 	}
 	
-	static Str namespace_nameCanNotBeEmpty(Str what) {
-		"${what} name can not be empty"
-	}
-	
-	static Str namespace_nameTooLong(Str what, Str name, Int maxSize) {
-		"${what} name must be shorter than ${maxSize} bytes: ${name}"
-	}
-	
-	static Str namespace_nameHasInvalidChars(Str what, Str name, Str invalidChars) {
-		"${what} name '${name}' may not contain any of the following: ${invalidChars}"
-	}
-		
 	static Str collection_findOneIsEmpty(Str qname, Obj? query) {
 		"FindOne() query returned ZERO documents from '${qname}': $query"
 	}

@@ -2,8 +2,6 @@
 ** Represents a MongoDB index.
 const class Index {
 
-	private const Namespace			colNs
-	private const Namespace			idxNs
 	private const ConnectionManager conMgr
 	
 	** Use in 'key' arguments to denote field sort order.
@@ -15,24 +13,20 @@ const class Index {
 	** Use in 'key' arguments to denote a text index on the field.
 	static const Str TEXT	:= "text"
 	
+	const Str	dbName
+	
+	const Str	colName
+	
 	** The name of this index. 
 	const Str	name
 	
-	** Creates an 'Index' with the given details.
-	new make(ConnectionManager conMgr, Str collectionQname, Str indexName, |This|? f := null) {
-		f?.call(this)
-		this.conMgr	= conMgr
-		this.colNs	= Namespace(collectionQname)
-		this.idxNs	= colNs.withCollection("system.indexes")
-		this.name	= indexName
-	}
-
-	internal new makeWithNs(ConnectionManager conMgr, Namespace namespace, Str indexName, |This|? f := null) {
-		f?.call(this)
-		this.conMgr	= conMgr
-		this.colNs	= namespace
-		this.idxNs	= colNs.withCollection("system.indexes")
-		this.name	= indexName
+	internal new make(ConnectionManager conMgr, Str dbName, Str colName, Str indexName) {
+		this.conMgr		= conMgr
+		this.dbName		= dbName
+		this.colName	= colName
+		this.name		= indexName
+		
+		// FIXME validate names
 	}
 
 	** Returns index info.
@@ -41,7 +35,7 @@ const class Index {
 	** 
 	** @see `http://docs.mongodb.org/manual/reference/method/db.collection.getIndexes/`
 	[Str:Obj?]? info() {
-		res := cmd.add("listIndexes", colNs.collectionName).run
+		res := cmd.add("listIndexes", colName).run
 		nfo := ([Str:Obj?][]) res["cursor"]->get("firstBatch")
 		return nfo.find { it["name"] == name }
 	}
@@ -81,7 +75,7 @@ const class Index {
 
 		// there's no createIndexMulti 'cos I figure no novice will need to create multiple indexes at once!
 		if (unique == true)	options.set("unique", unique)
-		cmd	.add("createIndexes", colNs.collectionName)
+		cmd	.add("createIndexes", colName)
 			.add("indexes", 	[cmd
 				.add("key",		Cursor.convertAscDesc(key))
 				.add("name",	name)
@@ -148,7 +142,7 @@ const class Index {
 	** 
 	** @see `http://docs.mongodb.org/manual/reference/command/dropIndexes/`
 	This drop(Bool force := false) {
-		if (force || exists) cmd.add("dropIndexes", colNs.collectionName).add("index", name).run
+		if (force || exists) cmd.add("dropIndexes", colName).add("index", name).run
 		// [nIndexesWas:2, ok:1.0]
 		return this
 	}
@@ -156,14 +150,14 @@ const class Index {
 	// ---- Private Methods -----------------------------------------------------------------------
 	
 	private MongoCmd cmd() {
-		MongoCmd(conMgr, colNs.databaseName)
+		MongoCmd(conMgr, dbName)
 	}	
 	
 	// ---- Obj Overrides -------------------------------------------------------------------------
 	
 	@NoDoc
 	override Str toStr() {
-		"${idxNs.databaseName}::${name}"
+		"${dbName}.${colName}::${name}"
 	}
 
 }

@@ -2,6 +2,9 @@
 
 ** Represents a MongoDB database.
 const class Database {
+	
+	** See `https://www.mongodb.com/docs/manual/reference/limits/#naming-restrictions`
+	private static const Int[] invalidNameChars	:= "/\\. \"*<>:|?".chars
 
 	** The underlying connection manager.
 	const ConnectionManager conMgr
@@ -11,20 +14,25 @@ const class Database {
 
 	** Creates a 'Database' with the given name.
 	** 
-	** Note this just instantiates the Fantom object, it does not create anything in the database. 
-	new makeWithName(ConnectionManager connectionManager, Str name, |This|? f := null) {
-		f?.call(this)
-		this.conMgr = connectionManager
-		this.name = Namespace.validateDatabaseName(name)
+	** Note this just instantiates the Fantom object, it does not create anything in MongoDB. 
+	new makeWithName(ConnectionManager connectionManager, Str name) {
+		this.conMgr	= connectionManager
+		this.name	= name
+		
+		if (name.isEmpty)
+			throw ArgErr("Database name can not be empty")
+		
+		if (name.any { invalidNameChars.contains(it) })
+			throw ArgErr("Database name '${name}' may not contain any of the following: ${Str.fromChars(invalidNameChars)}")
 	}
 
 	// ---- Database ----------------------------
 
 	** Returns a 'Collection' with the given name.
 	** 
-	** Note this just instantiates the Fantom object, it does not create anything in the database. 
+	** Note this just instantiates the Fantom object, it does not create anything in MongoDB. 
 	Collection collection(Str collectionName) {
-		Collection(this, collectionName)
+		Collection(conMgr, name, collectionName)
 	}
 
 	** Convenience / shorthand notation for 'collection(name)'

@@ -3,48 +3,30 @@
 ** Represents a MongoDB collection.
 const class Collection {
 	
-	private const Namespace	namespace
+//	private const Namespace	namespace
 	
 	** The underlying connection manager.
 	const ConnectionManager conMgr
-
-	** The qualified name of the collection. 
-	** It takes the form of: 
-	** 
-	**   <database>.<collection>
-	Str qname {
-		get { namespace.qname }
-		private set { }
-	}
+	
+	const Str dbName
 
 	** The simple name of the collection.
-	Str name {
-		get { namespace.collectionName }
-		private set { }
-	}
-	
-	** Creates a 'Collection' with the given qualified (dot separated) name.
-	** 
-	** Note this just instantiates the Fantom object, it does not create anything in the database. 
-	new makeFromQname(ConnectionManager conMgr, Str qname, |This|? f := null) {
-		f?.call(this)
-		this.conMgr		= conMgr
-		this.namespace 	= Namespace(qname)
-	}
+	const Str name
 
 	** Creates a 'Collection' with the given name under the database.
 	** 
 	** Note this just instantiates the Fantom object, it does not create anything in the database. 
-	new makeFromDatabase(Database database, Str name, |This|? f := null) {
-		f?.call(this)
-		this.conMgr 	= database.conMgr
-		this.namespace 	= Namespace(database.name, name)
-	}
-
-	internal new makeFromNamespace(ConnectionManager conMgr, Namespace namespace, |This|? f := null) {
-		f?.call(this)
-		this.conMgr		= conMgr
-		this.namespace 	= namespace
+	new makeFromDatabase(ConnectionManager conMgr, Str dbName, Str name) {
+		this.conMgr 	= conMgr
+		this.dbName		= dbName
+		this.name 		= name
+		
+		// FIXME validate DB Name
+		
+		if (name.isEmpty)
+			throw ArgErr("Collection name can not be empty")
+		if (name.any { it == '$' })
+			throw ArgErr("Collection name '${name}' may not contain any of the following: \$")
 	}
 	
 	// ---- Collection ----------------------------------------------------------------------------
@@ -134,7 +116,7 @@ const class Collection {
 			query["find"] = name
 			query["singleBatch"] = true
 			
-			res := Operation(con).runCommand(namespace.databaseName, query)
+			res := Operation(con).runCommand(dbName, query)
 
 			return res
 		}
@@ -198,7 +180,7 @@ const class Collection {
 			query["find"] = name
 			query["singleBatch"] = true
 			
-			res := Operation(con).runCommand(namespace.databaseName, query)
+			res := Operation(con).runCommand(dbName, query)
 
 			return res->get("cursor")->get("firstBatch")
 		}
@@ -428,9 +410,9 @@ const class Collection {
 	
 	** Returns an 'Index' of the given name.
 	** 
-	** Note this just instantiates the Fantom object, it does not create anything in the database. 
-	Index index(Str indexName) {
-		Index(conMgr, namespace, indexName)
+	** Note this just instantiates the Fantom object, it does not create anything in MongoDb. 
+	Index index(Str indexName) { 
+		Index(conMgr, dbName, name, indexName)
 	}
 
 	** Drops ALL indexes on the collection. *Be careful!*
@@ -457,17 +439,21 @@ const class Collection {
 	Str:Obj? runCmd(Str:Obj? query) {
 		cmd.addAll(query).run
 	}
+	
+	Str qname() {
+		"${dbName}.${name}"
+	}
 		
 	// ---- Obj Overrides -------------------------------------------------------------------------
 	
 	@NoDoc
 	override Str toStr() {
-		namespace.qname
+		qname
 	}
 
 	// ---- Private Methods -----------------------------------------------------------------------
 	
 	private MongoCmd cmd() {
-		MongoCmd(conMgr, namespace.databaseName)
+		MongoCmd(conMgr, dbName)
 	}	
 }
