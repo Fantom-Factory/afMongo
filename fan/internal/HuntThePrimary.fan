@@ -1,5 +1,3 @@
-using concurrent::AtomicRef
-using afConcurrent::SynchronizedState
 using inet::IpAddr
 
 class HuntThePrimary {

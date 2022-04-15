@@ -16,10 +16,6 @@ internal const class MongoErrMsgs {
 	static Str operation_resIdMismatch(Int reqId, Int resId) {
 		"Response ID from MongoDB '${resId}' does not match Request ID '${reqId}'"
 	}
-	
-	static Str operation_resOpCodeInvalid(Int opCode) {
-		"Response OpCode from MongoDB '${opCode}' should be : ${OpCode.OP_REPLY.id} - ${OpCode.OP_REPLY.name}"
-	}
 
 	static Str operation_queryFailure(Str? errMsg) {
 		"Query failed. MongoDB says: ${errMsg}"

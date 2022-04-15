@@ -1,4 +1,4 @@
-using afBson::Code
+//using afBson::Code
 
 ** Represents a MongoDB collection.
 const class Collection {
@@ -126,15 +126,27 @@ const class Collection {
 	** 
 	**  - @see `Cursor`
 	**  - @see `http://docs.mongodb.org/manual/reference/operator/query/`
-	Obj? find(Str:Obj? query, |Cursor->Obj?| func) {
+	Obj? find(Str:Obj? query) {
+		
+		// FIXME
+//		throw UnsupportedErr()
 		conMgr.leaseConnection |con->Obj?| {
-			cursor := Cursor(con, namespace, query)
-			try {
-				return func(cursor)
-			} finally {
-				cursor.kill
-			}
+			query["find"] = name
+			query["singleBatch"] = true
+			
+			res := Operation(con).runCommand(namespace.databaseName, query)
+
+			return res
 		}
+		
+//		conMgr.leaseConnection |con->Obj?| {
+//			cursor := Cursor(con, namespace, query)
+//			try {
+//				return func(cursor)
+//			} finally {
+//				cursor.kill
+//			}
+//		}
 	}
 
 	** An (optomised) method to return one document from the given 'query'.
@@ -144,17 +156,20 @@ const class Collection {
 	**  
 	** @see `http://docs.mongodb.org/manual/reference/operator/query/`
 	[Str:Obj?]? findOne([Str:Obj?]? query := null, Bool checked := true) {
-		query = query ?: Str:Obj?[:]
-		// findOne() is optomised to NOT call count() on a successful call 
-		return find(query) |cursor| {
-			// "If numberToReturn is 1 the server will treat it as -1 (closing the cursor automatically)."
-			// Means I can't use the isAlive() trick to check for more documents.
-			cursor.batchSize = 2
-			one := cursor.next(false) ?: (checked ? throw MongoErr(MongoErrMsgs.collection_findOneIsEmpty(qname, query)) : null)
-			if (cursor.isAlive || cursor.next(false) != null)
-				throw MongoErr(MongoErrMsgs.collection_findOneHasMany(qname, cursor.count, query))
-			return one
-		}
+		
+		throw UnsupportedErr()
+		
+//		query = query ?: Str:Obj?[:]
+//		// findOne() is optomised to NOT call count() on a successful call 
+//		return find(query) |cursor| {
+//			// "If numberToReturn is 1 the server will treat it as -1 (closing the cursor automatically)."
+//			// Means I can't use the isAlive() trick to check for more documents.
+//			cursor.batchSize = 2
+//			one := cursor.next(false) ?: (checked ? throw MongoErr(MongoErrMsgs.collection_findOneIsEmpty(qname, query)) : null)
+//			if (cursor.isAlive || cursor.next(false) != null)
+//				throw MongoErr(MongoErrMsgs.collection_findOneHasMany(qname, cursor.count, query))
+//			return one
+//		}
 	}
 
 	** Returns the result of the given 'query' as a list of documents.
@@ -174,27 +189,44 @@ const class Collection {
 	** - @see `http://docs.mongodb.org/manual/reference/operator/query/`
 	** - @see `https://docs.mongodb.com/manual/reference/operator/projection/`
 	[Str:Obj?][] findAll([Str:Obj?]? query := null, Obj? sort := null, Int skip := 0, Int? limit := null, [Str:Obj?]? projection := null) {
-		query = query ?: Str:Obj?[:]
-		return find(query) |Cursor cursor->[Str:Obj?][]| {
-			cursor.skip  		= skip
-			cursor.limit 		= limit
-			cursor.projection	= projection
-			if (sort is Str)	cursor.hint 	= sort
-			if (sort is Map)	cursor.orderBy  = sort
-			if (sort != null && sort isnot Str && sort isnot Map)
-				throw ArgErr(MongoErrMsgs.collection_findAllSortArgBad(sort))
-			return cursor.toList
+		
+//		find(query ?: Str:Obj?[:] { it.ordered = true})
+		
+		
+		conMgr.leaseConnection |con->Obj?| {
+			query = query ?: Str:Obj?[:] { it.ordered = true}
+			query["find"] = name
+			query["singleBatch"] = true
+			
+			res := Operation(con).runCommand(namespace.databaseName, query)
+
+			return res->get("cursor")->get("firstBatch")
 		}
+	
+//		throw UnsupportedErr()
+
+//		query = query ?: Str:Obj?[:] { it.ordered = true }
+//		return find(query) |Cursor cursor->[Str:Obj?][]| {
+//			cursor.skip  		= skip
+//			cursor.limit 		= limit
+//			cursor.projection	= projection
+//			if (sort is Str)	cursor.hint 	= sort
+//			if (sort is Map)	cursor.orderBy  = sort
+//			if (sort != null && sort isnot Str && sort isnot Map)
+//				throw ArgErr(MongoErrMsgs.collection_findAllSortArgBad(sort))
+//			return cursor.toList
+//		}
 	}
 
 	** Returns the number of documents that would be returned by the given 'query'.
 	** 
 	** @see `Cursor.count`
 	Int findCount([Str:Obj?]? query := null) {
-		query = query ?: Str:Obj?[:]
-		return find(query) |cur->Int| {
-			cur.count
-		}
+		throw UnsupportedErr()
+//		query = query ?: Str:Obj?[:]
+//		return find(query) |cur->Int| {
+//			cur.count
+//		}
 	}
 	
 	** Convenience / shorthand notation for 'findOne(["_id" : id], checked)'
@@ -391,7 +423,7 @@ const class Collection {
 		if (key is Str)		keyf 	= key
 		if (keydoc == null && keyf == null)
 			throw ArgErr(MongoErrMsgs.collection_badKeyGroup(key))
-
+	
 		group := cmd
 			.add("ns",			name)
 			.add("key",			keydoc)
@@ -426,16 +458,6 @@ const class Collection {
 	** 
 	** @see `http://docs.mongodb.org/manual/reference/command/mapReduce/`
 	[Str:Obj?] mapReduce(Code mapFunc, Code reduceFunc, [Str:Obj?]? options := null) {
-		opts := options.dup.rw
-		if (!opts.containsKey("out"))
-			opts["out"] = ["inline" : 1]
-		return cmd
-			.add("mapReduce",	name)
-			.add("map", 		mapFunc)
-			.add("reduce", 		reduceFunc)
-			.addAll(opts)
-			.run
-	}
 	
 	** Performs an aggregation operation using a sequence of stage-based manipulations.
 	** 
@@ -465,20 +487,24 @@ const class Collection {
 	**  - `http://docs.mongodb.org/manual/reference/command/aggregate/`
 	**  - `http://docs.mongodb.org/manual/reference/aggregation/`
 	Obj? aggregateCursor([Str:Obj?][] pipeline, |Cursor->Obj?| func) {
-		cmd := cmd
-			.add("aggregate",	name)
-			.add("pipeline", 	pipeline)
-			.add("cursor",		["batchSize": 0])
-
-		results	 := (Str:Obj?) cmd.run["cursor"]
-		cursorId := results["id"]
-		firstBat := results["firstBatch"]
-
-		return conMgr.leaseConnection |con->Obj?| {
-			cursor := Cursor(con, namespace, cmd.query, cursorId, firstBat)
-			try return	func(cursor)
-			finally		cursor.kill
-		}
+		
+		// FIXME
+		throw UnsupportedErr()
+		
+//		cmd := cmd
+//			.add("aggregate",	name)
+//			.add("pipeline", 	pipeline)
+//			.add("cursor",		["batchSize": 0])
+//
+//		results	 := (Str:Obj?) cmd.run["cursor"]
+//		cursorId := results["id"]
+//		firstBat := results["firstBatch"]
+//
+//		return conMgr.leaseConnection |con->Obj?| {
+//			cursor := Cursor(con, namespace, cmd.query, cursorId, firstBat)
+//			try return	func(cursor)
+//			finally		cursor.kill
+//		}
 	}
 	
 	// ---- Indexes -------------------------------------------------------------------------------
