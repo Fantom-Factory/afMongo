@@ -103,7 +103,7 @@ internal class TestMongoConnUrl : Test {
 		verifyEq(conMgr.connectionUrl.port,		44444)
 
 		hg := conMgr.connectionUrl.host.split(',')
-		hostList := (HostDetails[]) hg.map { HostDetails(it, false) }
+		hostList := (HostDetails[]) hg.map { HostDetails(it, false, this.typeof.pod.log) }
 		hostList.last.port = conMgr.connectionUrl.port ?: 27017
 		verifyEq(hostList[0].address,	"ds999999-a0.mlab.com")
 		verifyEq(hostList[0].port, 		55555)

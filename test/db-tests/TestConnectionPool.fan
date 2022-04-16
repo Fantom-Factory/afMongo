@@ -28,8 +28,8 @@ internal class TestConnectionPool : MongoDbTest {
 	Void testReHuntThePrimary() {
 		conMgr := conMgr
 		f := Synchronized(ActorPool()).async |->| {
-			con := null as TcpConnection
-			conMgr.leaseConnection |TcpConnection c| {
+			con := null as MongoTcpConn
+			conMgr.leaseConn |MongoTcpConn c| {
 				con = c
 				Actor.sleep(200ms)
 			}
@@ -40,7 +40,7 @@ internal class TestConnectionPool : MongoDbTest {
 		Actor.sleep(10ms)
 		
 		verifyMongoErrMsg("==< MongoDB says: not master >==") |->| {
-			conMgr.leaseConnection {
+			conMgr.leaseConn {
 				throw Err("==< MongoDB says: not master >==")
 			}
 		}

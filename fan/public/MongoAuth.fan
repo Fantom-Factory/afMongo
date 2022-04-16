@@ -33,7 +33,7 @@ const class MongoCreds {
 @NoDoc	// advanced use only
 const mixin MongoAuthMech {
 	
-	abstract Void authenticate(Connection conn, MongoCreds creds)
+	abstract Void authenticate(MongoConn conn, MongoCreds creds)
 	
 }
 
@@ -46,7 +46,7 @@ internal const class MongoAuthScramSha1 : MongoAuthMech {
 	// http://tools.ietf.org/html/rfc5802#page-7
 	// http://tools.ietf.org/html/rfc4422#section-5
 	// http://tools.ietf.org/html/rfc2898#section-5.2
-	override Void authenticate(Connection conn, MongoCreds creds) {
+	override Void authenticate(MongoConn conn, MongoCreds creds) {
 		if (creds.mechanism != "SCRAM-SHA-1")
 			throw UnsupportedErr("Only credentials for SCRAM-SHA-1 are supported")
 		if (creds.username == null || creds.password == null)

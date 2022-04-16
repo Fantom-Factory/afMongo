@@ -9,10 +9,10 @@ using afBson::BsonIO
 internal class MongoOp {
 	private static const AtomicInt	reqIdSeq	:= AtomicInt(0)
 
-	private Connection connection
+	private MongoConn connection
 
 	** Creates an 'Operation' with the given connection.
-	new make(Connection connection) {
+	new make(MongoConn connection) {
 		this.connection = connection
 	}
 

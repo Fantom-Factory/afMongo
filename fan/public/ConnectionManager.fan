@@ -22,7 +22,7 @@ const mixin ConnectionManager {
 	** What ever is returned from the func is returned from the method.
 	** 
 	** If the given fn causes an 'IOErr' then the Mongo cluster topology is re-scaaned.
-	abstract Obj? leaseConnection(|Connection->Obj?| c)
+	abstract Obj? leaseConn(|MongoConn->Obj?| c)
 	
 	** Does what ever the 'ConnectionManager' needs to do to initialise itself.
 	** 
@@ -36,9 +36,6 @@ const mixin ConnectionManager {
 	
 	// FIXME makePool()
 	
-	
-	// FIXME makeSingle
-	//	 Conn URL options are ignored - any use? nope! Kill. Make pool only
 }
 
 

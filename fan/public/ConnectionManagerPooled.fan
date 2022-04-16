@@ -96,7 +96,7 @@ const class ConnectionManagerPooled : ConnectionManager {
 		isConnectedToMasterRef.val = true
 
 		// connect x times
-		pool := TcpConnection[,]
+		pool := MongoTcpConn[,]
 		mongoConnUrl.minPoolSize.times { pool.push(checkOut) }
 		mongoConnUrl.minPoolSize.times { checkIn(pool.pop) }
 		
@@ -111,7 +111,7 @@ const class ConnectionManagerPooled : ConnectionManager {
 	** 'waitQueueTimeout' expires then a 'MongoErr' is thrown.
 	** 
 	** All leased connections are authenticated against the default credentials.
-	override Obj? leaseConnection(|Connection->Obj?| c) {
+	override Obj? leaseConn(|MongoConn->Obj?| c) {
 		if (!startupLock.locked)
 			throw Err("ConnectionManager has not started")
 		shutdownLock.check
@@ -224,9 +224,9 @@ const class ConnectionManagerPooled : ConnectionManager {
 
 		// set our connection factory
 		connectionState.sync |ConnectionManagerPoolState state| {
-			state.connectionFactory = |->Connection| {
+			state.connFactory = |->MongoConn| {
 				socket := newSocket
-				return TcpConnection(socket).connect(mongoUrl.host, mongoUrl.port) {
+				return MongoTcpConn(socket).connect(mongoUrl.host, mongoUrl.port) {
 					it.mongoUrl = mongoUrl
 				}
 			} 
@@ -265,7 +265,7 @@ const class ConnectionManagerPooled : ConnectionManager {
 			state.checkedOut.each { it.forceCloseOnCheckIn = true }
 		}
 		// re-connect x times
-		pool := TcpConnection[,]
+		pool := MongoTcpConn[,]
 		mongoConnUrl.minPoolSize.times { pool.push(checkOut) }
 		mongoConnUrl.minPoolSize.times { checkIn(pool.pop) }
 	}
@@ -299,8 +299,8 @@ const class ConnectionManagerPooled : ConnectionManager {
 		}
 	}
 
-	private TcpConnection checkOut() {
-		connectionFunc := |Duration totalNapTime->TcpConnection?| {
+	private MongoTcpConn checkOut() {
+		connectionFunc := |Duration totalNapTime->MongoTcpConn?| {
 			con := connectionState.sync |ConnectionManagerPoolState state->Unsafe?| {
 				while (!state.checkedIn.isEmpty) {
 					connection := state.checkedIn.pop
@@ -313,7 +313,7 @@ const class ConnectionManagerPooled : ConnectionManager {
 				}
 
 				if (state.checkedOut.size < mongoConnUrl.maxPoolSize) {
-					connection := state.connectionFactory()
+					connection := state.connFactory()
 					state.checkedOut.push(connection)
 					return Unsafe(connection)
 				}
@@ -328,7 +328,7 @@ const class ConnectionManagerPooled : ConnectionManager {
 			return con
 		}
 
-		connection	:= null as TcpConnection
+		connection	:= null as MongoTcpConn
 		ioErr		:= null as Err
 		try connection = backoffFunc(connectionFunc, mongoConnUrl.waitQueueTimeout)
 		
@@ -358,11 +358,11 @@ const class ConnectionManagerPooled : ConnectionManager {
 		return connection
 	}
 	
-	private Void checkIn(TcpConnection connection) {
+	private Void checkIn(MongoTcpConn connection) {
 		unsafeConnection := Unsafe(connection)
 		// call sync() to make sure this thread checks in before it asks for a new one
 		connectionState.sync |ConnectionManagerPoolState state| {
-			conn := (TcpConnection) unsafeConnection.val
+			conn := (MongoTcpConn) unsafeConnection.val
 			state.checkedOut.removeSame(conn)
 
 			// make sure we don't save stale connections
@@ -429,7 +429,7 @@ const class ConnectionManagerPooled : ConnectionManager {
 }
 
 internal class ConnectionManagerPoolState {
-	TcpConnection[]		checkedIn	:= [,]
-	TcpConnection[]		checkedOut	:= [,]
-	|->TcpConnection|?	connectionFactory
+	MongoTcpConn[]		checkedIn	:= [,]
+	MongoTcpConn[]		checkedOut	:= [,]
+	|->MongoTcpConn|?	connFactory
 }

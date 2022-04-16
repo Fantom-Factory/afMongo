@@ -57,7 +57,7 @@ class MongoCmd {
 	}	
 	
 	Str:Obj? run(Bool checked := true) {
-		doc := (Str:Obj?) connMgr.leaseConnection |con->Str:Obj?| {
+		doc := (Str:Obj?) connMgr.leaseConn |con->Str:Obj?| {
 			MongoOp(con).runCommand(dbName, cmd, checked)
 		}
 		return doc

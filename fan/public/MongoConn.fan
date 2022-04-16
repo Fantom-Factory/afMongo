@@ -3,10 +3,8 @@ using inet::TcpSocket
 using util::Random
 
 ** Represents a connection to a MongoDB instance.
-** All connections on creation should be connected to a MongoDB instance and ready to go.
-** 
-** Default implementation is a 'TcpConnection'. 
-mixin Connection {
+@NoDoc	// advanced use only
+mixin MongoConn {
 
 	** Data *from* MongoDB *to* the client.
 	abstract InStream 	in()
@@ -25,8 +23,7 @@ mixin Connection {
 }
 
 ** Connects to MongoDB via an 'inet::TcpSocket'.
-@NoDoc
-class TcpConnection : Connection {
+internal class MongoTcpConn : MongoConn {
 			 TcpSocket	socket
 			 Uri?		mongoUrl			// used by MongoConnMgrPool
 			 Bool		forceCloseOnCheckIn	// used by MongoConnMgrPool

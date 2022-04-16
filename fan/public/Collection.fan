@@ -114,7 +114,7 @@ const class Collection {
 		
 		// FIXME
 //		throw UnsupportedErr()
-		conMgr.leaseConnection |con->Obj?| {
+		conMgr.leaseConn |con->Obj?| {
 			query["find"] = name
 			query["singleBatch"] = true
 			
@@ -177,7 +177,7 @@ const class Collection {
 //		find(query ?: Str:Obj?[:] { it.ordered = true})
 		
 		
-		conMgr.leaseConnection |con->Obj?| {
+		conMgr.leaseConn |con->Obj?| {
 			query = query ?: Str:Obj?[:] { it.ordered = true}
 			query["find"] = name
 			query["singleBatch"] = true
