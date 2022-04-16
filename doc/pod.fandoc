@@ -40,12 +40,11 @@ Quick Start [#quickStart]
 
     using afBson
     using afMongo
-    using concurrent
 
     class Example {
 
         Void main() {
-            mongoClient := MongoClient(ActorPool(), `mongodb://localhost:27017`)
+            mongoClient := MongoClient(`mongodb://localhost:27017`)
             collection  := mongoClient.db("friends").collection("birds")
 
             documentIn  := [

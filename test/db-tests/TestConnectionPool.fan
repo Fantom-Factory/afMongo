@@ -49,7 +49,7 @@ internal class TestConnectionPool : MongoDbTest {
 		Actor.sleep(10ms)
 		
 		verifyEq((logs.first as LogRec).msg, "Found a new Master at mongodb://localhost:27017")
-		verifyEq(conMgr.minPoolSize, 5)
+		verifyEq(conMgr.mongoConnUrl.minPoolSize, 5)
 		verifyEq(conMgr.noOfConnectionsInUse, 1)
 		verifyEq(conMgr.noOfConnectionsInPool, 6)
 		

@@ -33,7 +33,7 @@ using inet::TcpSocket
 ** 
 ** Note this connection manager *is* safe for multi-threaded / web-application use.
 const class ConnectionManagerPooled : ConnectionManager {
-	private const Log				log						:= ConnectionManagerPooled#.pod.log
+	override const Log				log
 	private const OneShotLock		startupLock				:= OneShotLock("Connection Pool has been started")
 	private const OneShotLock		shutdownLock			:= OneShotLock("Connection Pool has been shutdown")
 	private const AtomicBool 		failingOverRef			:= AtomicBool(false)
@@ -65,10 +65,11 @@ const class ConnectionManagerPooled : ConnectionManager {
 	** If user credentials are supplied, they are used as default authentication for each connection.
 	** 
 	**   connMgr := ConnectionManagerPooled(ActorPool(), `mongodb://localhost:27017`)
-	new makeFromUrl(ActorPool actorPool, Uri connectionUrl, |This|? f := null) {
+	new make(ActorPool actorPool, Uri connectionUrl, Log? log := null, |This|? f := null) {
 		this.connectionState	= SynchronizedState(actorPool, ConnectionManagerPoolState#)
 		this.mongoConnUrl		= MongoConnUrl(connectionUrl)
 		this.failOverThread		= connectionState.lock
+		this.log				= log ?: ConnectionManagerPooled#.pod.log
 
 		// allow the it-block to override the default settings
 		// no validation occurs - only used for testing.

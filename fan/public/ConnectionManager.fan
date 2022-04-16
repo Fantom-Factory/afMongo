@@ -4,6 +4,9 @@
 ** @see `ConnectionManagerPooled`
 const mixin ConnectionManager {
 	
+	** The log instance used to report warnings.
+	abstract Log log()
+	
 	** Basic details of where this 'ConnectionManager' connects to, for debugging purposes.
 	** When connecting to replica sets, this should indicate the primary. 
 	** 

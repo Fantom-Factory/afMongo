@@ -7,7 +7,7 @@ internal class MongoDbTest : MongoTest {
 	
 	override Void setup() {
 		mongoUri	:= `mongodb://localhost:27017`
-		mc = MongoClient(ActorPool(), mongoUri)
+		mc = MongoClient(mongoUri)
 		db = mc["afMongoTest"]
 		// not dropping the DB makes the test x10 faster!
 		db.collectionNames.each { db[it].drop }
