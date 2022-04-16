@@ -18,9 +18,10 @@ internal class MongoOp {
 
 	** Runs the given Mongo command and returns the reply document.
 	Str:Obj? runCommand(Str dbName, Str:Obj? cmd, Bool checked := true) {
-		if (cmd.size > 1 && !cmd.ordered)
-			throw ArgErr("Command Map is NOT ordered - this will probably result in a MongoDB error: ${dbName} -> ${cmd}")
+		if (cmd.ordered == false)
+			throw ArgErr("Command Map is NOT ordered - this WILL (probably) result in a MongoDB error: ${dbName} -> ${cmd}")
 		
+		// this guy can NOT come first! Else, ERR, "Unknown Cmd $db"
 		cmd["\$db"]	= dbName
 
 		reqId	:= reqIdSeq.incrementAndGet

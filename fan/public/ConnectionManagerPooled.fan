@@ -217,7 +217,7 @@ const class ConnectionManagerPooled : ConnectionManager {
 	** 
 	** This method should be followed with a call to 'emptyPool()'.  
 	Void huntThePrimary() {
-		mongoUrl := HuntThePrimary(mongoConnUrl.connectionUrl, mongoConnUrl.tls).huntThePrimary
+		mongoUrl := HuntThePrimary(mongoConnUrl.connectionUrl, mongoConnUrl.tls, log).huntThePrimary
 
 		mongoUrlRef.val = mongoUrl
 		isConnectedToMasterRef.val = true
@@ -226,7 +226,7 @@ const class ConnectionManagerPooled : ConnectionManager {
 		connectionState.sync |ConnectionManagerPoolState state| {
 			state.connectionFactory = |->Connection| {
 				socket := newSocket
-				return TcpConnection(socket).connect(IpAddr(mongoUrl.host), mongoUrl.port) {
+				return TcpConnection(socket).connect(mongoUrl.host, mongoUrl.port) {
 					it.mongoUrl = mongoUrl
 				}
 			} 

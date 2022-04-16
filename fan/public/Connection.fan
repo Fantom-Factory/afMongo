@@ -28,8 +28,8 @@ mixin Connection {
 @NoDoc
 class TcpConnection : Connection {
 			 TcpSocket	socket
-			 Uri?		mongoUrl
-			 Bool		forceCloseOnCheckIn
+			 Uri?		mongoUrl			// used by MongoConnMgrPool
+			 Bool		forceCloseOnCheckIn	// used by MongoConnMgrPool
 	override Bool		isAuthenticated
 	
 	** Allows you to pass in a TcpSocket with options already set.
@@ -42,9 +42,9 @@ class TcpConnection : Connection {
 		this.socket = newSocket(ssl)
 	}
 	
-	This connect(IpAddr address := IpAddr("127.0.0.1"), Int port := 27017) {
+	This connect(Str address, Int port) {
 		try {
-			socket.connect(address, port)
+			socket.connect(IpAddr(address), port)
 			return this
 		}
 		catch (Err err)
@@ -70,8 +70,6 @@ class TcpConnection : Connection {
 		return socket
 	}
 
-	// ---- Obj Overrides -------------------------------------------------------------------------
-	
 	@NoDoc
 	override Str toStr() {
 		isClosed ? "Closed" : socket.remoteAddr.toStr
