@@ -34,10 +34,19 @@ const class Database {
 	MongoCollection get(Str collectionName) {
 		collection(collectionName)
 	}
+	
+	** **For Power Users!**
+	** 
+	** Runs an arbitrary command against this database.
+	** 
+	** Don't forget to call 'run()'!
+	MongoCmd cmd(Str cmdName, Obj? cmdVal := 1) {
+		MongoCmd(connMgr, name, cmdName)
+	}
 
 	
 	
-	// ---- Stable API --------------------------
+	// ---- Commands ----------------------------
 	
 	** Drops the database. *Be careful!*
 	** 
@@ -58,15 +67,6 @@ const class Database {
 		cur := (Str:Obj?)     res["cursor"]
 		bat := ([Str:Obj?][]) cur["firstBatch"]
 		return bat.map |nom->Str| { nom["name"] }
-	}
-	
-	** **For Power Users!**
-	** 
-	** Runs an arbitrary command against this database.
-	** 
-	** Don't forget to call 'run()'!
-	MongoCmd cmd(Str cmdName, Obj? cmdVal := 1) {
-		MongoCmd(connMgr, name, cmdName)
 	}
 	
 	

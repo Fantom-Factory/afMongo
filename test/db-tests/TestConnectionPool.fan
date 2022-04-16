@@ -41,7 +41,7 @@ internal class TestConnectionPool : MongoDbTest {
 		
 		verifyMongoErrMsg("==< MongoDB says: not master >==") |->| {
 			conMgr.leaseConnection {
-				throw MongoErr("==< MongoDB says: not master >==")
+				throw Err("==< MongoDB says: not master >==")
 			}
 		}
 

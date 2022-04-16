@@ -23,7 +23,7 @@ internal class TestIndexDb : MongoDbTest {
 		verifyEq(indat.exists, true)
 		verifyEq(indat.info["name"], "_data_")
 		
-		verifyErr(MongoCmdErr#) {
+		verifyErr(MongoErr#) {
 			collection.insert(["data":10])
 			collection.insert(["data":10])
 		}

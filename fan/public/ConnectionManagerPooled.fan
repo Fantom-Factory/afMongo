@@ -113,19 +113,19 @@ const class ConnectionManagerPooled : ConnectionManager {
 	** All leased connections are authenticated against the default credentials.
 	override Obj? leaseConnection(|Connection->Obj?| c) {
 		if (!startupLock.locked)
-			throw MongoErr("ConnectionManager has not started")
+			throw Err("ConnectionManager has not started")
 		shutdownLock.check
 
 		connection := checkOut
 		try {
 			return c(connection)
 			
-		} catch (MongoIoErr e) {
+		} catch (IOErr e) {
 			err := e as Err
 			connection.close
 
 			// that shitty MongoDB Atlas doesn't tell us when the master has changed 
-			// instead we just get errors when we attempt to read the reply
+			// instead we just get IOErrs when we attempt to read the reply
 
 			// if the master URL has changed, then we've already found a new master!
 			if (connection.mongoUrl != mongoUrl)
@@ -134,24 +134,6 @@ const class ConnectionManagerPooled : ConnectionManager {
 			// if we're still connected to the same master, lets play huntThePrimary!
 			failOver
 
-			// even though Hunt the Primary succeeded, we still need to report the original error!
-			// it would be cool to just call the "c" func again, but we can't be sure it's idempotent
-			throw err
-
-		} catch (MongoErr e) {
-			err := e as Err
-			connection.close
-
-			if (!err.msg.contains("MongoDB says: not master"))
-				throw err
-
-			// if the master URL has changed, then we've already found a new master!
-			if (connection.mongoUrl != mongoUrl)
-				throw err
-
-			// if we're still connected to the same master, lets play huntThePrimary!
-			failOver
-				
 			// even though Hunt the Primary succeeded, we still need to report the original error!
 			// it would be cool to just call the "c" func again, but we can't be sure it's idempotent
 			throw err
@@ -356,14 +338,14 @@ const class ConnectionManagerPooled : ConnectionManager {
 
 		if (connection == null || ioErr != null) {
 			if (noOfConnectionsInUse == mongoConnUrl.maxPoolSize)
-				throw MongoErr("Argh! No more connections! All ${mongoConnUrl.maxPoolSize} are in use!")
+				throw Err("Argh! No more Mongo connections! All ${mongoConnUrl.maxPoolSize} are in use!")
 			
 			// it would appear the database is down ... :(			
 			// so lets kick off a game of huntThePrimary in the background ...
 			failOver
 
 			// ... and report an error - 'cos we can't wait longer than 'waitQueueTimeout'
-			throw ioErr ?: MongoErr("Argh! Can not connect to Master! All ${mongoConnUrl.maxPoolSize} are in use!")
+			throw ioErr ?: Err("Argh! Can not connect to Mongo Master! All ${mongoConnUrl.maxPoolSize} are in use!")
 		}
 		
 		// ensure all connections are authenticated

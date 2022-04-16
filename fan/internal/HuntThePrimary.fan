@@ -12,7 +12,7 @@ class HuntThePrimary {
 	
 	** (Advanced)
 	** Searches the replica set for the Master node and instructs all new connections to connect to it.
-	** Throws 'MongoErr' if a primary can not be found. 
+	** Throws an 'Err' if a primary can not be found. 
 	** 
 	** This method should be followed with a call to 'emptyPool()'.  
 	Uri huntThePrimary() {
@@ -61,7 +61,7 @@ class HuntThePrimary {
 
 		// Bugger!
 		if (primary == null)
-			throw MongoErr("Could not find the primary node with RelicaSet connection URL ${connectionUrl}")
+			throw Err("Could not find the primary node with RelicaSet connection URL ${connectionUrl}")
 
 		primaryAddress	:= primary.address
 		primaryPort		:= primary.port

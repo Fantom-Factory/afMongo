@@ -5,14 +5,6 @@ internal const class MongoErrMsgs {
 		"Could not find OpCode for id '${id}'"
 	}
 	
-	static Str oneShotLock_violation(Str because) {
-		"Method may no longer be invoked - $because"
-	}	
-
-	static Str operation_cmdNotOrdered(Str cmd, Str:Obj? doc) {
-		"Command Map is NOT ordered - this will probably result in a MongoDB error: ${cmd} -> ${doc}"
-	}
-	
 	static Str operation_resIdMismatch(Int reqId, Int resId) {
 		"Response ID from MongoDB '${resId}' does not match Request ID '${reqId}'"
 	}

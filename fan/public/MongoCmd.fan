@@ -1,8 +1,10 @@
 using afMongo::ConnectionManager as MongoConnMgr
 
+** Instances of 'MongoCmd' 
 class MongoCmd {
 	const MongoConnMgr	connMgr
 	const Str			dbName
+	const Str			cmdName
 
 	Str:Obj? cmd {
 		private set
@@ -11,13 +13,17 @@ class MongoCmd {
 	new make(MongoConnMgr connMgr, Str dbName, Str cmdName, Obj? cmdVal := 1) {
 		this.connMgr	= connMgr
 		this.dbName 	= dbName
+		this.cmdName	= cmdName
 		this.cmd		= Str:Obj?[:] { ordered = true } 
 		this.add(cmdName, cmdVal)
 	}
-
+	
+	@Deprecated
 	internal new makeOldSck(MongoConnMgr connMgr, Str dbName) {
 		this.connMgr	= connMgr
 		this.dbName 	= dbName
+		this.cmdName	= ""
+		this.cmd		= Str:Obj?[:] { ordered = true } 
 		this.cmd		= Str:Obj?[:] { ordered = true } 
 	}
 
@@ -50,12 +56,10 @@ class MongoCmd {
 		cmd.containsKey(key)
 	}	
 	
-	Str:Obj? run() {
+	Str:Obj? run(Bool checked := true) {
 		doc := (Str:Obj?) connMgr.leaseConnection |con->Str:Obj?| {
-			Operation(con).runCommand(dbName, cmd)
+			MongoOp(con).runCommand(dbName, cmd, checked)
 		}
-
-
 		return doc
 	}
 }

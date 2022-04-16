@@ -118,7 +118,7 @@ const class Collection {
 			query["find"] = name
 			query["singleBatch"] = true
 			
-			res := Operation(con).runCommand(dbName, query)
+			res := MongoOp(con).runCommand(dbName, query)
 
 			return res
 		}
@@ -182,7 +182,7 @@ const class Collection {
 			query["find"] = name
 			query["singleBatch"] = true
 			
-			res := Operation(con).runCommand(dbName, query)
+			res := MongoOp(con).runCommand(dbName, query)
 
 			return res->get("cursor")->get("firstBatch")
 		}
@@ -217,7 +217,7 @@ const class Collection {
 	@Operator
 	[Str:Obj?]? get(Obj? id, Bool checked := true) {
 		if (id == null)
-			return !checked ? null : (null ?: throw MongoErr(MongoErrMsgs.collection_findOneIsEmpty(qname, id)))
+			return !checked ? null : (null ?: throw Err(MongoErrMsgs.collection_findOneIsEmpty(qname, id)))
 		return findOne(["_id" : id], checked)
 	}
 

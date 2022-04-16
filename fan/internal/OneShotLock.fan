@@ -20,7 +20,7 @@ internal const class OneShotLock {
 	
 	Void check() {
 		if (lockFlag.val)
-			throw MongoErr(MongoErrMsgs.oneShotLock_violation(because))
+			throw Err("Method may no longer be invoked - ${because}")
 	}
 	
 	override Str toStr() {

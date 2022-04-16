@@ -58,7 +58,7 @@ internal const class MongoAuthScramSha1 : MongoAuthMech {
 		random			:= Random.makeSecure
 		clientNonce		:= Buf().writeI8(random.next).writeI8(random.next).toBase64
 		clientFirstMsg	:= "n=${creds.username},r=${clientNonce}"
-		serverFirstRes	:= Operation(conn).runCommand("${creds.source}.\$cmd", map
+		serverFirstRes	:= MongoOp(conn).runCommand(creds.source, map
 			.add("saslStart", 1)
 			.add("mechanism", "SCRAM-SHA-1")
 			.add("payload", Buf().print(gs2Header).print(clientFirstMsg))
@@ -71,7 +71,7 @@ internal const class MongoAuthScramSha1 : MongoAuthMech {
 		serverNonce		:= payloadValues["r"]
 		serverSalt		:= payloadValues["s"]
 		serverIterations:= Int.fromStr(payloadValues["i"])
-				
+
 		// ---- 2nd message ----
 		hashedPassword	:= "${creds.username}:mongo:${creds.password}".toBuf.toDigest("MD5").toHex
 		dkLen			:= 20	// the size of a SHA-1 hash
@@ -85,7 +85,7 @@ internal const class MongoAuthScramSha1 : MongoAuthMech {
 		clientFinal		:= "${clientFinalNoPf},p=${clientProof.toBase64}"
 		serverKey		:= "Server Key".toBuf.hmac("SHA-1", saltedPassword)
 		serverSignature	:= authMessage.toBuf.hmac("SHA-1", serverKey).toBase64
-		serverSecondRes := Operation(conn).runCommand("${creds.source}.\$cmd", map
+		serverSecondRes := MongoOp(conn).runCommand(creds.source, map
 			.add("saslContinue", 1)
 			.add("conversationId", conversationId)
 			.add("payload", Buf().print(clientFinal))
@@ -96,16 +96,16 @@ internal const class MongoAuthScramSha1 : MongoAuthMech {
 
 		// authenticate the server
 		if (serverSignature != serverProof)
-			throw MongoErr("Server sent invalid SCRAM signature '${serverSignature}' - was expecting '${serverProof}'")
+			throw Err("Mongo Server sent invalid SCRAM signature '${serverSignature}' - was expecting '${serverProof}'")
 
 		// ---- 3rd message ----
-		serverThirdRes := Operation(conn).runCommand(creds.source, map
+		serverThirdRes := MongoOp(conn).runCommand(creds.source, map
 			.add("saslContinue", 1)
 			.add("conversationId", conversationId)
 			.add("payload", Buf())
 		)
 		if (serverThirdRes["done"] != true)
-			throw MongoErr("SCRAM authentication did not complete - ${serverThirdRes}")
+			throw Err("Mongo SCRAM authentication did not complete - ${serverThirdRes}")
 	}
 	
 	private Buf xor(Buf key, Buf sig) {
