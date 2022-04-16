@@ -18,15 +18,17 @@ const class Collection {
 	** Note this just instantiates the Fantom object, it does not create anything in the database. 
 	new makeFromDatabase(ConnectionManager conMgr, Str dbName, Str name) {
 		this.conMgr 	= conMgr
-		this.dbName		= dbName
-		this.name 		= name
-		
-		// FIXME validate DB Name
-		
+		this.dbName		= Database.validateName(dbName)
+		this.name 		= validateName(name)
+	}
+	
+	
+	internal static Str validateName(Str name) {
 		if (name.isEmpty)
 			throw ArgErr("Collection name can not be empty")
 		if (name.any { it == '$' })
 			throw ArgErr("Collection name '${name}' may not contain any of the following: \$")
+		return name
 	}
 	
 	// ---- Collection ----------------------------------------------------------------------------
@@ -225,19 +227,19 @@ const class Collection {
 	** Returns the number of documents inserted.
 	** 
 	** @see `http://docs.mongodb.org/manual/reference/command/insert/`
-	Int insert(Str:Obj? document, [Str:Obj?]? writeConcern := null) {
-		insertMulti([document], null, writeConcern)["n"]->toInt
+	Int insert(Str:Obj? document) {
+		insertMulti([document], null)["n"]->toInt
 	}
 
 	** Inserts multiple documents.
 	** 
 	** @see `http://docs.mongodb.org/manual/reference/command/insert/`
-	[Str:Obj?] insertMulti([Str:Obj?][] inserts, Bool? ordered := null, [Str:Obj?]? writeConcern := null) {
+	[Str:Obj?] insertMulti([Str:Obj?][] inserts, Bool? ordered := null) {
 		cmd()
 			.add("insert",			name)
 			.add("documents",		inserts)
 			.add("ordered",			ordered)
-			.add("writeConcern",	writeConcern ?: conMgr.writeConcern)
+			.add("writeConcern",	conMgr.writeConcern)
 			.run
 	}
 
@@ -248,22 +250,22 @@ const class Collection {
 	** only the first match will be deleted.
 	** 
 	** @see `http://docs.mongodb.org/manual/reference/command/delete/`
-	Int delete(Str:Obj? query, Bool deleteAll := false, [Str:Obj?]? writeConcern := null) {
+	Int delete(Str:Obj? query, Bool deleteAll := false) {
 		cmd := cmd
 			.add("q",		query)
 			.add("limit",	deleteAll ? 0 : 1)
-		return deleteMulti([cmd.query], null, writeConcern)["n"]->toInt
+		return deleteMulti([cmd.cmd], null)["n"]->toInt
 	}
 
 	** Executes multiple delete queries.
 	** 	
 	** @see `http://docs.mongodb.org/manual/reference/command/delete/`
-	[Str:Obj?] deleteMulti([Str:Obj?][] deletes, Bool? ordered := null, [Str:Obj?]? writeConcern := null) {
+	[Str:Obj?] deleteMulti([Str:Obj?][] deletes, Bool? ordered := null) {
 		cmd()
 			.add("delete",			name)
 			.add("deletes",			deletes)
 			.add("ordered",			ordered)
-			.add("writeConcern",	writeConcern ?: conMgr.writeConcern)
+			.add("writeConcern",	conMgr.writeConcern)
 			.run
 	}
 	
@@ -275,9 +277,9 @@ const class Collection {
 	** Same as calling:
 	** 
 	**   syntax: fantom
-	**   deleteMulti([["q":[:], "limit":0]], false, writeConcern)["n"]
-	Int deleteAll([Str:Obj?]? writeConcern := null) {
-		deleteMulti([["q":[:], "limit":0]], false, writeConcern)["n"]->toInt
+	**   deleteMulti([["q":[:], "limit":0]], false)["n"]
+	Int deleteAll() {
+		deleteMulti([["q":[:], "limit":0]], false)["n"]->toInt
 	}
 
 	** Runs the given 'updateCmd' against documents returned by 'query'.
@@ -289,24 +291,24 @@ const class Collection {
 	** If 'upsert' is 'true' and no documents are updated, then one is inserted.
 	** 
 	** @see `http://docs.mongodb.org/manual/reference/command/update/`
-	[Str:Obj?] update(Str:Obj? query, Str:Obj? updateCmd, Bool? multi := false, Bool? upsert := false, [Str:Obj?]? writeConcern := null) {
+	[Str:Obj?] update(Str:Obj? query, Str:Obj? updateCmd, Bool? multi := false, Bool? upsert := false) {
 		cmd := cmd
 			.add("q",		query)
 			.add("u",		updateCmd)
 			.add("upsert",	upsert)
 			.add("multi",	multi)
-		return updateMulti([cmd.query], null, writeConcern)
+		return updateMulti([cmd.cmd], null)
 	}
 
 	** Runs multiple update queries.
 	** 
 	** @see `http://docs.mongodb.org/manual/reference/command/update/`
-	[Str:Obj?] updateMulti([Str:Obj?][] updates, Bool? ordered := null, [Str:Obj?]? writeConcern := null) {
+	[Str:Obj?] updateMulti([Str:Obj?][] updates, Bool? ordered := null) {
 		cmd()
 			.add("update",			name)
 			.add("updates",			updates)
 			.add("ordered",			ordered)
-			.add("writeConcern",	writeConcern ?: conMgr.writeConcern)
+			.add("writeConcern",	conMgr.writeConcern)
 			.run
 	}
 
