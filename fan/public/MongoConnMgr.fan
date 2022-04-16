@@ -32,9 +32,31 @@ const mixin MongoConnMgr {
 	** Closes all MongoDB connections.
 	abstract This shutdown()
 
-	
-	// FIXME makePool()
-	
+	** Creates a pooled Mongo Connection Manager.
+	** 
+	** The following connection URL options are supported:
+	**  - 'minPoolSize'
+	**  - 'maxPoolSize'
+	**  - 'waitQueueTimeoutMS'
+	**  - 'connectTimeoutMS'
+	**  - 'socketTimeoutMS'
+	**  - 'w'
+	**  - 'wtimeoutMS'
+	**  - 'journal'
+	**  - 'ssl'
+	**  - 'tls'
+	**  - 'authSource'
+	**  - 'authMechanism'
+	**  - 'authMechanismProperties'
+	** 
+	** URL examples:
+	**  - 'mongodb://username:password@example1.com/database?maxPoolSize=50'
+	**  - 'mongodb://example2.com?minPoolSize=10&maxPoolSize=50&ssl=true'
+	** 
+	** See `https://www.mongodb.com/docs/manual/reference/connection-string/`.
+	static new make(Uri connectionUrl, Log? log := null) { 
+		MongoConnMgrPool(connectionUrl, log)
+	}
 }
 
 

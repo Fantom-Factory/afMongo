@@ -66,8 +66,8 @@ const class MongoConnMgrPool : MongoConnMgr {
 	** If user credentials are supplied, they are used as default authentication for each connection.
 	** 
 	**   connMgr := ConnectionManagerPooled(ActorPool(), `mongodb://localhost:27017`)
-	new make(ActorPool actorPool, Uri connectionUrl, Log? log := null, |This|? f := null) {
-		this.connectionState	= SynchronizedState(actorPool, ConnectionManagerPoolState#)
+	new make(Uri connectionUrl, Log? log := null, ActorPool? actorPool := null, |This|? f := null) {
+		this.connectionState	= SynchronizedState(actorPool ?: ActorPool() { it.name="MongoConnMgrPool" }, ConnectionManagerPoolState#)
 		this.mongoConnUrl		= MongoConnUrl(connectionUrl)
 		this.failOverThread		= connectionState.lock
 		this.log				= log ?: MongoConnMgrPool#.pod.log

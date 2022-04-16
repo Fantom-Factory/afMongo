@@ -1,11 +1,9 @@
-using concurrent::ActorPool
 using afConcurrent::LocalRef
 
 internal class TestConMgrPooled : MongoTest {
-	ActorPool pool := ActorPool()
 
 	Void testBackoffFuncHappyCase() {
-		conMgr := MongoConnMgrPool(pool, `mongodb://wotever`) {
+		conMgr := MongoConnMgrPool(`mongodb://wotever`) {
 			it.sleepFunc  = |Duration d| { }
 			it.randomFunc = |Range r->Int| { r.max }
 		}
@@ -18,7 +16,7 @@ internal class TestConMgrPooled : MongoTest {
 	}
 
 	Void testBackoffFuncHappyCasePartial() {
-		conMgr := MongoConnMgrPool(pool, `mongodb://wotever`) {
+		conMgr := MongoConnMgrPool(`mongodb://wotever`) {
 			it.sleepFunc  = |Duration d| { }
 			it.randomFunc = |Range r->Int| { r.max }
 		}
@@ -31,7 +29,7 @@ internal class TestConMgrPooled : MongoTest {
 	}
 
 	Void testBackoffFuncUnhappyCase() {
-		conMgr := MongoConnMgrPool(pool, `mongodb://wotever`) {
+		conMgr := MongoConnMgrPool(`mongodb://wotever`) {
 			it.sleepFunc  = |Duration d| { }
 			it.randomFunc = |Range r->Int| { r.max }
 		}
@@ -45,7 +43,7 @@ internal class TestConMgrPooled : MongoTest {
 
 	Void testBackoffFuncNapTimes() {
 		napTimesU := Unsafe(Duration[,])
-		conMgr := MongoConnMgrPool(pool, `mongodb://wotever`) {
+		conMgr := MongoConnMgrPool(`mongodb://wotever`) {
 			it.sleepFunc  = |Duration d| { napTimesU.val->add(d)  }
 			it.randomFunc = |Range r->Int| { r.max }
 		}
@@ -68,7 +66,7 @@ internal class TestConMgrPooled : MongoTest {
 	Void testBackoffFuncTotalNapTime() {
 		napTimeU  := LocalRef("napTime")
 		napTime2U := LocalRef("napTime2")
-		conMgr := MongoConnMgrPool(pool, `mongodb://wotever`) {
+		conMgr := MongoConnMgrPool(`mongodb://wotever`) {
 			it.sleepFunc  = |Duration d| { napTimeU.val = napTimeU.val->plus(d)  }
 			it.randomFunc = |Range r->Int| { r.max }
 		}

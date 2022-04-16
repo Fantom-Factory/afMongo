@@ -12,7 +12,7 @@ internal class TestConnectionPool : MongoDbTest {
 	
 	override Void setup() {
 		Pod.of(this).log.level = LogLevel.warn
-		conMgr = MongoConnMgrPool(ActorPool(), `mongodb://localhost:27017?minPoolSize=5`)
+		conMgr = MongoConnMgrPool(`mongodb://localhost:27017?minPoolSize=5`)
 		mc = MongoClient(conMgr)
 
 		logs.clear

@@ -10,7 +10,7 @@ internal class TestCursorDb : MongoDbTest {
 		col = db["cursorTest"]
 		col.drop
 		10.times |i| { col.insert(["data":i+1]) }
-		col.conMgr.leaseConn |c| { connection = c }	// very cheeky! Leaking refs! Make sure minPoolSize is at least 1 - else it gets closed!
+		col.connMgr.leaseConn |c| { connection = c }	// very cheeky! Leaking refs! Make sure minPoolSize is at least 1 - else it gets closed!
 		cursor = Cursor(connection, col.qname, [:])
 	}
 	
