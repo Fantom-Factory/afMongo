@@ -1,5 +1,5 @@
 
-class HuntThePrimary {
+internal class MongoSafari {
 	private const Log	log
 	private const Uri	connectionUrl
 	private const Bool	ssl

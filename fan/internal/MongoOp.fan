@@ -1,8 +1,8 @@
 using concurrent::AtomicInt
 using afBson::BsonIO
 
-** 'MongoOpErrs' are thrown for any networking issues, which subsequently should invoke a Master
-** failover in the Connection Manager.
+** 'IOErrs' should be thrown for any networking issues, so a Master failover may be invoked in the 
+** calling ConnMagr.
 ** 
 ** @see `https://github.com/mongodb/specifications/blob/master/source/message/OP_MSG.rst`
 @NoDoc	// advanced use only
@@ -11,12 +11,10 @@ class MongoOp {
 
 	private MongoConn connection
 
-	** Creates an 'Operation' with the given connection.
 	new make(MongoConn connection) {
 		this.connection = connection
 	}
 
-	** Runs the given Mongo command and returns the reply document.
 	Str:Obj? runCommand(Str dbName, Str:Obj? cmd, Bool checked := true) {
 		if (cmd.ordered == false)
 			throw ArgErr("Command Map is NOT ordered - this WILL (probably) result in a MongoDB error: ${dbName} -> ${cmd}")
@@ -30,7 +28,7 @@ class MongoOp {
 		
 		
 		echo("REQ: $reqId")
-		PrettyPrinter().print(cmd) { echo(it) }
+		BsonPrinter().print(cmd) { echo(it) }
 		echo
 		
 		cmdBuf	:= BsonIO().writeDocument(cmd)	
@@ -73,7 +71,7 @@ class MongoOp {
 		resDoc	:= BsonIO().readDocument(in)
 		
 		echo("RES: $resId")
-		PrettyPrinter().print(resDoc) { echo(it) }
+		BsonPrinter().print(resDoc) { echo(it) }
 		echo
 		
 		if (checked && resDoc["ok"] != 1f) {

@@ -1,4 +1,3 @@
-using afMongo::Database as MongoDb
 
 ** A MongoDB client.
 ** 
@@ -18,6 +17,7 @@ using afMongo::Database as MongoDb
 **   data  := mongo["db"]["col"].findAll
 ** 
 const class MongoClient {
+
 	** The connection manager that Mongo connections are leased from.
 	const MongoConnMgr	connMgr
 	
@@ -67,7 +67,7 @@ const class MongoClient {
 	** Returns a build information of the connected MongoDB server.
 	** Use to obtain the version of the MongoDB server.
 	** 
-	** @see `http://docs.mongodb.org/manual/reference/command/buildInfo/`
+	** @see `https://www.mongodb.com/docs/manual/reference/command/buildInfo/`
 	Str:Obj? buildInfo() {
 		adminCmd("buildInfo").run
 	}
@@ -81,7 +81,8 @@ const class MongoClient {
 		return doc
 	}
 	
-	** Returns a list of existing databases with some basic statistics. 
+	** Returns a list of existing databases, 
+	** along with some basic info. 
 	** 
 	** @see `https://www.mongodb.com/docs/manual/reference/command/listDatabases/`
 	[Str:Obj?][] listDatabases([Str:Obj?]? filter := null) {

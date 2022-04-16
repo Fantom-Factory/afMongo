@@ -1,10 +1,10 @@
 using afMongo::Collection as MongoCollection
 
 ** Represents a MongoDB database.
-const class Database {
+const class MongoDb {
 	
-	** The underlying connection manager.
-	const MongoConnMgr connMgr
+	** The connection manager that Mongo connections are leased from.
+	const MongoConnMgr	connMgr
 	
 	** The name of the database.
 	const Str name
@@ -16,10 +16,6 @@ const class Database {
 		this.connMgr	= connMgr
 		this.name		= validateName(name)
 	}
-
-
-	
-	// ---- Database ----------------------------
 
 	** Returns a 'Collection' with the given name.
 	** 
@@ -47,22 +43,36 @@ const class Database {
 	
 	// ---- Commands ----------------------------
 	
-	** Drops the database. *Be careful!*
+	** Drops the database. * **Be careful!** *
 	** 
-	** @see `http://docs.mongodb.org/manual/reference/command/dropDatabase/`
-	This drop() {
-		cmd("dropDatabase").run
-		// [dropped:afMongoTest, ok:1.0]
-		return this
+	** @see `https://www.mongodb.com/docs/manual/reference/command/dropDatabase/`
+	Str:Obj? drop() {
+		cmd("dropDatabase")
+			.add("writeConcern",	connMgr.writeConcern)
+			.run
 	}
 	
-	
-	
-	// ---- Other -------------------------------
+	** Returns a list of collections and views in this database,
+	** along with some basic info. 
+	** 
+	** @see `https://www.mongodb.com/docs/manual/reference/command/listCollections/`
+	Str:Obj? listCollections([Str:Obj?]? filter := null) {
+		cmd("listCollections")
+			.add("filter", filter)
+			.run
+		// FIXME cursor!
+//			.get("databases"
+//		cur := (Str:Obj?)     res["cursor"]
+//		bat := ([Str:Obj?][]) cur["firstBatch"]
+//		return bat.map |nom->Str| { nom["name"] }
+	}
 	
 	** Returns 'true' if this collection exists.
+	** 
+	** @see `https://www.mongodb.com/docs/manual/reference/command/listCollections/`
 	Str[] collectionNames() {
-		res := cmd("listCollections").run
+		res := cmd("listCollections").add("nameOnly", true).run
+		// FIXME cursor!
 		cur := (Str:Obj?)     res["cursor"]
 		bat := ([Str:Obj?][]) cur["firstBatch"]
 		return bat.map |nom->Str| { nom["name"] }

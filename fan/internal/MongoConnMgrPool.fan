@@ -35,8 +35,8 @@ using inet::TcpSocket
 @NoDoc	// advanced use only
 const class MongoConnMgrPool : MongoConnMgr {
 	override const Log				log
-	private const OneShotLock		startupLock				:= OneShotLock("Connection Pool has been started")
-	private const OneShotLock		shutdownLock			:= OneShotLock("Connection Pool has been shutdown")
+	private const AtomicBool		hasStarted				:= AtomicBool()//("Connection Pool has been started")
+	private const AtomicBool		hasShutdown				:= AtomicBool()//("Connection Pool has been shutdown")
 	private const AtomicBool 		failingOverRef			:= AtomicBool(false)
 	private const AtomicBool 		isConnectedToMasterRef	:= AtomicBool(false)
 	private const Synchronized		failOverThread
@@ -88,10 +88,11 @@ const class MongoConnMgrPool : MongoConnMgr {
 	** the hosts are queried to find the primary. The primary is currently used for all read and 
 	** write operations. 
 	override This startup() {
-		shutdownLock.check
-		if (startupLock.locked)
+		if (hasShutdown.val == true)
+			throw Err("Connection Pool has been shutdown")
+		alreadyStarted := hasStarted.compareAndSet(false, true)
+		if (alreadyStarted)
 			return this
-		startupLock.lock
 		
 		huntThePrimary
 		isConnectedToMasterRef.val = true
@@ -113,9 +114,10 @@ const class MongoConnMgrPool : MongoConnMgr {
 	** 
 	** All leased connections are authenticated against the default credentials.
 	override Obj? leaseConn(|MongoConn->Obj?| c) {
-		if (!startupLock.locked)
+		if (hasStarted.val == false)
 			throw Err("ConnectionManager has not started")
-		shutdownLock.check
+		if (hasShutdown.val == true)
+			throw Err("Connection Pool has been shutdown")
 
 		connection := checkOut
 		try {
@@ -155,9 +157,11 @@ const class MongoConnMgrPool : MongoConnMgr {
 	** they're closed. After that, all open connections are forcibly closed regardless of whether 
 	** they're in use or not.
 	override This shutdown() {
-		if (!startupLock.locked)
+		if (hasStarted.val == false)
 			return this
-		shutdownLock.lock
+		alreadyShutdown := hasShutdown.compareAndSet(false, true)
+		if (alreadyShutdown)
+			return this
 		
 		closeFunc := |->Bool?| {
 			waitingOn := connectionState.sync |ConnectionManagerPoolState state -> Int| {
@@ -218,7 +222,7 @@ const class MongoConnMgrPool : MongoConnMgr {
 	** 
 	** This method should be followed with a call to 'emptyPool()'.  
 	Void huntThePrimary() {
-		mongoUrl := HuntThePrimary(mongoConnUrl.connectionUrl, mongoConnUrl.tls, log).huntThePrimary
+		mongoUrl := MongoSafari(mongoConnUrl.connectionUrl, mongoConnUrl.tls, log).huntThePrimary
 
 		mongoUrlRef.val = mongoUrl
 		isConnectedToMasterRef.val = true

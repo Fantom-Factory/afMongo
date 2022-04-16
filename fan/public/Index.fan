@@ -20,13 +20,11 @@ const class Index {
 	** The name of this index. 
 	const Str	name
 	
-	internal new make(MongoConnMgr connMgr, Str dbName, Str colName, Str indexName) {
-		this.connMgr		= connMgr
-		this.dbName		= dbName
-		this.colName	= colName
+	new make(MongoConnMgr connMgr, Str dbName, Str colName, Str indexName) {
+		this.connMgr	= connMgr
+		this.dbName		= MongoDb.validateName(dbName)
+		this.colName	= Collection.validateName(dbName)
 		this.name		= indexName
-		
-		// FIXME validate names
 	}
 
 	** Returns index info.
@@ -36,6 +34,7 @@ const class Index {
 	** @see `http://docs.mongodb.org/manual/reference/method/db.collection.getIndexes/`
 	[Str:Obj?]? info() {
 		res := cmd.add("listIndexes", colName).run
+		// FIXME cursor
 		nfo := ([Str:Obj?][]) res["cursor"]->get("firstBatch")
 		return nfo.find { it["name"] == name }
 	}

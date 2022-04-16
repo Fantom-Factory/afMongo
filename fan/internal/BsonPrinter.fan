@@ -11,13 +11,10 @@ using afBson::Timestamp
 ** So if 'PrettyPrinter' appears not to be working, then try setting a smaller 'maxWidth'.
 ** 
 **   syntax: fantom
-**   str := PrettyPrinter { maxWidth=20 }.print(mongoDoc)
+**   str := BsonPrinter { maxWidth=20 }.print(mongoDoc)
 ** 
-const class PrettyPrinter {
+const class BsonPrinter {
 
-	** Set to 'false' to disable pretty printing and have documents printed on a single line.
-	const Bool	prettyPrint	:= true
-	
 	** The indent string used to indent the document.
 	const Str 	indent		:= "  "
 
@@ -49,7 +46,7 @@ const class PrettyPrinter {
 	**   prettyPrinter.print(mongoDoc, out)
 	** 
 	This printToStream(Obj? obj, OutStream out) {
-		ctx := (MongoWriteCtx) (prettyPrint ? MongoWriteCtxPretty(out, indent, maxWidth) : MongoWriteCtxUgly(out))
+		ctx := MongoWriteCtxPretty(out, indent, maxWidth)
 		_writeJsonToStream(ctx, obj)
 		ctx.finalise
 		return this
@@ -365,36 +362,4 @@ internal class MongoValWriterMap : MongoValWriter {
 			return json.toStr
 		}
 	}
-}
-
-internal class MongoWriteCtxUgly : MongoWriteCtx {
-	private OutStream	out
-
-	new make(OutStream out) {
-		this.out = out
-	}
-	
-	override This print(Obj s) {
-		out.print(s)
-		return this
-	}
-	
-	override This writeChar(Int char) {
-		out.writeChar(char)
-		return this
-	}
-	
-	override This valueStart()		{ this										}
-	override This valueEnd()		{ this										}
-	
-	override Void arrayStart()		{ out.writeChar(MongoValWriter.arrayStart)	}
-	override Void arrayItem()		{ out.writeChar(MongoValWriter.comma)		}
-	override Void arrayEnd()		{ out.writeChar(MongoValWriter.arrayEnd)	}
-
-	override Void objectStart()		{ out.writeChar(MongoValWriter.objectStart)	}
-	override Void objectKey()		{ out.writeChar(MongoValWriter.colon)		}
-	override Void objectVal()		{ out.writeChar(MongoValWriter.comma)		}
-	override Void objectEnd()		{ out.writeChar(MongoValWriter.objectEnd)	}
-
-	override Void finalise()		{ 											}
 }
