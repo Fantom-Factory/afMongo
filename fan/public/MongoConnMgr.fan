@@ -2,8 +2,7 @@ using concurrent::ActorPool
 
 ** Manages connections to a MongoDB instance.
 ** 
-** @see `ConnectionManagerPooled`
-const mixin ConnectionManager {
+const mixin MongoConnMgr {
 	
 	** The log instance used to report warnings.
 	abstract Log log()

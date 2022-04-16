@@ -1,4 +1,3 @@
-using afMongo::ConnectionManager as MongoConnMgr
 
 ** Instances of 'MongoCmd' 
 class MongoCmd {

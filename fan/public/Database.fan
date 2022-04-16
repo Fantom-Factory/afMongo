@@ -1,4 +1,3 @@
-using afMongo::ConnectionManager as MongoConnMgr
 using afMongo::Collection as MongoCollection
 
 ** Represents a MongoDB database.

@@ -33,7 +33,7 @@ using inet::TcpSocket
 ** 
 ** Note this connection manager *is* safe for multi-threaded / web-application use.
 @NoDoc	// advanced use only
-const class MongoConnMgrPool : ConnectionManager {
+const class MongoConnMgrPool : MongoConnMgr {
 	override const Log				log
 	private const OneShotLock		startupLock				:= OneShotLock("Connection Pool has been started")
 	private const OneShotLock		shutdownLock			:= OneShotLock("Connection Pool has been shutdown")

@@ -2,7 +2,7 @@
 ** Represents a MongoDB index.
 const class Index {
 
-	private const ConnectionManager conMgr
+	private const MongoConnMgr connMgr
 	
 	** Use in 'key' arguments to denote field sort order.
 	static const Int ASC	:= 1
@@ -20,8 +20,8 @@ const class Index {
 	** The name of this index. 
 	const Str	name
 	
-	internal new make(ConnectionManager conMgr, Str dbName, Str colName, Str indexName) {
-		this.conMgr		= conMgr
+	internal new make(MongoConnMgr connMgr, Str dbName, Str colName, Str indexName) {
+		this.connMgr		= connMgr
 		this.dbName		= dbName
 		this.colName	= colName
 		this.name		= indexName
@@ -150,7 +150,7 @@ const class Index {
 	// ---- Private Methods -----------------------------------------------------------------------
 	
 	private MongoCmd cmd() {
-		MongoCmd(conMgr, dbName)
+		MongoCmd(connMgr, dbName)
 	}	
 	
 	// ---- Obj Overrides -------------------------------------------------------------------------

@@ -6,7 +6,7 @@ const class Collection {
 //	private const Namespace	namespace
 	
 	** The underlying connection manager.
-	const ConnectionManager conMgr
+	const MongoConnMgr connMgr
 	
 	const Str dbName
 
@@ -16,8 +16,8 @@ const class Collection {
 	** Creates a 'Collection' with the given name under the database.
 	** 
 	** Note this just instantiates the Fantom object, it does not create anything in the database. 
-	new makeFromDatabase(ConnectionManager conMgr, Str dbName, Str name) {
-		this.conMgr 	= conMgr
+	new makeFromDatabase(MongoConnMgr connMgr, Str dbName, Str name) {
+		this.connMgr 	= connMgr
 		this.dbName		= Database.validateName(dbName)
 		this.name 		= validateName(name)
 	}
@@ -114,7 +114,7 @@ const class Collection {
 		
 		// FIXME
 //		throw UnsupportedErr()
-		conMgr.leaseConn |con->Obj?| {
+		connMgr.leaseConn |con->Obj?| {
 			query["find"] = name
 			query["singleBatch"] = true
 			
@@ -123,7 +123,7 @@ const class Collection {
 			return res
 		}
 		
-//		conMgr.leaseConnection |con->Obj?| {
+//		connMgr.leaseConnection |con->Obj?| {
 //			cursor := Cursor(con, namespace, query)
 //			try {
 //				return func(cursor)
@@ -177,7 +177,7 @@ const class Collection {
 //		find(query ?: Str:Obj?[:] { it.ordered = true})
 		
 		
-		conMgr.leaseConn |con->Obj?| {
+		connMgr.leaseConn |con->Obj?| {
 			query = query ?: Str:Obj?[:] { it.ordered = true}
 			query["find"] = name
 			query["singleBatch"] = true
@@ -239,7 +239,7 @@ const class Collection {
 			.add("insert",			name)
 			.add("documents",		inserts)
 			.add("ordered",			ordered)
-			.add("writeConcern",	conMgr.writeConcern)
+			.add("writeConcern",	connMgr.writeConcern)
 			.run
 	}
 
@@ -265,7 +265,7 @@ const class Collection {
 			.add("delete",			name)
 			.add("deletes",			deletes)
 			.add("ordered",			ordered)
-			.add("writeConcern",	conMgr.writeConcern)
+			.add("writeConcern",	connMgr.writeConcern)
 			.run
 	}
 	
@@ -308,7 +308,7 @@ const class Collection {
 			.add("update",			name)
 			.add("updates",			updates)
 			.add("ordered",			ordered)
-			.add("writeConcern",	conMgr.writeConcern)
+			.add("writeConcern",	connMgr.writeConcern)
 			.run
 	}
 
@@ -394,7 +394,7 @@ const class Collection {
 //		cursorId := results["id"]
 //		firstBat := results["firstBatch"]
 //
-//		return conMgr.leaseConnection |con->Obj?| {
+//		return connMgr.leaseConnection |con->Obj?| {
 //			cursor := Cursor(con, namespace, cmd.query, cursorId, firstBat)
 //			try return	func(cursor)
 //			finally		cursor.kill
@@ -414,7 +414,7 @@ const class Collection {
 	** 
 	** Note this just instantiates the Fantom object, it does not create anything in MongoDb. 
 	Index index(Str indexName) { 
-		Index(conMgr, dbName, name, indexName)
+		Index(connMgr, dbName, name, indexName)
 	}
 
 	** Drops ALL indexes on the collection. *Be careful!*
@@ -456,6 +456,6 @@ const class Collection {
 	// ---- Private Methods -----------------------------------------------------------------------
 	
 	private MongoCmd cmd() {
-		MongoCmd(conMgr, dbName)
+		MongoCmd(connMgr, dbName)
 	}	
 }
