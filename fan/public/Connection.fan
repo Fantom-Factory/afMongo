@@ -28,7 +28,6 @@ mixin Connection {
 @NoDoc
 class TcpConnection : Connection {
 			 TcpSocket	socket
-			 Version?	mongoDbVer
 			 Uri?		mongoUrl
 			 Bool		forceCloseOnCheckIn
 	override Bool		isAuthenticated

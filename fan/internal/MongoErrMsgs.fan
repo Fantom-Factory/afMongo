@@ -53,10 +53,6 @@ internal const class MongoErrMsgs {
 		stripSys("Sort argument must be either a Str (Cursor.hint) or a Map (Cursor.orderBy), not ${sort.typeof.signature} ${sort}")	
 	}
 
-	static Str collection_badKeyGroup(Obj key) {
-		stripSys("Group key must be either a Str[] (field names) or a Str (function), not ${key.typeof.signature} ${key}")
-	}
-
 	static Str stripSys(Str str) {
 		str.replace("sys::", "")
 	}

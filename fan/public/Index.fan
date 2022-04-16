@@ -80,7 +80,7 @@ const class Index {
 				.add("key",		Cursor.convertAscDesc(key))
 				.add("name",	name)
 				.addAll(options)
-				.query
+				.cmd
 			])
 			.run
 		// [createdCollectionAutomatically:false, numIndexesBefore:1, numIndexesAfter:2, ok:1.0]

@@ -1,19 +1,30 @@
+using afMongo::ConnectionManager as MongoConnMgr
 
 class MongoCmd {
-	private const ConnectionManager conMgr
-	private const Str				dbName
+	const MongoConnMgr	connMgr
+	const Str			dbName
 
-	private [Str:Obj?] 	cmd	:= Str:Obj?[:] { ordered = true }
+	Str:Obj? cmd {
+		private set
+	} 
 	
-	internal new make(ConnectionManager conMgr, Str dbName) {
-		this.conMgr		= conMgr
+	new make(MongoConnMgr connMgr, Str dbName, Str cmdName, Obj? cmdVal := 1) {
+		this.connMgr	= connMgr
 		this.dbName 	= dbName
+		this.cmd		= Str:Obj?[:] { ordered = true } 
+		this.add(cmdName, cmdVal)
+	}
+
+	internal new makeOldSck(MongoConnMgr connMgr, Str dbName) {
+		this.connMgr	= connMgr
+		this.dbName 	= dbName
+		this.cmd		= Str:Obj?[:] { ordered = true } 
 	}
 
 	** If 'val' is null, it is not added. Handy for chaining 'add()' methods.
 	This add(Str key, Obj? val) {
 		if (val != null)
-			cmd[key] = val
+			cmd.add(key, val)
 		return this
 	}	
 
@@ -36,13 +47,11 @@ class MongoCmd {
 	}	
 
 	Bool containsKey(Str key) {
-		return cmd.containsKey(key)
+		cmd.containsKey(key)
 	}	
 	
-	Str:Obj? query() { cmd }
-	
 	Str:Obj? run() {
-		doc := (Str:Obj?) conMgr.leaseConnection |con->Str:Obj?| {
+		doc := (Str:Obj?) connMgr.leaseConnection |con->Str:Obj?| {
 			Operation(con).runCommand(dbName, cmd)
 		}
 

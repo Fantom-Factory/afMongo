@@ -1,13 +1,11 @@
-//using afBson::Code
+using afMongo::ConnectionManager as MongoConnMgr
+using afMongo::Collection as MongoCollection
 
 ** Represents a MongoDB database.
 const class Database {
 	
-	** See `https://www.mongodb.com/docs/manual/reference/limits/#naming-restrictions`
-	private static const Int[] invalidNameChars	:= "/\\. \"*<>:|?".chars
-
 	** The underlying connection manager.
-	const ConnectionManager conMgr
+	const MongoConnMgr connMgr
 	
 	** The name of the database.
 	const Str name
@@ -15,48 +13,48 @@ const class Database {
 	** Creates a 'Database' with the given name.
 	** 
 	** Note this just instantiates the Fantom object, it does not create anything in MongoDB. 
-	new makeWithName(ConnectionManager connectionManager, Str name) {
-		this.conMgr	= connectionManager
-		this.name	= name
-		
-		if (name.isEmpty)
-			throw ArgErr("Database name can not be empty")
-		
-		if (name.any { invalidNameChars.contains(it) })
-			throw ArgErr("Database name '${name}' may not contain any of the following: ${Str.fromChars(invalidNameChars)}")
+	new makeWithName(MongoConnMgr connMgr, Str name) {
+		this.connMgr	= connMgr
+		this.name		= validateName(name)
 	}
 
+
+	
 	// ---- Database ----------------------------
 
 	** Returns a 'Collection' with the given name.
 	** 
 	** Note this just instantiates the Fantom object, it does not create anything in MongoDB. 
-	Collection collection(Str collectionName) {
-		Collection(conMgr, name, collectionName)
+	MongoCollection collection(Str collectionName) {
+		MongoCollection(connMgr, name, collectionName)
 	}
 
 	** Convenience / shorthand notation for 'collection(name)'
 	@Operator
-	Collection get(Str collectionName) {
+	MongoCollection get(Str collectionName) {
 		collection(collectionName)
 	}
 
+	
+	
 	// ---- Stable API --------------------------
 	
 	** Drops the database. *Be careful!*
 	** 
 	** @see `http://docs.mongodb.org/manual/reference/command/dropDatabase/`
 	This drop() {
-		cmd.add("dropDatabase", 1).run
+		cmd("dropDatabase").run
 		// [dropped:afMongoTest, ok:1.0]
 		return this
 	}
+	
+	
 	
 	// ---- Other -------------------------------
 	
 	** Returns 'true' if this collection exists.
 	Str[] collectionNames() {
-		res := cmd.add("listCollections", 1).run
+		res := cmd("listCollections").run
 		cur := (Str:Obj?)     res["cursor"]
 		bat := ([Str:Obj?][]) cur["firstBatch"]
 		return bat.map |nom->Str| { nom["name"] }
@@ -64,23 +62,25 @@ const class Database {
 	
 	** **For Power Users!**
 	** 
-	** Runs any arbitrary command against this database.
+	** Runs an arbitrary command against this database.
 	** 
-	** Note you must set the write concern yourself, should the command take one. 
-	[Str:Obj?] runCmd(Str:Obj? cmd) {
-		this.cmd.addAll(cmd).run
+	** Don't forget to call 'run()'!
+	MongoCmd cmd(Str cmdName, Obj? cmdVal := 1) {
+		MongoCmd(connMgr, name, cmdName)
 	}
 	
-	// ---- Private Methods -----------------------------------------------------------------------
 	
-	private MongoCmd cmd() {
-		MongoCmd(conMgr, name)
+	** See `https://www.mongodb.com/docs/manual/reference/limits/#naming-restrictions`
+	private static const Int[] invalidNameChars	:= "/\\. \"*<>:|?".chars	
+
+	internal static Str validateName(Str name) {
+		if (name.isEmpty)
+			throw ArgErr("Database name can not be empty")
+		if (name.any { invalidNameChars.contains(it) })
+			throw ArgErr("Database name '${name}' may not contain any of the following: ${Str.fromChars(invalidNameChars)}")
+		return name
 	}
-	
-	// ---- Obj Overrides -------------------------------------------------------------------------
 	
 	@NoDoc
-	override Str toStr() {
-		name
-	}
+	override Str toStr() { name }
 }

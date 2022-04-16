@@ -1,4 +1,7 @@
 using concurrent::ActorPool
+using afMongo::ConnectionManager as MongoConnMgr
+using afMongo::ConnectionManagerPooled as MongoConnMgrPool
+using afMongo::Database as MongoDb
 
 ** A MongoDB client.
 ** 
@@ -19,21 +22,18 @@ using concurrent::ActorPool
 **   data  := mongo["db"]["col"].findAll
 ** 
 const class MongoClient {
-	private static const Log 		log	:= MongoClient#.pod.log
-	private const ConnectionManager conMgr
+	** The connection manager that Mongo connections are leased from.
+	const MongoConnMgr	connMgr
 	
 	** Creates a 'MongoClient' with the given 'ConnectionManager'. 
-	** This is the preferred ctor.
-	new make(ConnectionManager connectionManager, |This|? f := null) {
-		this.conMgr = connectionManager
-		f?.call(this)
+	new make(MongoConnMgr connMgr) {
+		this.connMgr = connMgr
 		startup()
 	}
 	
 	** A convenience ctor - just to get you started!
-	new makeFromUri(ActorPool actorPool, Uri mongoUri := `mongodb://localhost:27017`, |This|? f := null) {
-		this.conMgr = ConnectionManagerPooled(actorPool, mongoUri)
-		f?.call(this)
+	new makeFromUri(Uri mongoUri := `mongodb://localhost:27017`) {
+		this.connMgr = MongoConnMgrPool(ActorPool(), mongoUri, null)
 		startup()
 	}
 	
@@ -42,13 +42,13 @@ const class MongoClient {
 	** Returns a 'Database' with the given name.
 	** 
 	** Note this just instantiates the Fantom object, it does not create anything in the database. 
-	Database db(Str dbName) {
-		Database(conMgr, dbName)
+	MongoDb db(Str dbName) {
+		MongoDb(connMgr, dbName)
 	}
 
 	** Convenience / shorthand notation for 'db(name)'
 	@Operator
-	Database get(Str dbName) {
+	MongoDb get(Str dbName) {
 		db(dbName)
 	}
 	
@@ -58,22 +58,22 @@ const class MongoClient {
 	** 
 	** @see `http://docs.mongodb.org/manual/reference/command/listDatabases/`
 	[Str:Obj?][] listDatabases() {
-		runAdminCmd(["listDatabases" : 1])["databases"]
+		adminCmd("listDatabases")["databases"]
 	}
 	
 	Str:Obj? ping() {
-		runAdminCmd(["ping" : 1])
+		adminCmd("ping").run
 	}
 	
 	// TODO hello / isMaster
 
 	// ---- Other -------------------------------
 
-	** Returns a build summary
+	** Returns a build information of the connected MongoDB server.
 	** 
 	** @see `http://docs.mongodb.org/manual/reference/command/buildInfo/`
-	[Str:Obj?] buildInfo() {
-		runAdminCmd(["buildInfo": 1])
+	Str:Obj? buildInfo() {
+		adminCmd("buildInfo").run
 	}
 	
 	** Returns all the database names on the MongoDB instance. 
@@ -83,26 +83,26 @@ const class MongoClient {
 
 	** **For Power Users!**
 	** 
-	** Runs a command against the admin database. Convenience for:
+	** Runs an arbitrary command against the 'admin' database.
 	** 
-	**   db("admin").runCmd(cmd)
-	[Str:Obj?] runAdminCmd(Str:Obj? cmd) {
-		db("admin").runCmd(cmd)
+	** Don't forget to call 'run()'!
+	MongoCmd adminCmd(Str cmdName, Obj? cmdVal := 1) {
+		MongoCmd(connMgr, "admin", cmdName)
 	}
 
-	** Convenience for 'connectionManager.shutdown'.
+	** Convenience for 'MongoConnMgr.shutdown()'.
 	Void shutdown() {
-		conMgr.shutdown
+		connMgr.shutdown
 	}
 	
 	// ---- Private -----------------------------
 	
 	private Void startup() {
-		conMgr.startup
+		connMgr.startup
 		
 		buildVersion := buildInfo["version"]
-		banner		 := "\n${logo}\nConnected to MongoDB v${buildVersion} (at ${conMgr.mongoUrl})\n"
-		log.info(banner)
+		banner		 := "\n${logo}\nConnected to MongoDB v${buildVersion} (at ${connMgr.mongoUrl})\n"
+		connMgr.log.info(banner)
 	}
 	
 	private Str logo() {

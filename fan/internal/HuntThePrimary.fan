@@ -102,13 +102,13 @@ internal class HostDetails {
 		
 		connection	:= TcpConnection(ssl)
 		mongUrl		:= `mongodb://${address}:${port}`
-		conMgr		:= ConnectionManagerLocal(connection, ssl ? mongUrl.plusQuery(["ssl":"true"]) : mongUrl)
+		connMgr		:= ConnectionManagerLocal(connection, ssl ? mongUrl.plusQuery(["ssl":"true"]) : mongUrl)
 		try {
 			connection.connect(IpAddr(address), port)
 			
 			// I have a feeling, the "hello" cmd only works via OP_MSG on Mongo v4.4 or later
 			// so lets keep it running the legacy "isMaster" until I migrate my prod databases
-			details := Database(conMgr, "admin").runCmd(["isMaster":1])
+			details := MongoCmd(connMgr, "admin", "isMaster").run
 		
 			// "ismaster" for "isMaster" cmds, and "isWritablePrimary" for "hello" cmds.
 			isPrimary 	= details["ismaster"]  == true || details["isWritablePrimary"] == true
@@ -120,7 +120,7 @@ internal class HostDetails {
 			// if a replica is down, simply log it and move onto the next one!
 			log.warn("Could not connect to Host ${address}:${port} :: ${err.typeof.name} - ${err.msg}", err)
 
-		} finally conMgr.shutdown
+		} finally connMgr.shutdown
 		
 		return this
 	}
