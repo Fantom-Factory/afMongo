@@ -1,6 +1,3 @@
-using concurrent::ActorPool
-using afMongo::ConnectionManager as MongoConnMgr
-using afMongo::ConnectionManagerPooled as MongoConnMgrPool
 using afMongo::Database as MongoDb
 
 ** A MongoDB client.
@@ -11,14 +8,13 @@ using afMongo::Database as MongoDb
 ** 
 **   syntax: fantom
 ** 
-**   mongo := MongoClient(ActorPool(), `mongodb://localhost:27017`)
+**   mongo := MongoClient(`mongodb://localhost:27017/`)
 **   data  := mongo.db("db").collection("col").findAll
 ** 
 ** Or using defaults and shorthand notation:
 ** 
 **   syntax: fantom
 ** 
-**   mongo := MongoClient(ActorPool())
 **   data  := mongo["db"]["col"].findAll
 ** 
 const class MongoClient {
@@ -31,14 +27,12 @@ const class MongoClient {
 		startup()
 	}
 	
-	** A convenience ctor - just to get you started!
-	new makeFromUri(Uri mongoUri := `mongodb://localhost:27017`) {
-		this.connMgr = MongoConnMgrPool(ActorPool(), mongoUri, null)
+	** Creates a 'MongoClient' with a pooled connection to the given Mongo connection URL. 
+	new makeFromUri(Uri mongoUrl) {
+		this.connMgr = MongoConnMgrPool(mongoUrl)
 		startup()
 	}
 	
-	// ---- Mongo Client ------------------------
-
 	** Returns a 'Database' with the given name.
 	** 
 	** Note this just instantiates the Fantom object, it does not create anything in the database. 
@@ -50,35 +44,6 @@ const class MongoClient {
 	@Operator
 	MongoDb get(Str dbName) {
 		db(dbName)
-	}
-	
-	// ---- Stable API --------------------------
-	
-	** Returns a list of existing databases with some basic statistics. 
-	** 
-	** @see `http://docs.mongodb.org/manual/reference/command/listDatabases/`
-	[Str:Obj?][] listDatabases() {
-		adminCmd("listDatabases")["databases"]
-	}
-	
-	Str:Obj? ping() {
-		adminCmd("ping").run
-	}
-	
-	// TODO hello / isMaster
-
-	// ---- Other -------------------------------
-
-	** Returns a build information of the connected MongoDB server.
-	** 
-	** @see `http://docs.mongodb.org/manual/reference/command/buildInfo/`
-	Str:Obj? buildInfo() {
-		adminCmd("buildInfo").run
-	}
-	
-	** Returns all the database names on the MongoDB instance. 
-	Str[] listDatabaseNames() {
-		listDatabases.map |db->Str| { db["name"] }.sort
 	}
 
 	** **For Power Users!**
@@ -95,7 +60,59 @@ const class MongoClient {
 		connMgr.shutdown
 	}
 	
-	// ---- Private -----------------------------
+	
+	
+	// ---- Commands ----------------------------
+	
+	** Returns a build information of the connected MongoDB server.
+	** Use to obtain the version of the MongoDB server.
+	** 
+	** @see `http://docs.mongodb.org/manual/reference/command/buildInfo/`
+	Str:Obj? buildInfo() {
+		adminCmd("buildInfo").run
+	}
+	
+	** Sends a 'hello' command - if 'hello' is not available, a legacy 'isMaster' command is sent 
+	** instead.
+	Str:Obj? hello() {
+		doc := adminCmd("hello").run(false)
+		if (doc["ok"] != 1f)
+			doc = adminCmd("isMaster").run(true)
+		return doc
+	}
+	
+	** Returns a list of existing databases with some basic statistics. 
+	** 
+	** @see `https://www.mongodb.com/docs/manual/reference/command/listDatabases/`
+	[Str:Obj?][] listDatabases([Str:Obj?]? filter := null) {
+		adminCmd("listDatabases")
+			.add("filter", filter)
+			.run
+			.get("databases")
+	}
+	
+	** Returns all the database names on the MongoDB instance. 
+	** 
+	** This is more optimised than just calling 'listDatabases()'.
+	Str[] listDatabaseNames() {
+		((adminCmd("listDatabases")
+			.add("nameOnly", true)
+			.run
+			.get("databases")) as [Str:Obj?][])
+			.map { it["name"] }.sort
+	}
+	
+	** Sends a 'ping' command to the server. 
+	** 'pings' should return straight away, even if the server is write-locked. 
+	** 
+	** @see `https://www.mongodb.com/docs/manual/reference/command/ping/`
+	Str:Obj? ping() {
+		adminCmd("ping").run
+	}
+	
+	
+	
+	// ---- Helpers -----------------------------
 	
 	private Void startup() {
 		connMgr.startup
