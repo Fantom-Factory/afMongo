@@ -1,7 +1,7 @@
 
 internal class TestIndexDb : MongoDbTest {
 	
-	Collection? collection
+	MongoCol? collection
 	
 	override Void setup() {
 		super.setup

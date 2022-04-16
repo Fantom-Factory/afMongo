@@ -1,6 +1,6 @@
 
 ** Represents a MongoDB index.
-const class Index {
+const class MongoIndex {
 
 	private const MongoConnMgr connMgr
 	
@@ -23,7 +23,7 @@ const class Index {
 	new make(MongoConnMgr connMgr, Str dbName, Str colName, Str indexName) {
 		this.connMgr	= connMgr
 		this.dbName		= MongoDb.validateName(dbName)
-		this.colName	= Collection.validateName(dbName)
+		this.colName	= MongoCol.validateName(colName)
 		this.name		= indexName
 	}
 
@@ -33,7 +33,7 @@ const class Index {
 	** 
 	** @see `http://docs.mongodb.org/manual/reference/method/db.collection.getIndexes/`
 	[Str:Obj?]? info() {
-		res := cmd.add("listIndexes", colName).run
+		res := cmd("listIndexes", colName).run
 		// FIXME cursor
 		nfo := ([Str:Obj?][]) res["cursor"]->get("firstBatch")
 		return nfo.find { it["name"] == name }
@@ -74,9 +74,9 @@ const class Index {
 
 		// there's no createIndexMulti 'cos I figure no novice will need to create multiple indexes at once!
 		if (unique == true)	options.set("unique", unique)
-		cmd	.add("createIndexes", colName)
-			.add("indexes", 	[cmd
-				.add("key",		Cursor.convertAscDesc(key))
+		cmd("createIndexes", colName)
+			.add("indexes", 	[
+				 cmd("key",		Cursor.convertAscDesc(key))
 				.add("name",	name)
 				.addAll(options)
 				.cmd
@@ -141,16 +141,19 @@ const class Index {
 	** 
 	** @see `http://docs.mongodb.org/manual/reference/command/dropIndexes/`
 	This drop(Bool force := false) {
-		if (force || exists) cmd.add("dropIndexes", colName).add("index", name).run
+		if (force || exists) cmd("dropIndexes", colName).add("index", name).run
 		// [nIndexesWas:2, ok:1.0]
 		return this
 	}
 
 	// ---- Private Methods -----------------------------------------------------------------------
 	
-	private MongoCmd cmd() {
-		MongoCmd(connMgr, dbName)
-	}	
+	** **For Power Users!**
+	** 
+	** Don't forget to call 'run()'!
+	private MongoCmd cmd(Str cmdName, Obj? cmdVal := 1) {
+		MongoCmd(connMgr, name, cmdName)
+	}
 	
 	// ---- Obj Overrides -------------------------------------------------------------------------
 	

@@ -1,7 +1,7 @@
 
 internal class TestCursorDb : MongoDbTest {
 
-	Collection? col
+	MongoCol? col
 	Cursor? cursor
 	MongoConn? connection
 	

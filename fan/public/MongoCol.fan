@@ -1,7 +1,7 @@
 //using afBson::Code
 
 ** Represents a MongoDB collection.
-const class Collection {
+const class MongoCol {
 	
 //	private const Namespace	namespace
 	
@@ -35,7 +35,7 @@ const class Collection {
 
 	** Returns 'true' if this collection exists.
 	Bool exists() {
-		res := cmd.add("listCollections", 1).add("filter", ["name":name]).run
+		res := cmd("listCollections", 1).add("filter", ["name":name]).run
 		return res["cursor"]->get("firstBatch")->isEmpty->not
 	}
 	
@@ -45,7 +45,7 @@ const class Collection {
 	**  
 	** @see `http://docs.mongodb.org/manual/reference/command/create/`
 	This create([Str:Obj?]? options := null) {
-		cmd	.add("create", name)
+		cmd		("create", name)
 			.addAll(options)
 			.run
 		// as create() only returns [ok:1.0], return this
@@ -56,7 +56,7 @@ const class Collection {
 	** 
 	** @see `http://docs.mongodb.org/manual/reference/command/create/`
 	This createCapped(Int sizeInBytes, Int? maxNoOfDocs := null, [Str:Obj?]? options := null) {
-		cmd	.add("create", 		name)
+		cmd		("create", 		name)
 			.add("capped", 		true)
 			.add("size", 		sizeInBytes)
 			.add("max", 		maxNoOfDocs)
@@ -75,7 +75,7 @@ const class Collection {
 	** 
 	** @see `http://docs.mongodb.org/manual/reference/command/drop/`
 	This drop(Bool force := false) {
-		if (force || exists) cmd.add("drop", name).run
+		if (force || exists) cmd("drop", name).run
 		// [ns:afMongoTest.col-test, nIndexesWas:1, ok:1.0] 
 		// not sure wot 'nIndexesWas' or if it's useful, so return this for now 
 		return this
@@ -87,7 +87,7 @@ const class Collection {
 	** 
 	** @see `http://docs.mongodb.org/manual/reference/command/collStats/`
 	[Str:Obj?] stats(Int scale := 1) {
-		cmd.add("collStats", name).add("scale", scale).run
+		cmd("collStats", name).add("scale", scale).run
 	}
 
 	// ---- Cursor Queries ------------------------------------------------------------------------
@@ -235,8 +235,7 @@ const class Collection {
 	** 
 	** @see `http://docs.mongodb.org/manual/reference/command/insert/`
 	[Str:Obj?] insertMulti([Str:Obj?][] inserts, Bool? ordered := null) {
-		cmd()
-			.add("insert",			name)
+		cmd		("insert",			name)
 			.add("documents",		inserts)
 			.add("ordered",			ordered)
 			.add("writeConcern",	connMgr.writeConcern)
@@ -251,8 +250,8 @@ const class Collection {
 	** 
 	** @see `http://docs.mongodb.org/manual/reference/command/delete/`
 	Int delete(Str:Obj? query, Bool deleteAll := false) {
-		cmd := cmd
-			.add("q",		query)
+		cmd := 
+			cmd ("q",		query)
 			.add("limit",	deleteAll ? 0 : 1)
 		return deleteMulti([cmd.cmd], null)["n"]->toInt
 	}
@@ -261,8 +260,7 @@ const class Collection {
 	** 	
 	** @see `http://docs.mongodb.org/manual/reference/command/delete/`
 	[Str:Obj?] deleteMulti([Str:Obj?][] deletes, Bool? ordered := null) {
-		cmd()
-			.add("delete",			name)
+		cmd		("delete",			name)
 			.add("deletes",			deletes)
 			.add("ordered",			ordered)
 			.add("writeConcern",	connMgr.writeConcern)
@@ -292,8 +290,8 @@ const class Collection {
 	** 
 	** @see `http://docs.mongodb.org/manual/reference/command/update/`
 	[Str:Obj?] update(Str:Obj? query, Str:Obj? updateCmd, Bool? multi := false, Bool? upsert := false) {
-		cmd := cmd
-			.add("q",		query)
+		cmd := 
+			 cmd("q",		query)
 			.add("u",		updateCmd)
 			.add("upsert",	upsert)
 			.add("multi",	multi)
@@ -304,8 +302,7 @@ const class Collection {
 	** 
 	** @see `http://docs.mongodb.org/manual/reference/command/update/`
 	[Str:Obj?] updateMulti([Str:Obj?][] updates, Bool? ordered := null) {
-		cmd()
-			.add("update",			name)
+		cmd		("update",			name)
 			.add("updates",			updates)
 			.add("ordered",			ordered)
 			.add("writeConcern",	connMgr.writeConcern)
@@ -335,7 +332,7 @@ const class Collection {
 	** 
 	** @see `http://docs.mongodb.org/manual/reference/command/findAndModify/`
 	[Str:Obj?]? findAndUpdate(Str:Obj? query, Str:Obj? updateCmd, Bool returnModified, [Str:Obj?]? options := null) {
-		cmd	.add("findAndModify",	name)
+		cmd		("findAndModify",	name)
 			.add("query", 			query)
 			.add("update", 			updateCmd)
 			.add("new", 			returnModified)
@@ -361,7 +358,7 @@ const class Collection {
 	** 
 	** @see `http://docs.mongodb.org/manual/reference/command/findAndModify/`
 	[Str:Obj?] findAndDelete(Str:Obj? query, [Str:Obj?]? options := null) {
-		cmd	.add("findAndModify",	name)
+		cmd		("findAndModify",	name)
 			.add("query", 			query)
 			.add("remove", 			true)
 			.addAll(options)
@@ -374,7 +371,7 @@ const class Collection {
 	** 
 	** @see `http://docs.mongodb.org/manual/reference/command/count/`
 	Int size() {
-		cmd.add("count", name).run["n"]->toInt
+		cmd("count", name).run["n"]->toInt
 	}
 
 	** @see 
@@ -405,42 +402,42 @@ const class Collection {
 
 	** Returns all the index names of this collection.
 	Str[] indexNames() {
-		res := cmd.add("listIndexes", name).run
+		res := cmd("listIndexes", name).run
 		nfo := ([Str:Obj?][]) res["cursor"]->get("firstBatch")
 		return nfo.map |i->Str| { i["name"] }
 	}
 	
-	** Returns an 'Index' of the given name.
+	** Returns an 'MongoIndex' of the given name.
 	** 
 	** Note this just instantiates the Fantom object, it does not create anything in MongoDb. 
-	Index index(Str indexName) { 
-		Index(connMgr, dbName, name, indexName)
+	MongoIndex index(Str indexName) { 
+		MongoIndex(connMgr, dbName, name, indexName)
 	}
 
 	** Drops ALL indexes on the collection. *Be careful!*
 	** 
 	** @see `http://docs.mongodb.org/manual/reference/command/dropIndexes/`
 	This dropAllIndexes() {
-		cmd.add("dropIndexes", name).add("index", "*").run
+		cmd("dropIndexes", name).add("index", "*").run
 		// [nIndexesWas:2, ok:1.0]
 		return this
 	}
 	
 	// ---- Misc Methods --------------------------------------------------------------------------
 	
-	** Runs an arbitrary command against this 'Collection'. 
-	** Example, to return the size of the collection:
-	** 
-	**   size := runCmd(
-	**     ["count" : "<collectionName>"]
-	**   )["n"]->toInt
-	** 
-	** *This is a low level operation.*
-	** 
-	** See `https://docs.mongodb.com/manual/reference/command/`  
-	Str:Obj? runCmd(Str:Obj? query) {
-		cmd.addAll(query).run
-	}
+//	** Runs an arbitrary command against this 'Collection'. 
+//	** Example, to return the size of the collection:
+//	** 
+//	**   size := runCmd(
+//	**     ["count" : "<collectionName>"]
+//	**   )["n"]->toInt
+//	** 
+//	** *This is a low level operation.*
+//	** 
+//	** See `https://docs.mongodb.com/manual/reference/command/`  
+//	Str:Obj? runCmd(Str:Obj? query) {
+//		cmd.addAll(query).run
+//	}
 	
 	Str qname() {
 		"${dbName}.${name}"
@@ -455,7 +452,10 @@ const class Collection {
 
 	// ---- Private Methods -----------------------------------------------------------------------
 	
-	private MongoCmd cmd() {
-		MongoCmd(connMgr, dbName)
-	}	
+	** **For Power Users!**
+	** 
+	** Don't forget to call 'run()'!
+	private MongoCmd cmd(Str cmdName, Obj? cmdVal := 1) {
+		MongoCmd(connMgr, name, cmdName, cmdVal)
+	}
 }

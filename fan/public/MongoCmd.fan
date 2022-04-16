@@ -1,5 +1,4 @@
 
-** Instances of 'MongoCmd' 
 class MongoCmd {
 	const MongoConnMgr	connMgr
 	const Str			dbName
@@ -15,15 +14,6 @@ class MongoCmd {
 		this.cmdName	= cmdName
 		this.cmd		= Str:Obj?[:] { ordered = true } 
 		this.add(cmdName, cmdVal)
-	}
-	
-	@Deprecated
-	internal new makeOldSck(MongoConnMgr connMgr, Str dbName) {
-		this.connMgr	= connMgr
-		this.dbName 	= dbName
-		this.cmdName	= ""
-		this.cmd		= Str:Obj?[:] { ordered = true } 
-		this.cmd		= Str:Obj?[:] { ordered = true } 
 	}
 
 	** If 'val' is null, it is not added. Handy for chaining 'add()' methods.

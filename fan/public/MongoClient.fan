@@ -52,7 +52,7 @@ const class MongoClient {
 	** 
 	** Don't forget to call 'run()'!
 	MongoCmd adminCmd(Str cmdName, Obj? cmdVal := 1) {
-		MongoCmd(connMgr, "admin", cmdName)
+		MongoCmd(connMgr, "admin", cmdName, cmdVal)
 	}
 
 	** Convenience for 'MongoConnMgr.shutdown()'.

@@ -26,6 +26,11 @@ class MongoOp {
 		out		:= connection.out
 		out.endian	= Endian.little
 		
+		// TODO support compression
+		// https://github.com/mongodb/specifications/blob/master/source/compression/OP_COMPRESSED.rst
+		
+		// TODO retryable writes
+		// https://github.com/mongodb/specifications/blob/master/source/retryable-writes/retryable-writes.rst
 		
 		echo("REQ: $reqId")
 		BsonPrinter().print(cmd) { echo(it) }

@@ -2,7 +2,7 @@
 internal class MongoDbTest : MongoTest {
 	
 	MongoClient? mc
-	Database?	 db
+	MongoDb?	 db
 	
 	override Void setup() {
 		mongoUri	:= `mongodb://localhost:27017`
