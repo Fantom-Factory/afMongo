@@ -8,11 +8,11 @@ internal class TestConnectionPool : MongoDbTest {
 			const Unsafe handlerRef		:= Unsafe(|LogRec rec| { logs.add(rec) })
 				  |LogRec rec| handler() { handlerRef.val }
 
-	ConnectionManagerPooled? conMgr
+	MongoConnMgrPool? conMgr
 	
 	override Void setup() {
 		Pod.of(this).log.level = LogLevel.warn
-		conMgr = ConnectionManagerPooled(ActorPool(), `mongodb://localhost:27017?minPoolSize=5`)
+		conMgr = MongoConnMgrPool(ActorPool(), `mongodb://localhost:27017?minPoolSize=5`)
 		mc = MongoClient(conMgr)
 
 		logs.clear

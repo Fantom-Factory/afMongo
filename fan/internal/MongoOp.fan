@@ -6,7 +6,7 @@ using afBson::BsonIO
 ** 
 ** @see `https://github.com/mongodb/specifications/blob/master/source/message/OP_MSG.rst`
 @NoDoc	// advanced use only
-internal class MongoOp {
+class MongoOp {
 	private static const AtomicInt	reqIdSeq	:= AtomicInt(0)
 
 	private MongoConn connection

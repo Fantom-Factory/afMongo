@@ -32,7 +32,8 @@ using inet::TcpSocket
 ** When a connection to the master node is lost, all hosts are re-queried to find the new master.
 ** 
 ** Note this connection manager *is* safe for multi-threaded / web-application use.
-const class ConnectionManagerPooled : ConnectionManager {
+@NoDoc	// advanced use only
+const class MongoConnMgrPool : ConnectionManager {
 	override const Log				log
 	private const OneShotLock		startupLock				:= OneShotLock("Connection Pool has been started")
 	private const OneShotLock		shutdownLock			:= OneShotLock("Connection Pool has been shutdown")
@@ -69,7 +70,7 @@ const class ConnectionManagerPooled : ConnectionManager {
 		this.connectionState	= SynchronizedState(actorPool, ConnectionManagerPoolState#)
 		this.mongoConnUrl		= MongoConnUrl(connectionUrl)
 		this.failOverThread		= connectionState.lock
-		this.log				= log ?: ConnectionManagerPooled#.pod.log
+		this.log				= log ?: MongoConnMgrPool#.pod.log
 
 		// allow the it-block to override the default settings
 		// no validation occurs - only used for testing.

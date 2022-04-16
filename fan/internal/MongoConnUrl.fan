@@ -22,6 +22,7 @@
 **  - 'mongodb://example2.com?minPoolSize=10&maxPoolSize=50&ssl=true'
 ** 
 ** See `https://www.mongodb.com/docs/manual/reference/connection-string/`.
+@NoDoc	// advanced use only
 const class MongoConnUrl {
 	private const Log	log		:= MongoConnUrl#.pod.log
 	
