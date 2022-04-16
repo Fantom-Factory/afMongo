@@ -79,7 +79,7 @@ class MongoOp {
 		BsonPrinter().print(resDoc) { echo(it) }
 		echo
 		
-		if (checked && resDoc["ok"] != 1f) {
+		if (checked && resDoc["ok"] != 1f && resDoc["ok"] != 1) {
 			errMsg  := resDoc["errmsg"] as Str
 			msg		:= errMsg == null ? "Command '${cmd}' failed" : "Command '${cmd}' failed. MongoDB says: ${errMsg}"
 			throw MongoErr(msg, resDoc)

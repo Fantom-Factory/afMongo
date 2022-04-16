@@ -3,6 +3,7 @@ class MongoCmd {
 	const MongoConnMgr	connMgr
 	const Str			dbName
 	const Str			cmdName
+	const Obj?			cmdVal
 
 	Str:Obj? cmd {
 		private set
@@ -12,6 +13,7 @@ class MongoCmd {
 		this.connMgr	= connMgr
 		this.dbName 	= dbName
 		this.cmdName	= cmdName
+		this.cmdVal		= cmdVal
 		this.cmd		= Str:Obj?[:] { ordered = true } 
 		this.add(cmdName, cmdVal)
 	}
@@ -50,5 +52,10 @@ class MongoCmd {
 			MongoOp(con).runCommand(dbName, cmd, checked)
 		}
 		return doc
+	}
+	
+	MongoCur cursor() {
+		cur := run()["cursor"] as Str:Obj?
+		return MongoCur(connMgr, dbName, cmdVal.toStr, cur["id"], cur["firstBatch"])
 	}
 }

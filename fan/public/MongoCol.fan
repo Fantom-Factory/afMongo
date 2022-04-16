@@ -1,6 +1,8 @@
 //using afBson::Code
 
 ** Represents a MongoDB collection.
+** 
+** https://github.com/mongodb/specifications/blob/master/source/crud/crud.rst#insert-update-replace-delete-and-bulk-writes
 const class MongoCol {
 	
 //	private const Namespace	namespace
@@ -116,7 +118,8 @@ const class MongoCol {
 //		throw UnsupportedErr()
 		connMgr.leaseConn |con->Obj?| {
 			query["find"] = name
-			query["singleBatch"] = true
+//			query["singleBatch"] = true
+			query["batchSize"] = 2
 			
 			res := MongoOp(con).runCommand(dbName, query)
 
@@ -131,6 +134,14 @@ const class MongoCol {
 //				cursor.kill
 //			}
 //		}
+	}
+	
+	MongoCur findCur(Str:Obj? filter) {
+		cmd("find", name)
+			.add("filter", filter)
+			.add("batchSize", 2)
+			.cursor
+		// FIXME set batchSize and timeout on cursor
 	}
 
 	** An (optomised) method to return one document from the given 'query'.
@@ -456,6 +467,6 @@ const class MongoCol {
 	** 
 	** Don't forget to call 'run()'!
 	private MongoCmd cmd(Str cmdName, Obj? cmdVal := 1) {
-		MongoCmd(connMgr, name, cmdName, cmdVal)
+		MongoCmd(connMgr, dbName, cmdName, cmdVal)
 	}
 }

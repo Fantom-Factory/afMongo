@@ -1,4 +1,3 @@
-using afMongo::Collection as MongoCollection
 
 ** Represents a MongoDB database.
 const class MongoDb {
@@ -20,13 +19,13 @@ const class MongoDb {
 	** Returns a 'Collection' with the given name.
 	** 
 	** Note this just instantiates the Fantom object, it does not create anything in MongoDB. 
-	MongoCollection collection(Str collectionName) {
-		MongoCollection(connMgr, name, collectionName)
+	MongoCol collection(Str collectionName) {
+		MongoCol(connMgr, name, collectionName)
 	}
 
 	** Convenience / shorthand notation for 'collection(name)'
 	@Operator
-	MongoCollection get(Str collectionName) {
+	MongoCol get(Str collectionName) {
 		collection(collectionName)
 	}
 	
@@ -36,7 +35,7 @@ const class MongoDb {
 	** 
 	** Don't forget to call 'run()'!
 	MongoCmd cmd(Str cmdName, Obj? cmdVal := 1) {
-		MongoCmd(connMgr, name, cmdName)
+		MongoCmd(connMgr, name, cmdName, cmdVal)
 	}
 
 	

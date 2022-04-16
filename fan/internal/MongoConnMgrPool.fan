@@ -62,12 +62,12 @@ const class MongoConnMgrPool : MongoConnMgr {
 	internal const |Range->Int|	randomFunc	:= |Range r->Int| { r.random }
 	internal const |Duration| 	sleepFunc	:= |Duration napTime| { Actor.sleep(napTime) }
 	
-	** Create a 'ConnectionManager' from a Mongo Connection URL.
+	** Create a 'ConnMgr' from a Mongo Connection URL.
 	** If user credentials are supplied, they are used as default authentication for each connection.
 	** 
-	**   connMgr := ConnectionManagerPooled(ActorPool(), `mongodb://localhost:27017`)
+	**   connMgr := MongoConnMgrPool(ActorPool(), `mongodb://localhost:27017`)
 	new make(Uri connectionUrl, Log? log := null, ActorPool? actorPool := null, |This|? f := null) {
-		this.connectionState	= SynchronizedState(actorPool ?: ActorPool() { it.name="MongoConnMgrPool" }, ConnectionManagerPoolState#)
+		this.connectionState	= SynchronizedState(actorPool ?: ActorPool() { it.name="MongoConnMgrPool" }, MongoConnMgrPoolState#)
 		this.mongoConnUrl		= MongoConnUrl(connectionUrl)
 		this.failOverThread		= connectionState.lock
 		this.log				= log ?: MongoConnMgrPool#.pod.log
@@ -90,8 +90,8 @@ const class MongoConnMgrPool : MongoConnMgr {
 	override This startup() {
 		if (hasShutdown.val == true)
 			throw Err("Connection Pool has been shutdown")
-		alreadyStarted := hasStarted.compareAndSet(false, true)
-		if (alreadyStarted)
+		starting := hasStarted.compareAndSet(false, true)
+		if (starting == false)
 			return this
 		
 		huntThePrimary
@@ -159,12 +159,12 @@ const class MongoConnMgrPool : MongoConnMgr {
 	override This shutdown() {
 		if (hasStarted.val == false)
 			return this
-		alreadyShutdown := hasShutdown.compareAndSet(false, true)
-		if (alreadyShutdown)
+		shuttingDown := hasShutdown.compareAndSet(false, true)
+		if (shuttingDown == false)
 			return this
 		
 		closeFunc := |->Bool?| {
-			waitingOn := connectionState.sync |ConnectionManagerPoolState state -> Int| {
+			waitingOn := connectionState.sync |MongoConnMgrPoolState state -> Int| {
 				while (!state.checkedIn.isEmpty) {
 					state.checkedIn.removeAt(0).close 
 				}
@@ -179,7 +179,7 @@ const class MongoConnMgrPool : MongoConnMgr {
 
 		if (!allClosed) {
 			// too late, they've had their chance. Now everybody dies.
-			connectionState.async |ConnectionManagerPoolState state| {
+			connectionState.async |MongoConnMgrPoolState state| {
 				// just in case one or two snuck back in
 				while (!state.checkedIn.isEmpty) {
 					state.checkedIn.removeAt(0).close 
@@ -197,14 +197,14 @@ const class MongoConnMgrPool : MongoConnMgr {
 	
 	** Returns the number of pooled connections currently in use.
 	Int noOfConnectionsInUse() {
-		connectionState.sync |ConnectionManagerPoolState state->Int| {
+		connectionState.sync |MongoConnMgrPoolState state->Int| {
 			state.checkedOut.size
 		}		
 	}
 
 	** Returns the number of connections currently in the pool.
 	Int noOfConnectionsInPool() {
-		connectionState.sync |ConnectionManagerPoolState state->Int| {
+		connectionState.sync |MongoConnMgrPoolState state->Int| {
 			state.checkedOut.size + state.checkedIn.size
 		}
 	}
@@ -228,7 +228,8 @@ const class MongoConnMgrPool : MongoConnMgr {
 		isConnectedToMasterRef.val = true
 
 		// set our connection factory
-		connectionState.sync |ConnectionManagerPoolState state| {
+		connectionState.sync |MongoConnMgrPoolState state| {
+echo("Setting state.connFac")
 			state.connFactory = |->MongoConn| {
 				socket := newSocket
 				return MongoTcpConn(socket).connect(mongoUrl.host, mongoUrl.port) {
@@ -263,7 +264,7 @@ const class MongoConnMgrPool : MongoConnMgr {
 	** Closes all un-leased connections in the pool, and flags all leased connections to close 
 	** themselves after use. Use to migrate connections to new host / master.
 	Void emptyPool() {
-		connectionState.sync |ConnectionManagerPoolState state| {
+		connectionState.sync |MongoConnMgrPoolState state| {
 			while (!state.checkedIn.isEmpty) {
 				state.checkedIn.removeAt(0).close 
 			}
@@ -306,7 +307,7 @@ const class MongoConnMgrPool : MongoConnMgr {
 
 	private MongoTcpConn checkOut() {
 		connectionFunc := |Duration totalNapTime->MongoTcpConn?| {
-			con := connectionState.sync |ConnectionManagerPoolState state->Unsafe?| {
+			con := connectionState.sync |MongoConnMgrPoolState state->Unsafe?| {
 				while (!state.checkedIn.isEmpty) {
 					connection := state.checkedIn.pop
 
@@ -318,6 +319,8 @@ const class MongoConnMgrPool : MongoConnMgr {
 				}
 
 				if (state.checkedOut.size < mongoConnUrl.maxPoolSize) {
+	echo("State = $state")
+	echo("StateCon = ${state.connFactory}")
 					connection := state.connFactory()
 					state.checkedOut.push(connection)
 					return Unsafe(connection)
@@ -366,7 +369,7 @@ const class MongoConnMgrPool : MongoConnMgr {
 	private Void checkIn(MongoTcpConn connection) {
 		unsafeConnection := Unsafe(connection)
 		// call sync() to make sure this thread checks in before it asks for a new one
-		connectionState.sync |ConnectionManagerPoolState state| {
+		connectionState.sync |MongoConnMgrPoolState state| {
 			conn := (MongoTcpConn) unsafeConnection.val
 			state.checkedOut.removeSame(conn)
 
@@ -433,7 +436,7 @@ const class MongoConnMgrPool : MongoConnMgr {
 	}
 }
 
-internal class ConnectionManagerPoolState {
+internal class MongoConnMgrPoolState {
 	MongoTcpConn[]		checkedIn	:= [,]
 	MongoTcpConn[]		checkedOut	:= [,]
 	|->MongoTcpConn|?	connFactory
