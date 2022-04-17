@@ -46,7 +46,7 @@ const class BsonPrinter {
 	**   prettyPrinter.print(mongoDoc, out)
 	** 
 	This printToStream(Obj? obj, OutStream out) {
-		ctx := MongoWriteCtxPretty(out, indent, maxWidth)
+		ctx := BsonPrinterCtx(out, indent, maxWidth)
 		_writeJsonToStream(ctx, obj)
 		ctx.finalise
 		return this
@@ -64,7 +64,7 @@ const class BsonPrinter {
 	
 	// ---- private methods -----------------------------------------------------------------------
 
-	private This _writeJsonToStream(MongoWriteCtx ctx, Obj? obj) {
+	private This _writeJsonToStream(BsonPrinterCtx ctx, Obj? obj) {
 		obj = convertHook(obj)
 			 if (obj is Str)		_writeJsonStr		(ctx, obj)
 		else if (obj is Map)		_writeJsonMap		(ctx, obj)
@@ -79,7 +79,7 @@ const class BsonPrinter {
 		return this
 	}
 	
-	private Void _writeJsonMap(MongoWriteCtx ctx, Map map) {
+	private Void _writeJsonMap(BsonPrinterCtx ctx, Map map) {
 		ctx.objectStart
 		notFirst := false
 		map.each |val, key| {
@@ -93,7 +93,7 @@ const class BsonPrinter {
 		ctx.objectEnd
 	}
 
-	private Void _writeJsonList(MongoWriteCtx ctx, Obj?[] array) {
+	private Void _writeJsonList(BsonPrinterCtx ctx, Obj?[] array) {
 		ctx.arrayStart
 		notFirst := false
 		array.each |item| {
@@ -104,9 +104,9 @@ const class BsonPrinter {
 		ctx.arrayEnd
 	}
 
-	private Void _writeJsonStr(MongoWriteCtx ctx, Str str) {
+	private Void _writeJsonStr(BsonPrinterCtx ctx, Str str) {
 		ctx.valueStart
-		ctx.writeChar(MongoValWriter.quote)
+		ctx.writeChar(BsonValWriter.quote)
 		str.each |char| {
 			if (char <= 0x7f) {
 				switch (char) {
@@ -128,69 +128,48 @@ const class BsonPrinter {
 				ctx.writeChar('\\').writeChar('u').print(char.toHex(4))
 			}
 		}
-		ctx.writeChar(MongoValWriter.quote)
+		ctx.writeChar(BsonValWriter.quote)
 		ctx.valueEnd
 	}
 
-	private Void _writeJsonNull(MongoWriteCtx ctx) {
+	private Void _writeJsonNull(BsonPrinterCtx ctx) {
 		ctx.valueStart.print("null").valueEnd
 	}
 
-	private Void _writeBsonBinary(MongoWriteCtx ctx, Obj obj) {
+	private Void _writeBsonBinary(BsonPrinterCtx ctx, Obj obj) {
 		ctx.valueStart.print( ((Binary) obj).toJs ).valueEnd
 	}
 
-	private Void _writeBsonMinKey(MongoWriteCtx ctx, Obj obj) {
+	private Void _writeBsonMinKey(BsonPrinterCtx ctx, Obj obj) {
 		ctx.valueStart.print( ((MinKey) obj).toJs ).valueEnd
 	}
 
-	private Void _writeBsonMaxKey(MongoWriteCtx ctx, Obj obj) {
+	private Void _writeBsonMaxKey(BsonPrinterCtx ctx, Obj obj) {
 		ctx.valueStart.print( ((MaxKey) obj).toJs ).valueEnd
 	}
 
-	private Void _writeBsonObjId(MongoWriteCtx ctx, Obj obj) {
+	private Void _writeBsonObjId(BsonPrinterCtx ctx, Obj obj) {
 		ctx.valueStart.print( ((ObjectId) obj).toJs ).valueEnd
 	}
 
-	private Void _writeBsonTimestamp(MongoWriteCtx ctx, Obj obj) {
+	private Void _writeBsonTimestamp(BsonPrinterCtx ctx, Obj obj) {
 		ctx.valueStart.print( ((Timestamp) obj).toJs ).valueEnd
 	}
 
-	private Void _writeObj(MongoWriteCtx ctx, Obj obj) {
+	private Void _writeObj(BsonPrinterCtx ctx, Obj obj) {
 		ctx.valueStart.print(obj).valueEnd
 	}
 }
 
-internal mixin MongoWriteCtx {
-	abstract This valueStart()
-	abstract This print(Obj s)
-	abstract This writeChar(Int char)
-	abstract This valueEnd()
-	
-	abstract Void arrayStart()
-	abstract Void arrayItem()
-	abstract Void arrayEnd()
-
-	abstract Void objectStart()
-	abstract Void objectKey()
-	abstract Void objectVal()
-	abstract Void objectEnd()
-
-	abstract Void finalise()
-
-	virtual Str ppIndent()   { "" }
-	virtual Int ppMaxWidth() { -1 }
-}
-
-internal class MongoWriteCtxPretty : MongoWriteCtx {
+internal class BsonPrinterCtx {
 	private OutStream 			out
 	private Int 				indent		:= 0
 	
-	private MongoValWriter?		last
-	private MongoValWriter[]	valWriters	:= MongoValWriter[,]
+	private BsonValWriter?		last
+	private BsonValWriter[]		valWriters	:= BsonValWriter[,]
 
-	override Str				ppIndent
-	override Int				ppMaxWidth
+	Str				ppIndent
+	Int				ppMaxWidth
 
 	new make(OutStream out, Str ppIndent, Int ppMaxWidth) {
 		this.out		= out
@@ -198,29 +177,29 @@ internal class MongoWriteCtxPretty : MongoWriteCtx {
 		this.ppMaxWidth	= ppMaxWidth
 	}
 	
-	override This print(Obj s) {
+	This print(Obj s) {
 		valWriters.peek.writeJson(s)
 		return this
 	}
 	
-	override This writeChar(Int ch) {
+	This writeChar(Int ch) {
 		valWriters.peek.writeChar(ch)
 		return this
 	}
 
-	override This valueStart()	{ valWriters.push(MongoValWriterLit(this)); return this }
-	override This valueEnd()	{ writerEnd	}
+	This valueStart()	{ valWriters.push(BsonValWriterLit(this)); return this }
+	This valueEnd()	{ writerEnd	}
 	
-	override Void arrayStart()	{ valWriters.push(MongoValWriterList(this)) }
-	override Void arrayItem()	{ }
-	override Void arrayEnd()	{ writerEnd	}
+	Void arrayStart()	{ valWriters.push(BsonValWriterList(this)) }
+	Void arrayItem()	{ }
+	Void arrayEnd()	{ writerEnd	}
 	
-	override Void objectStart()	{ valWriters.push(MongoValWriterMap(this)) }
-	override Void objectKey()	{ }
-	override Void objectVal()	{ }
-	override Void objectEnd()	{ writerEnd	}
+	Void objectStart()	{ valWriters.push(BsonValWriterMap(this)) }
+	Void objectKey()	{ }
+	Void objectVal()	{ }
+	Void objectEnd()	{ writerEnd	}
 	
-	override Void finalise()	{ out.writeChars(last.str) }
+	Void finalise()	{ out.writeChars(last.str) }
 	
 	private This writerEnd() {
 		last = valWriters.pop
@@ -230,7 +209,7 @@ internal class MongoWriteCtxPretty : MongoWriteCtx {
 	}
 }
 
-internal abstract class MongoValWriter {
+internal abstract class BsonValWriter {
 	static const Int objectStart	:= '{'
 	static const Int objectEnd		:= '}'
 	static const Int colon			:= ':'
@@ -239,9 +218,9 @@ internal abstract class MongoValWriter {
 	static const Int comma			:= ','
 	static const Int quote			:= '"'
 
-	MongoWriteCtx	ppOpts
+	BsonPrinterCtx	ppOpts
 
-	new make(MongoWriteCtx ppOpts) {
+	new make(BsonPrinterCtx ppOpts) {
 		this.ppOpts	= ppOpts
 	}
 	
@@ -251,21 +230,21 @@ internal abstract class MongoValWriter {
 	abstract Str  str()
 }
 
-internal class MongoValWriterLit : MongoValWriter {
+internal class BsonValWriterLit : BsonValWriter {
 	private StrBuf	value	:= StrBuf(32)
 	
-	new make(MongoWriteCtx ppOpts) : super(ppOpts) { }
+	new make(BsonPrinterCtx ppOpts) : super(ppOpts) { }
 
 	override Void writeJson(Obj ob)	{ value.add(ob)	}
 	override Void writeChar(Int ch)	{ value.addChar(ch)	}
 	override Str str() 				{ value.toStr		}
 }
 
-internal class MongoValWriterList : MongoValWriter {
+internal class BsonValWriterList : BsonValWriter {
 	private Int		size	:= 1
 	private Str[]	list	:= Str[,]
 
-	new make(MongoWriteCtx ppOpts) : super(ppOpts) { }
+	new make(BsonPrinterCtx ppOpts) : super(ppOpts) { }
 
 	override Void add(Str item)	{
 		list.add(item)
@@ -279,7 +258,7 @@ internal class MongoValWriterList : MongoValWriter {
 			// bufSize is only approx unless we start counting the lines in items
 			bufSize := size + (list.size * ppOpts.ppIndent.size * 2)
 			json := StrBuf(bufSize)
-			json.addChar(MongoValWriter.arrayStart).addChar('\n')
+			json.addChar(BsonValWriter.arrayStart).addChar('\n')
 			list.each |item, i| {
 				lines := item.splitLines
 				lines.each |line, j| {
@@ -288,24 +267,24 @@ internal class MongoValWriterList : MongoValWriter {
 						json.addChar('\n')
 				}
 				if (i < list.size - 1)
-					json.addChar(MongoValWriter.comma)
+					json.addChar(BsonValWriter.comma)
 				json.addChar('\n')
 			}
-			json.addChar(MongoValWriter.arrayEnd)
+			json.addChar(BsonValWriter.arrayEnd)
 			return json.toStr
 		} else
 			return "[" + list.join(", ") + "]"
 	}
 }
 
-internal class MongoValWriterMap : MongoValWriter {	
+internal class BsonValWriterMap : BsonValWriter {	
 	private Str[]	keys		:= Str[,]
 	private Str[]	vals		:= Str[,]
 	private Int		size		:= 1
 	private Int		maxKeySize	:= 0
 	private Int		maxValSize	:= 0
 	
-	new make(MongoWriteCtx ppOpts) : super(ppOpts) { }
+	new make(BsonPrinterCtx ppOpts) : super(ppOpts) { }
 
 	override Void add(Str item) {
 		(keys.size > vals.size ? vals : keys).add(item)
@@ -324,14 +303,14 @@ internal class MongoValWriterMap : MongoValWriter {
 			// bufSize is only approx unless we start counting the lines in vals
 			bufSize := (keys.size * maxKeySize) + (vals.size * maxValSize) + (keys.size * ppOpts.ppIndent.size * 2)
 			json := StrBuf(bufSize)
-			json.addChar(MongoValWriter.objectStart).addChar('\n')
+			json.addChar(BsonValWriter.objectStart).addChar('\n')
 			
 			keys.each |key, i| {
 				val := vals[i]
 				
 				json.add(ppOpts.ppIndent)
 				json.add(key.justl(maxKeySize))
-				json.addChar(MongoValWriter.colon)
+				json.addChar(BsonValWriter.colon)
 				json.addChar(' ')
 				
 				lines := val.splitLines
@@ -342,23 +321,23 @@ internal class MongoValWriterMap : MongoValWriter {
 						json.add(ppOpts.ppIndent).add(line)
 					}
 				if (i < keys.size - 1)
-					json.addChar(MongoValWriter.comma)
+					json.addChar(BsonValWriter.comma)
 				json.addChar('\n')
 			}
 			
-			json.addChar(MongoValWriter.objectEnd)
+			json.addChar(BsonValWriter.objectEnd)
 			return json.toStr
 
 		} else {
 			json := StrBuf(size)
-			json.addChar(MongoValWriter.objectStart)
+			json.addChar(BsonValWriter.objectStart)
 			keys.each |key, i| {
 				val := vals[i]
-				json.add(key).addChar(MongoValWriter.colon).addChar(' ').add(val)
+				json.add(key).addChar(BsonValWriter.colon).addChar(' ').add(val)
 				if (i < keys.size - 1)
-					json.addChar(MongoValWriter.comma).addChar(' ')
+					json.addChar(BsonValWriter.comma).addChar(' ')
 			}
-			json.addChar(MongoValWriter.objectEnd)
+			json.addChar(BsonValWriter.objectEnd)
 			return json.toStr
 		}
 	}
