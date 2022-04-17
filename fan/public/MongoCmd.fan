@@ -18,17 +18,25 @@ class MongoCmd {
 		this.add(cmdName, cmdVal)
 	}
 
-	** If 'val' is null, it is not added. Handy for chaining 'add()' methods.
+	** Adds the given 'val' - but only if it does not aleady exist in the cmd.
+	** 
+	** If 'val' is null, it is not added.
+	** 
+	** Use to chain 'add()' methods.
 	This add(Str key, Obj? val) {
-		if (val != null)
+		if (val != null && cmd.containsKey(key) == false)
 			cmd.add(key, val)
 		return this
 	}	
 
-	** If 'all' is null, it is not added. Handy for chaining 'add()' methods.
+	** Adds all the given vals - but only if they don't already exist in the cmd.
+	** 
+	** If 'all' is null, it is not added.
+	** 
+	** Use to chain 'add()' methods.
 	This addAll([Str:Obj?]? all) {
 		if (all != null)
-			cmd.addAll(all)
+			all.each |v, k| { this.add(k, v) }
 		return this
 	}	
 

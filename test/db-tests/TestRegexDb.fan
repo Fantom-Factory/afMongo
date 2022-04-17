@@ -10,7 +10,7 @@ internal class TestRegexDb : MongoDbTest {
 		
 		// save and retrieve from Mongo
 		col := db["Regex"]
-		col.insert(["reg":caseInsen])		
+		col.insertOne(["reg":caseInsen])		
 		ci := col.findAll.first["reg"] as Regex
 
 		verify(ci.matches("dude"))

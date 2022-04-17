@@ -13,7 +13,7 @@ internal class TestIndexDb : MongoDbTest {
 	}
 	
 	Void testBasicMethods() {
-		10.times |i| { collection.insert(["data":i+1]) }
+		10.times |i| { collection.insertOne(["data":i+1]) }
 		
 		verifyEq(collection.indexNames, Str["_id_"])
 		
@@ -24,15 +24,15 @@ internal class TestIndexDb : MongoDbTest {
 		verifyEq(indat.info["name"], "_data_")
 		
 		verifyErr(MongoErr#) {
-			collection.insert(["data":10])
-			collection.insert(["data":10])
+			collection.insertOne(["data":10])
+			collection.insertOne(["data":10])
 		}
 		
 		verifyEq(indat.ensure(["data":"up"], true), false)
 		verifyEq(indat.ensure(["data":1], false), true)
 		verifyEq(indat.ensure(["data":-1]), true)
 		
-		collection.insert(["data":10])
+		collection.insertOne(["data":10])
 		
 		indat.drop
 		verifyEq(indat.exists, false)

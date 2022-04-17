@@ -70,7 +70,7 @@ const class MongoIndex {
 	** @see `http://docs.mongodb.org/manual/reference/command/createIndexes/`
 	This create(Str:Obj key, Bool? unique := false, Str:Obj options := [:]) {
 		if (key.size > 1 && key.ordered == false)
-			throw ArgErr(MongoErrMsgs.cursor_mapNotOrdered(key))
+			throw ArgErr(cursor_mapNotOrdered(key))
 
 		// there's no createIndexMulti 'cos I figure no novice will need to create multiple indexes at once!
 		if (unique == true)	options.set("unique", unique)
@@ -113,7 +113,7 @@ const class MongoIndex {
 	** @see `http://docs.mongodb.org/manual/reference/command/createIndexes/`
 	Bool ensure(Str:Obj key, Bool? unique := false, Str:Obj options := [:]) {
 		if (key.size > 1 && key.ordered == false)
-			throw ArgErr(MongoErrMsgs.cursor_mapNotOrdered(key))
+			throw ArgErr(cursor_mapNotOrdered(key))
 
 		if (!exists) {
 			create(key, unique, options)
@@ -162,7 +162,9 @@ const class MongoIndex {
 		"${dbName}.${colName}::${name}"
 	}
 
-
+	private static Str cursor_mapNotOrdered(Str:Obj? map) {
+		"Maps with more than 1 entry must be ordered: ${map}"
+	}
 	
 	private static const Str[]	ascSynonymns	:= "asc       ascending  up  north heaven wibble".lower.split
 	private static const Str[]	dscSynonymns	:= "dsc desc descending down south  hell  wobble".lower.split

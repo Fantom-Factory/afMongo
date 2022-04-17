@@ -4,11 +4,11 @@ internal class TestCollectionAggregationDb : MongoDbTest {
 	
 	MongoCol? collection
 	
-	override Void setup() {
-		super.setup
-		collection = db["collectionTest"].drop(false)
-		10.times |i| { collection.insert(["data":i+1]) }
-	}
+//	override Void setup() {
+//		super.setup
+//		collection = db["collectionTest"].drop(false)
+//		10.times |i| { collection.insert(["data":i+1]) }
+//	}
 	
 //	Void testAggregate() {
 //		

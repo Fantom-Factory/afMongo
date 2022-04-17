@@ -2,7 +2,7 @@
 
 ** Represents a MongoDB collection.
 ** 
-** https://github.com/mongodb/specifications/blob/master/source/crud/crud.rst#insert-update-replace-delete-and-bulk-writes
+** @see `https://github.com/mongodb/specifications/blob/master/source/crud/crud.rst`
 const class MongoCol {
 	
 //	private const Namespace	namespace
@@ -18,81 +18,124 @@ const class MongoCol {
 	** Creates a 'Collection' with the given name under the database.
 	** 
 	** Note this just instantiates the Fantom object, it does not create anything in the database. 
-	new makeFromDatabase(MongoConnMgr connMgr, Str dbName, Str name) {
+	new make(MongoConnMgr connMgr, Str dbName, Str name) {
 		this.connMgr 	= connMgr
 		this.dbName		= MongoDb.validateName(dbName)
 		this.name 		= validateName(name)
 	}
 	
+	** Convenience / shorthand notation for 'findOne(["_id" : id], checked)'
+	@Operator
+	[Str:Obj?]? get(Obj? id, Bool checked := true) {
+		if (id == null)		// quit early if ID is null
+			return checked ? (null ?: throw Err("findOne() returned ZERO documents from ${qname} - [_id:${id}]")) : null
+		return findOne(["_id" : id], checked)
+	}	
 	
-	internal static Str validateName(Str name) {
-		if (name.isEmpty)
-			throw ArgErr("Collection name can not be empty")
-		if (name.any { it == '$' })
-			throw ArgErr("Collection name '${name}' may not contain any of the following: \$")
-		return name
+	
+	
+	// ---- Indexes -----------------------------
+		
+	** Returns an 'MongoIndex' of the given name.
+	** 
+	** Note this just instantiates the Fantom object, it does not create anything in MongoDB. 
+	MongoIndex index(Str indexName) { 
+		MongoIndex(connMgr, dbName, name, indexName)
 	}
 	
-	// ---- Collection ----------------------------------------------------------------------------
+	** Returns all the indexes in this collection.
+	MongoCur listIndexes() {
+		cmd("listIndexes", name).cursor
+	}
+
+
+	
+	// ---- Commands ----------------------------
 
 	** Returns 'true' if this collection exists.
 	Bool exists() {
-		res := cmd("listCollections", 1).add("filter", ["name":name]).run
-		return res["cursor"]->get("firstBatch")->isEmpty->not
+		MongoDb(connMgr, dbName)
+			.cmd("listCollections")
+			.add("filter", ["name":name])
+			.add("nameOnly", true)
+			.cursor
+			.toList.size > 0
 	}
-	
+
 	** Creates a new collection explicitly.
 	** 
 	** There is usually no no need to call this unless you wish explicitly set collection options. 
 	**  
-	** @see `http://docs.mongodb.org/manual/reference/command/create/`
-	This create([Str:Obj?]? options := null) {
-		cmd		("create", name)
+	** @see `https://www.mongodb.com/docs/manual/reference/command/create/`
+	Void create([Str:Obj?]? options := null) {
+		cmd("create", name)
 			.addAll(options)
+			.add("writeConcern", connMgr.writeConcern)
 			.run
-		// as create() only returns [ok:1.0], return this
-		return this
-	}
-
-	** Creates a capped collection.
-	** 
-	** @see `http://docs.mongodb.org/manual/reference/command/create/`
-	This createCapped(Int sizeInBytes, Int? maxNoOfDocs := null, [Str:Obj?]? options := null) {
-		cmd		("create", 		name)
-			.add("capped", 		true)
-			.add("size", 		sizeInBytes)
-			.add("max", 		maxNoOfDocs)
-			.addAll(options)
-			.run
-		// as create() only returns [ok:1.0], return this
-		return this
 	}
 
 	** Drops this collection, but only if it exists.
 	** 
-	** Note that deleting all documents is MUCH quicker than dropping the Collection. See `deleteAll` for details.
+	** Note that deleting all documents is MUCH quicker than dropping the Collection.
+	** See `deleteAll` for details.
 	** 
 	** If 'force' is 'true' then no checks are made. 
-	** This will result in an error if the collection doesn't exist.
+	** This will result in an error if the collection does not exist.
 	** 
-	** @see `http://docs.mongodb.org/manual/reference/command/drop/`
-	This drop(Bool force := false) {
-		if (force || exists) cmd("drop", name).run
-		// [ns:afMongoTest.col-test, nIndexesWas:1, ok:1.0] 
-		// not sure wot 'nIndexesWas' or if it's useful, so return this for now 
-		return this
+	** @see `https://www.mongodb.com/docs/manual/reference/command/drop/`
+	Void drop(Bool force := false) {
+		if (force || exists)
+			cmd("drop", name)
+				.add("writeConcern", connMgr.writeConcern)
+				.run
 	}
 
-	// ---- Diagnostics  --------------------------------------------------------------------------
+	** Inserts the given document.
+	** 
+	** @see `https://www.mongodb.com/docs/manual/reference/command/insert/`
+	Void insertOne(Str:Obj? document) {
+		cmd("insert",			name)
+			.add("documents",	[document])
+			.add("writeConcern", connMgr.writeConcern)
+			.run	
+	}
+
+	** Inserts many documents.
+	** 
+	** If 'ordered' is 'false' then should an insert fail, continue with the remaining inserts. Default is 'true'.
+	** 
+	** @see `https://www.mongodb.com/docs/manual/reference/command/insert/`
+	Void insertMany([Str:Obj?][] documents, Bool? ordered := null) {
+		// the driver spec says I MUST raise this error!
+		// https://github.com/mongodb/specifications/blob/master/source/crud/crud.rst#insert-update-replace-delete-and-bulk-writes
+		if (documents.isEmpty)
+			throw ArgErr("Documents MUST not be empty.")
+		cmd("insert",				name)
+			.add("documents",		documents)
+			.add("ordered",			ordered)
+			.add("writeConcern",	connMgr.writeConcern)
+			.run
+	}
 	
-	** Returns storage statistics for this collection.
+	** Return one document that matches the given 'filter'.
 	** 
-	** @see `http://docs.mongodb.org/manual/reference/command/collStats/`
-	[Str:Obj?] stats(Int scale := 1) {
-		cmd("collStats", name).add("scale", scale).run
+	** Throws an 'Err' if no documents are found and 'checked' is 'true'.
+	** 
+	** Always throws 'Err' if the filter returns more than one document.
+	**  
+	** @see `https://www.mongodb.com/docs/manual/reference/command/find/`
+	[Str:Obj?]? findOne(Str:Obj? filter, Bool checked := true) {
+		l := cmd("find", name)
+			.add("filter",		filter)
+			.add("batchSize",	2)
+			.add("limit",		2)
+			.cursor.toList
+		if (l.size > 1)
+			throw Err("findOne() returned multiple documents from ${qname} - ${filter}")
+		if (l.isEmpty && checked)
+			throw Err("findOne() returned ZERO documents from ${qname} - ${filter}")
+		return l.first
 	}
-
-	// ---- Cursor Queries ------------------------------------------------------------------------
 
 	** Creates a `Cursor` over the given 'query' allowing you to iterate over results.
 	** Documents are downloaded from MongoDB in batches behind the scene as and when required. 
@@ -110,21 +153,21 @@ const class MongoCol {
 	** }
 	** <pre
 	** 
-	**  - @see `Cursor`
-	**  - @see `http://docs.mongodb.org/manual/reference/operator/query/`
-	Obj? find(Str:Obj? query) {
-		
-		// FIXME
-//		throw UnsupportedErr()
-		connMgr.leaseConn |con->Obj?| {
-			query["find"] = name
-//			query["singleBatch"] = true
-			query["batchSize"] = 2
-			
-			res := MongoOp(con).runCommand(dbName, query)
-
-			return res
-		}
+	**  - @see `https://www.mongodb.com/docs/manual/reference/command/find/`
+	**  - @see `https://www.mongodb.com/docs/manual/tutorial/query-documents/`
+	Obj? find(Str:Obj? filter) {
+return null		
+//		// FIXME
+////		throw UnsupportedErr()
+//		connMgr.leaseConn |con->Obj?| {
+//			query["find"] = name
+////			query["singleBatch"] = true
+//			query["batchSize"] = 2
+//			
+//			res := MongoOp(con).runCommand(dbName, query)
+//
+//			return res
+//		}
 		
 //		connMgr.leaseConnection |con->Obj?| {
 //			cursor := Cursor(con, namespace, query)
@@ -144,28 +187,6 @@ const class MongoCol {
 		// FIXME set batchSize and timeout on cursor
 	}
 
-	** An (optomised) method to return one document from the given 'query'.
-	** 
-	** Throws 'MongoErr' if no documents are found and 'checked' is true, returns 'null' otherwise.
-	** Always throws 'MongoErr' if the query returns more than one document.
-	**  
-	** @see `http://docs.mongodb.org/manual/reference/operator/query/`
-	[Str:Obj?]? findOne([Str:Obj?]? query := null, Bool checked := true) {
-		
-		throw UnsupportedErr()
-		
-//		query = query ?: Str:Obj?[:]
-//		// findOne() is optomised to NOT call count() on a successful call 
-//		return find(query) |cursor| {
-//			// "If numberToReturn is 1 the server will treat it as -1 (closing the cursor automatically)."
-//			// Means I can't use the isAlive() trick to check for more documents.
-//			cursor.batchSize = 2
-//			one := cursor.next(false) ?: (checked ? throw MongoErr(MongoErrMsgs.collection_findOneIsEmpty(qname, query)) : null)
-//			if (cursor.isAlive || cursor.next(false) != null)
-//				throw MongoErr(MongoErrMsgs.collection_findOneHasMany(qname, cursor.count, query))
-//			return one
-//		}
-	}
 
 	** Returns the result of the given 'query' as a list of documents.
 	** 
@@ -212,6 +233,14 @@ const class MongoCol {
 //			return cursor.toList
 //		}
 	}
+	
+	static Str collection_findAllSortArgBad(Obj sort) {
+		stripSys("Sort argument must be either a Str (Cursor.hint) or a Map (Cursor.orderBy), not ${sort.typeof.signature} ${sort}")	
+	}
+
+	static Str stripSys(Str str) {
+		str.replace("sys::", "")
+	}
 
 	** Returns the number of documents that would be returned by the given 'query'.
 	** 
@@ -224,34 +253,9 @@ const class MongoCol {
 //		}
 	}
 	
-	** Convenience / shorthand notation for 'findOne(["_id" : id], checked)'
-	@Operator
-	[Str:Obj?]? get(Obj? id, Bool checked := true) {
-		if (id == null)
-			return !checked ? null : (null ?: throw Err(MongoErrMsgs.collection_findOneIsEmpty(qname, id)))
-		return findOne(["_id" : id], checked)
-	}
+
 
 	// ---- Write Operations ----------------------------------------------------------------------
-
-	** Inserts the given document.
-	** Returns the number of documents inserted.
-	** 
-	** @see `http://docs.mongodb.org/manual/reference/command/insert/`
-	Int insert(Str:Obj? document) {
-		insertMulti([document], null)["n"]->toInt
-	}
-
-	** Inserts multiple documents.
-	** 
-	** @see `http://docs.mongodb.org/manual/reference/command/insert/`
-	[Str:Obj?] insertMulti([Str:Obj?][] inserts, Bool? ordered := null) {
-		cmd		("insert",			name)
-			.add("documents",		inserts)
-			.add("ordered",			ordered)
-			.add("writeConcern",	connMgr.writeConcern)
-			.run
-	}
 
 	** Deletes documents that match the given query.
 	** Returns the number of documents deleted.
@@ -417,13 +421,6 @@ const class MongoCol {
 		nfo := ([Str:Obj?][]) res["cursor"]->get("firstBatch")
 		return nfo.map |i->Str| { i["name"] }
 	}
-	
-	** Returns an 'MongoIndex' of the given name.
-	** 
-	** Note this just instantiates the Fantom object, it does not create anything in MongoDb. 
-	MongoIndex index(Str indexName) { 
-		MongoIndex(connMgr, dbName, name, indexName)
-	}
 
 	** Drops ALL indexes on the collection. *Be careful!*
 	** 
@@ -434,35 +431,21 @@ const class MongoCol {
 		return this
 	}
 	
-	// ---- Misc Methods --------------------------------------------------------------------------
-	
-//	** Runs an arbitrary command against this 'Collection'. 
-//	** Example, to return the size of the collection:
-//	** 
-//	**   size := runCmd(
-//	**     ["count" : "<collectionName>"]
-//	**   )["n"]->toInt
-//	** 
-//	** *This is a low level operation.*
-//	** 
-//	** See `https://docs.mongodb.com/manual/reference/command/`  
-//	Str:Obj? runCmd(Str:Obj? query) {
-//		cmd.addAll(query).run
-//	}
-	
 	Str qname() {
 		"${dbName}.${name}"
 	}
 		
-	// ---- Obj Overrides -------------------------------------------------------------------------
-	
-	@NoDoc
-	override Str toStr() {
-		qname
+	internal static Str validateName(Str name) {
+		if (name.isEmpty)
+			throw ArgErr("Collection name can not be empty")
+		if (name.any { it == '$' })
+			throw ArgErr("Collection name '${name}' may not contain any of the following: \$")
+		return name
 	}
+		
+	@NoDoc
+	override Str toStr() { qname }
 
-	// ---- Private Methods -----------------------------------------------------------------------
-	
 	** **For Power Users!**
 	** 
 	** Don't forget to call 'run()'!

@@ -11,7 +11,7 @@ const class MongoDb {
 	** Creates a 'Database' with the given name.
 	** 
 	** Note this just instantiates the Fantom object, it does not create anything in MongoDB. 
-	new makeWithName(MongoConnMgr connMgr, Str name) {
+	new make(MongoConnMgr connMgr, Str name) {
 		this.connMgr	= connMgr
 		this.name		= validateName(name)
 	}
