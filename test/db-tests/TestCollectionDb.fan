@@ -12,7 +12,7 @@ internal class TestCollectionDb : MongoDbTest {
 
 	
 	Void testDiagnostics() {
-		verifyEq(["collectionTest"], db.collectionNames)
+		verifyEq(["collectionTest"], db.listCollectionNames)
 		verifyEq(collection.stats(3)["ns"], collection.qname)
 	}
 

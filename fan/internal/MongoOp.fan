@@ -1,8 +1,7 @@
 using concurrent::AtomicInt
 using afBson::BsonIO
 
-** 'IOErrs' should be thrown for any networking issues, so a Master failover may be invoked in the 
-** calling ConnMagr.
+** Sends an OP_MSG to the Mongo server.
 ** 
 ** @see `https://github.com/mongodb/specifications/blob/master/source/message/OP_MSG.rst`
 @NoDoc	// advanced use only
@@ -44,9 +43,9 @@ class MongoOp {
 		out.writeI4(reqId)
 		out.writeI4(0)		// resId
 		out.writeI4(2013)	// OP_MSG opCode
-			
+
 		// write OP_MSG
-		out.writeI4(0)		// flagBits
+		out.writeI4(0)		// flagBits - why would I set *any* of them!?
 		out.write(0)		// section payloadType == 0
 		out.writeBuf(cmdBuf.flip)
 		
@@ -62,6 +61,7 @@ class MongoOp {
 		resId	:= in.readU4	// keep for logs
 		opCode	:= in.readU4	// should be OP_MSG
 		
+		// TODO throw better Errs
 		if (opCode != 2013)
 			throw Err("Wot not a OP_MSG!? $opCode")
 		

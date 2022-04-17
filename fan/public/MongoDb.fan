@@ -47,7 +47,7 @@ const class MongoDb {
 	** @see `https://www.mongodb.com/docs/manual/reference/command/dropDatabase/`
 	Str:Obj? drop() {
 		cmd("dropDatabase")
-			.add("writeConcern",	connMgr.writeConcern)
+			.add("writeConcern", connMgr.writeConcern)
 			.run
 	}
 	
@@ -55,28 +55,24 @@ const class MongoDb {
 	** along with some basic info. 
 	** 
 	** @see `https://www.mongodb.com/docs/manual/reference/command/listCollections/`
-	Str:Obj? listCollections([Str:Obj?]? filter := null) {
+	MongoCur listCollections([Str:Obj?]? filter := null) {
 		cmd("listCollections")
 			.add("filter", filter)
-			.run
-		// FIXME cursor!
-//			.get("databases"
-//		cur := (Str:Obj?)     res["cursor"]
-//		bat := ([Str:Obj?][]) cur["firstBatch"]
-//		return bat.map |nom->Str| { nom["name"] }
+			.cursor
 	}
 	
-	** Returns 'true' if this collection exists.
+	** Returns all the collection (and view) names in this Mongo database. 
+	** 
+	** This is more optimised than just calling 'listCollections()'.
 	** 
 	** @see `https://www.mongodb.com/docs/manual/reference/command/listCollections/`
-	Str[] collectionNames() {
-		res := cmd("listCollections").add("nameOnly", true).run
-		// FIXME cursor!
-		cur := (Str:Obj?)     res["cursor"]
-		bat := ([Str:Obj?][]) cur["firstBatch"]
-		return bat.map |nom->Str| { nom["name"] }
-	}
-	
+	Str[] listCollectionNames() {
+		cmd("listCollections")
+			.add("nameOnly", true)
+			.cursor
+			.toList
+			.map { it["name"] }
+	}	
 	
 	** See `https://www.mongodb.com/docs/manual/reference/limits/#naming-restrictions`
 	private static const Int[] invalidNameChars	:= "/\\. \"*<>:|?".chars	

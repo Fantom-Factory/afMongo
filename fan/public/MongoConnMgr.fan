@@ -20,7 +20,8 @@ const mixin MongoConnMgr {
 	** 
 	** What ever is returned from the func is returned from the method.
 	** 
-	** If the given fn causes an 'IOErr' then the Mongo cluster topology is re-scaaned.
+	** Any 'IOErrs' thrown in the fn are assumed to be networking errors, and invoke a topology 
+	** recan and a Master failover.
 	abstract Obj? leaseConn(|MongoConn->Obj?| c)
 	
 	** Does what ever the 'ConnectionManager' needs to do to initialise itself.
