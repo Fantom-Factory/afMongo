@@ -388,7 +388,7 @@ const class MongoCol {
 	** @see 
 	**  - `http://docs.mongodb.org/manual/reference/command/aggregate/`
 	**  - `http://docs.mongodb.org/manual/reference/aggregation/`
-	Obj? aggregate([Str:Obj?][] pipeline, |Cursor->Obj?| func) {
+	MongoCur aggregate([Str:Obj?][] pipeline) {
 		
 		// FIXME
 		throw UnsupportedErr()

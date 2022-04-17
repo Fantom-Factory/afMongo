@@ -22,6 +22,8 @@ class MongoCur {
 	}
 	
 	** A configurable batch size.
+	** 
+	** 'null' indicates a Mongo default of '101'.
 	Int?				batchSize {
 		set {
 			if (it == 0) it = null
@@ -31,6 +33,8 @@ class MongoCur {
 	}
 	
 	** A configurable timeout for Mongo server operations.
+	** 
+	** 'null' indicates a Mongo default of forever.
 	Duration?			maxTime {
 		set {
 			if (it == 0ms) it = null
@@ -52,28 +56,6 @@ class MongoCur {
 		this._batch			= firstBatch
 		this._totalIndex	= -1
 	}
-
-	** Iterates over all *remaining* and unread documents.
-	** 
-	** This cursor is guaranteed to be killed.
-	** 
-	** pre>
-	** syntax: fantom
-	** 
-	** cursor.each |Str:Obj? doc, Int index| {
-	**     ...
-	** }
-	** <pre
-	Void each(|Str:Obj? doc, Int index| fn) {
-		if (isAlive == false)
-			return
-
-		doc  := null as Str:Obj?
-		try while ((doc = next) != null) {
-			fn(doc, _totalIndex)
-		}
-		finally kill
-	}	
 	
 	** Returns the next document from the cursor, or 'null'.
 	** 
@@ -81,13 +63,13 @@ class MongoCur {
 	** pre>
 	** syntax: fantom
 	** 
-	** doc := null as Str:Obj?
-	** while ((doc = cursor.next) != null) {
+	** while (cursor.isAlive) {
+	**     doc := cursor.next
 	**     ...
 	** }
-	** cursor.kill()
+	** cursor.kill
 	** <pre
-	[Str:Obj?]? next(Bool checked := true) {
+	[Str:Obj?]? next() {
 		if (isAlive == false)
 			return null
 		
@@ -111,11 +93,11 @@ class MongoCur {
 	** 
 	** No more documents will be returned from 'next()', 'each()', or 'toList()'.
 	Void kill() {
-		if (isAlive == false)
+		if (cursorId == 0)
 			return
 		
 		res := MongoCmd(connMgr, dbName, "killCursors", colName)
-			.add("cursors",		[cursorId])
+			.add("cursors",	[cursorId])
 			.run
 		
 		// there is no coming back from a Kill Cmd!
@@ -127,30 +109,46 @@ class MongoCur {
 		if (killed.contains(cursorId) == false)
 			connMgr.log.warn("Cursor (${cursorId}) not killed. Mongo says:\n" + BsonPrinter().print(res))
 	}
-	
+
+	** Iterates over all *remaining* and unread documents.
+	** 
+	** This cursor is guaranteed to be killed.
+	** 
+	** pre>
+	** syntax: fantom
+	** 
+	** cursor.each |Str:Obj? doc, Int index| {
+	**     ...
+	** }
+	** <pre
+	Void each(|Str:Obj? doc, Int index| fn) {
+		try while (isAlive) {
+			fn(next, _totalIndex)
+		}
+		finally kill
+	}
+
 	** Return all *remaining* and unread documents as a List.
+	** 
+	** This cursor is guaranteed to be killed.
 	** 
 	** Returns an empty list should the cursor be killed.
 	[Str:Obj?][] toList() {
-		if (isAlive == false)
-			return Str:Obj?[]#.emptyList
-		
 		docs := Str:Obj?[][,]
-		docs.capacity = _batch.size
-		doc  := null as Str:Obj?
-		while ((doc = next) != null) {
-			docs.add(doc)
+		docs.capacity = _batch.size	// it's a good starting point!
+		try while (isAlive) {
+			docs.add(next)
 		}
-
-		return docs
+		finally kill
+		return  docs
 	}
 	
-	** Returns 'true' if the cursor is alive on the server.
+	** Returns 'true' if the cursor is alive on the server or more documents may be read.
 	Bool isAlive() {
 		isDead := _isExhausted && cursorId == 0
 		return isDead == false
 	}
-	
+
 	private Bool _isExhausted() {
 		_batchIndex >= _batch.size
 	}

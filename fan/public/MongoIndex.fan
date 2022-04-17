@@ -76,7 +76,7 @@ const class MongoIndex {
 		if (unique == true)	options.set("unique", unique)
 		cmd("createIndexes", colName)
 			.add("indexes", 	[
-				 cmd("key",		Cursor.convertAscDesc(key))
+				 cmd("key",		convertAscDesc(key))
 				.add("name",	name)
 				.addAll(options)
 				.cmd
@@ -124,7 +124,7 @@ const class MongoIndex {
 		
 		info := info
 		oldKeyMap := (Str:Obj?) info["key"]
-		newKeyMap := Map.make(oldKeyMap.typeof).addAll(Cursor.convertAscDesc(key))
+		newKeyMap := Map.make(oldKeyMap.typeof).addAll(convertAscDesc(key))
 		
 		if (info.size == options.size + 4 && oldKeyMap == newKeyMap && options.all |v, k| { info[k] == v })
 			return false
@@ -162,4 +162,17 @@ const class MongoIndex {
 		"${dbName}.${colName}::${name}"
 	}
 
+
+	
+	private static const Str[]	ascSynonymns	:= "asc       ascending  up  north heaven wibble".lower.split
+	private static const Str[]	dscSynonymns	:= "dsc desc descending down south  hell  wobble".lower.split
+
+	internal static [Str:Obj?] convertAscDesc(Str:Obj? doc) {
+		doc.map |v| { 
+			if (v isnot Str) return v
+			if (ascSynonymns.contains((v as Str).lower)) return ASC
+			if (dscSynonymns.contains((v as Str).lower)) return DESC
+			return v
+		}
+	}
 }
