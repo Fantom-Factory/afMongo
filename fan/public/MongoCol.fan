@@ -66,11 +66,19 @@ const class MongoCol {
 	** 
 	** There is usually no no need to call this unless you wish explicitly set collection options. 
 	**  
+	** pre>
+	** syntax: fantom
+	** db.collection("name").create {
+	**   it->capped = true
+	**   it->size   = 64 * 1024
+	** }
+	** <pre
+	** 
 	** @see `https://www.mongodb.com/docs/manual/reference/command/create/`
-	Void create([Str:Obj?]? options := null) {
+	Void create(|MongoCmd cmd|? optsFn := null) {
 		cmd("create", name)
-			.addAll(options)
-			.add("writeConcern", connMgr.writeConcern)
+			.add("writeConcern",	connMgr.writeConcern)
+			.withFn(				optsFn)
 			.run
 	}
 
@@ -93,7 +101,7 @@ const class MongoCol {
 	** Inserts the given document.
 	** 
 	** @see `https://www.mongodb.com/docs/manual/reference/command/insert/`
-	Void insertOne(Str:Obj? document) {
+	Void insert(Str:Obj? document) {
 		cmd("insert",			name)
 			.add("documents",	[document])
 			.add("writeConcern", connMgr.writeConcern)
@@ -102,18 +110,18 @@ const class MongoCol {
 
 	** Inserts many documents.
 	** 
-	** If 'ordered' is 'false' then should an insert fail, continue with the remaining inserts. Default is 'true'.
+	** Default behaviour is to stop when inserting fails. See 'ordered' option for details.
 	** 
 	** @see `https://www.mongodb.com/docs/manual/reference/command/insert/`
-	Void insertMany([Str:Obj?][] documents, Bool? ordered := null) {
+	Void insertMany([Str:Obj?][] documents, |MongoCmd cmd|? optsFn := null) {
 		// the driver spec says I MUST raise this error!
 		// https://github.com/mongodb/specifications/blob/master/source/crud/crud.rst#insert-update-replace-delete-and-bulk-writes
 		if (documents.isEmpty)
 			throw ArgErr("Documents MUST not be empty.")
 		cmd("insert",				name)
 			.add("documents",		documents)
-			.add("ordered",			ordered)
 			.add("writeConcern",	connMgr.writeConcern)
+			.withFn(				optsFn)
 			.run
 	}
 	
@@ -137,109 +145,29 @@ const class MongoCol {
 		return l.first
 	}
 
-	** Creates a `Cursor` over the given 'query' allowing you to iterate over results.
-	** Documents are downloaded from MongoDB in batches behind the scene as and when required. 
-	** Use 'find()' to optomise iterating over a *massive* result set. 
-	** 
-	** Returns what is returned from the given cursor function.
+	** Returns documents that match the given filter. Many options are possible.
 	** 
 	** pre>
 	** syntax: fantom
-	** 
-	** second := collection.find([:]) |cursor->Obj?| {
-	**     first  := cursor.next
-	**     second := cursor.next
-	**     return second
-	** }
+	** findMany(["rick":"morty"]) {
+	**   it->sort        = ["fieldName":1]
+	**   it->hint        = "_indexName_"
+	**   it->skip        = 50
+	**   it->limit       = 100
+	**   it->projection  = ["_id":1, "name":1]
+	**   it->batchSize   = 101
+	**   it->singleBatch = true
+	**   it->collation   = [...]
+	** }.toList
 	** <pre
 	** 
 	**  - @see `https://www.mongodb.com/docs/manual/reference/command/find/`
 	**  - @see `https://www.mongodb.com/docs/manual/tutorial/query-documents/`
-	Obj? find(Str:Obj? filter) {
-return null		
-//		// FIXME
-////		throw UnsupportedErr()
-//		connMgr.leaseConn |con->Obj?| {
-//			query["find"] = name
-////			query["singleBatch"] = true
-//			query["batchSize"] = 2
-//			
-//			res := MongoOp(con).runCommand(dbName, query)
-//
-//			return res
-//		}
-		
-//		connMgr.leaseConnection |con->Obj?| {
-//			cursor := Cursor(con, namespace, query)
-//			try {
-//				return func(cursor)
-//			} finally {
-//				cursor.kill
-//			}
-//		}
-	}
-	
-	MongoCur findCur(Str:Obj? filter) {
+	MongoCur find([Str:Obj?]? filter := null, |MongoCmd cmd|? optsFn := null) {
 		cmd("find", name)
-			.add("filter", filter)
-			.add("batchSize", 2)
+			.add("filter",	filter)
+			.withFn(		optsFn)
 			.cursor
-		// FIXME set batchSize and timeout on cursor
-	}
-
-
-	** Returns the result of the given 'query' as a list of documents.
-	** 
-	** If 'sort' is a Str it should the name of an index to use as a hint. 
-	** If 'sort' is a '[Str:Obj?]' map, it should be a sort document with field names as keys. 
-	** Values may either be the standard Mongo '1' and '-1' for ascending / descending or the 
-	** strings 'ASC' / 'DESC'.
-	** 
-	** The 'sort' map, should it contain more than 1 entry, must be ordered.
-	** 
-	** 'projection' alters / limits which fields returned in the query results.
-	** 
-	** Note that 'findAll(...)' is a convenience for calling 'find(...)' and returning the cursor as a list. 
-	** 
-	** - @see `Cursor.toList`
-	** - @see `http://docs.mongodb.org/manual/reference/operator/query/`
-	** - @see `https://docs.mongodb.com/manual/reference/operator/projection/`
-	[Str:Obj?][] findAll([Str:Obj?]? query := null, Obj? sort := null, Int skip := 0, Int? limit := null, [Str:Obj?]? projection := null) {
-		
-//		find(query ?: Str:Obj?[:] { it.ordered = true})
-		
-		
-		connMgr.leaseConn |con->Obj?| {
-			query = query ?: Str:Obj?[:] { it.ordered = true}
-			query["find"] = name
-			query["singleBatch"] = true
-			
-			res := MongoOp(con).runCommand(dbName, query)
-
-			return res->get("cursor")->get("firstBatch")
-		}
-	
-//		throw UnsupportedErr()
-
-//		query = query ?: Str:Obj?[:] { it.ordered = true }
-//		return find(query) |Cursor cursor->[Str:Obj?][]| {
-//			cursor.skip  		= skip
-//			cursor.limit 		= limit
-//			cursor.projection	= projection
-//			if (sort is Str)	cursor.hint 	= sort
-//			if (sort is Map)	cursor.orderBy  = sort
-//			if (sort != null && sort isnot Str && sort isnot Map)
-//				throw ArgErr(MongoErrMsgs.collection_findAllSortArgBad(sort))
-//			return cursor.toList
-//		}
-	}
-	
-	static Str collection_findAllSortArgBad(Obj sort) {
-		stripSys("Sort argument must be either a Str (Cursor.hint) or a Map (Cursor.orderBy), not ${sort.typeof.signature} ${sort}")	
-	}
-
-	static Str stripSys(Str str) {
-		str.replace("sys::", "")
 	}
 
 	** Returns the number of documents that would be returned by the given 'query'.
@@ -252,79 +180,71 @@ return null
 //			cur.count
 //		}
 	}
-	
 
-
-	// ---- Write Operations ----------------------------------------------------------------------
-
-	** Deletes documents that match the given query.
-	** Returns the number of documents deleted.
+	** Runs the given 'updateCmd' against documents that match the given filter.
 	** 
-	** If 'deleteAll' is 'true' then all documents matching the query will be deleted, otherwise 
-	** only the first match will be deleted.
+	** pre>
+	** syntax: fantom
+	** update(["rick":"morty"], ["\$set":["rick":"sanchez"]]) {
+	**   it->upsert      = true
+	**   it->multi       = false  // defaults to true
+	**   it->hint        = "_indexName_"
+	**   it->collation   = [...]
+	** }
+	** <pre
 	** 
-	** @see `http://docs.mongodb.org/manual/reference/command/delete/`
-	Int delete(Str:Obj? query, Bool deleteAll := false) {
-		cmd := 
-			cmd ("q",		query)
-			.add("limit",	deleteAll ? 0 : 1)
-		return deleteMulti([cmd.cmd], null)["n"]->toInt
-	}
-
-	** Executes multiple delete queries.
-	** 	
-	** @see `http://docs.mongodb.org/manual/reference/command/delete/`
-	[Str:Obj?] deleteMulti([Str:Obj?][] deletes, Bool? ordered := null) {
-		cmd		("delete",			name)
-			.add("deletes",			deletes)
-			.add("ordered",			ordered)
-			.add("writeConcern",	connMgr.writeConcern)
+	** Inspect return value for upserted IDs.
+	** 
+	** *(By default, this will update multiple documents.)*
+	** 
+	** @see `https://www.mongodb.com/docs/manual/reference/command/update/`
+	** @see `https://www.mongodb.com/docs/manual/reference/operator/update/`
+	Str:Obj? update(Str:Obj? filter, Str:Obj? updates, |MongoCmd cmd|? optsFn := null) {
+		updateCmd := cmd("q",	filter)
+			.add("u",			updates)
+			.withFn(			optsFn)
+			.add("multi",		true)	// default to multi-doc updates
+		opts := updateCmd.extract("ordered writeConcern bypassDocumentValidation comment let".split)
+		return cmd("update",	 name)
+			.add("updates",		[updateCmd])
+			.addAll(			opts)
+			.add("writeConcern",connMgr.writeConcern)
 			.run
 	}
-	
-	** Convenience method for deleting ALL documents in a Collection.
-	** Returns the number of documents deleted.
+
+	** Deletes documents that match the given filter, and returns the number of documents deleted.
+	** 
+	** pre>
+	** syntax: fantom
+	** delete(["rick":"morty"]) {
+	**   it->limit     = 1
+	**   it->hint      = "_indexName_"
+	**   it->collation = [...]
+	** }
+	** <pre
+	** 
+	** @see `https://www.mongodb.com/docs/manual/reference/command/delete/`
+	Int delete(Str:Obj? filter, |MongoCmd cmd|? optsFn := null) {
+		deleteCmd := cmd("q",	filter)
+			.withFn(			optsFn)
+		opts := deleteCmd.extract("comment let ordered writeConcern".split)
+		return cmd("delete",	 name)
+			.add("deletes",		[deleteCmd])
+			.addAll(			opts)
+			.add("writeConcern",connMgr.writeConcern)
+			.run["n"]->toInt
+	}
+
+	** Deletes ALL documents in a Collection.
 	** 
 	** Note this is MUCH quicker than dropping the Collection.
-	** 
-	** Same as calling:
-	** 
-	**   syntax: fantom
-	**   deleteMulti([["q":[:], "limit":0]], false)["n"]
 	Int deleteAll() {
-		deleteMulti([["q":[:], "limit":0]], false)["n"]->toInt
-	}
-
-	** Runs the given 'updateCmd' against documents returned by 'query'.
-	** Inspect return value for upserted IDs.
-	** Note this does *not* throw an Err should the query not match any documents.
-	** 
-	** If 'multi' is 'true' then the multiple documents may be updated, otherwise the update is limited to one.
-	** 
-	** If 'upsert' is 'true' and no documents are updated, then one is inserted.
-	** 
-	** @see `http://docs.mongodb.org/manual/reference/command/update/`
-	[Str:Obj?] update(Str:Obj? query, Str:Obj? updateCmd, Bool? multi := false, Bool? upsert := false) {
-		cmd := 
-			 cmd("q",		query)
-			.add("u",		updateCmd)
-			.add("upsert",	upsert)
-			.add("multi",	multi)
-		return updateMulti([cmd.cmd], null)
-	}
-
-	** Runs multiple update queries.
-	** 
-	** @see `http://docs.mongodb.org/manual/reference/command/update/`
-	[Str:Obj?] updateMulti([Str:Obj?][] updates, Bool? ordered := null) {
-		cmd		("update",			name)
-			.add("updates",			updates)
-			.add("ordered",			ordered)
-			.add("writeConcern",	connMgr.writeConcern)
-			.run
-	}
-
-	** Updates and returns a single document. 
+		delete([:]) { it->limit=0 }
+	}	
+	
+	
+	
+	** Modifies and returns a single document. 
 	** If the query returns multiple documents then the first one is updated.
 	** 
 	** If 'returnModified' is 'true' then the document is returned *after* the updates have been applied.
@@ -346,14 +266,22 @@ return null
 	**   collection.findAndUpdate(query, cmd, true, ["upsert":true, "fields": ["myEntity.myField":1]]
 	** 
 	** @see `http://docs.mongodb.org/manual/reference/command/findAndModify/`
-	[Str:Obj?]? findAndUpdate(Str:Obj? query, Str:Obj? updateCmd, Bool returnModified, [Str:Obj?]? options := null) {
+	[Str:Obj?]? findAndModify(Str:Obj? filter, Str:Obj? updateCmd, Bool returnModified, [Str:Obj?]? options := null) {
 		cmd		("findAndModify",	name)
-			.add("query", 			query)
+			.add("query", 			filter)
 			.add("update", 			updateCmd)
 			.add("new", 			returnModified)
 			.addAll(options)
 			.run["value"]
 	}
+	
+
+
+	// ---- Write Operations ----------------------------------------------------------------------
+
+
+
+
 
 	** Deletes and returns a single document.
 	** If the query returns multiple documents then the first one is delete.

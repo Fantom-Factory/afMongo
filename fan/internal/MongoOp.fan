@@ -85,6 +85,9 @@ class MongoOp {
 			throw MongoErr(msg, resDoc)
 		}
 		
+		// FIXME check for multiple write errors
+		// https://www.mongodb.com/docs/manual/reference/command/update/#output
+		
 		return resDoc
 	}
 	

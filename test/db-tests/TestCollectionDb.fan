@@ -7,28 +7,28 @@ internal class TestCollectionDb : MongoDbTest {
 		super.setup
 		collection = db["collectionTest"]
 		collection.drop
-		10.times |i| { collection.insertOne(["data":i+1]) }
+		10.times |i| { collection.insert(["data":i+1]) }
 	}
 
 	Void testFindAndUpdate() {
 		collection.drop
-		collection.insertOne([
+		collection.insert([
 			"author"	: "abc123",
 			"score"		: 3
 		])
-		collection.insertOne([
+		collection.insert([
 			"author"	: "SlimerDude",
 			"score"		: 5
 		])
 		
 		// return pre-modify
-		slimer := collection.findAndUpdate(["author":"SlimerDude"], ["\$inc":["score": 3]], false)
+		slimer := collection.findAndModify(["author":"SlimerDude"], ["\$inc":["score": 3]], false)
 		verifyEq(slimer["score"], 5)
 		slimer = collection.findOne(["author":"SlimerDude"])
 		verifyEq(slimer["score"], 8)
 
 		// return post-modify
-		slimer = collection.findAndUpdate(["author":"SlimerDude"], ["\$inc":["score": 2]], true)
+		slimer = collection.findAndModify(["author":"SlimerDude"], ["\$inc":["score": 2]], true)
 		verifyEq(slimer["score"], 10)
 		
 		verifyEq(collection.size, 2)
@@ -46,10 +46,10 @@ internal class TestCollectionDb : MongoDbTest {
 		verifyEq(col.exists, true)
 		verifyEq(col.size, 0)
 
-		col.insertOne(["milk":"juggs"])
-		col.insertOne(["milk":"juggs"])
-		col.insertOne(["milk":"juggs"])
-		col.insertOne(["milk":"juggs"])
+		col.insert(["milk":"juggs"])
+		col.insert(["milk":"juggs"])
+		col.insert(["milk":"juggs"])
+		col.insert(["milk":"juggs"])
 		
 		verifyEq(col.size, 4)
 		verifyEq(col.findCount(["milk":"juggs"]), 4)
@@ -59,13 +59,13 @@ internal class TestCollectionDb : MongoDbTest {
 		verifyEq(col.size, 3)
 		verifyEq(col.findCount(["milk":"juggs"]), 3)
 
-		verifyEq(col.update(["milk":"juggs"], ["\$set": ["milk": "muggs"]], true)["n"], 3)
+		verifyEq(col.update(["milk":"juggs"], ["\$set": ["milk": "muggs"]])["n"], 3)
 		
 		verifyEq(col.size, 3)
 		verifyEq(col.findCount(["milk":"juggs"]), 0)
 		verifyEq(col.findCount(["milk":"muggs"]), 3)
 		
-		verifyEq(col.delete(["milk":"muggs"], true), 3)
+		verifyEq(col.delete(["milk":"muggs"]), 3)
 		verifyEq(col.size, 0)
 		verifyEq(col.exists, true)
 		
@@ -105,87 +105,53 @@ internal class TestCollectionDb : MongoDbTest {
 //		verifyEq(col.findCount(["milk":"5 pints"]), 1)		
 //	}
 	
-	// FIXME
-//	Void testFind() {
-//		second := collection.find([:]) |cursor| {
-//			first  := cursor.next
-//			second := cursor.next
-//			return second
-//		} as Str:Obj?
-//		verifyEq(second["data"], 2)
-//		
-//		res := collection.findAll([:], null, 0, 0)
-//		verifyEq(10, res.size)
-//
-//		// test negative skip / limit values are ignored and don't cause errors
-//		res = collection.findAll([:], null, -10, -10)
-//		verifyEq(10, res.size)
-//	}
+	Void testFind() {
+		second := collection.find.toList[1]
+		verifyEq(second["data"], 2)
+		
+		res := collection.find.toList
+		verifyEq(10, res.size)
+	}
 
-//	Void testFindOne() {
-//		one := collection.findOne(["data":4])
-//		verifyEq(one["data"], 4)
-//
-//		two := collection.findOne(["data":42], false)
-//		verifyNull(two)
-//		
-//		verifyErrMsg(MongoErr#, MongoErrMsgs.collection_findOneIsEmpty(collection.qname, ["data":42])) {
-//			collection.findOne(["data":42])
-//		}
-//
-//		collection.insert(["data":42])
-//		collection.insert(["data":42])
-//		verifyErrMsg(MongoErr#, MongoErrMsgs.collection_findOneHasMany(collection.qname, 2, ["data":42])) {
-//			collection.findOne(["data":42])
-//		}
-//
-//		collection.insert(["data":42])
-//		verifyErrMsg(MongoErr#, MongoErrMsgs.collection_findOneHasMany(collection.qname, 3, ["data":42])) {
-//			collection.findOne(["data":42])
-//		}
-//	}
+	Void testFindOne() {
+		one := collection.findOne(["data":4])
+		verifyEq(one["data"], 4)
+
+		two := collection.findOne(["data":42], false)
+		verifyNull(two)
+		
+		verifyErrMsg(Err#, "findOne() returned ZERO documents from afMongoTest.collectionTest - [data:42]") {
+			collection.findOne(["data":42])
+		}
+
+		collection.insert(["data":42])
+		collection.insert(["data":42])
+		verifyErrMsg(Err#, "findOne() returned multiple documents from afMongoTest.collectionTest - [data:42]") {
+			collection.findOne(["data":42])
+		}
+	}
 	
 	Void testSort() {
 		// test sort
-		verifyEq(collection.findAll([:], ["data": 1])[0]["data"],  1)
-		verifyEq(collection.findAll([:], ["data": 1])[9]["data"], 10)
+		verifyEq(collection.find(null) { it->sort = ["data":  1] }.toList[0]["data"],  1)
+		verifyEq(collection.find(null) { it->sort = ["data":  1] }.toList[9]["data"], 10)
 
-		verifyEq(collection.findAll([:], ["data": "asc"])[0]["data"],  1)
-		verifyEq(collection.findAll([:], ["data": "asc"])[9]["data"], 10)
-		
-		verifyEq(collection.findAll([:], ["data": "ASCending"])[0]["data"],  1)
-		verifyEq(collection.findAll([:], ["data": "ASCending"])[9]["data"], 10)
-		
-		verifyEq(collection.findAll([:], ["data": -1])[0]["data"], 10)
-		verifyEq(collection.findAll([:], ["data": -1])[9]["data"],  1)
-
-		verifyEq(collection.findAll([:], ["data": "desc"])[0]["data"], 10)
-		verifyEq(collection.findAll([:], ["data": "desc"])[9]["data"],  1)
-		
-		verifyEq(collection.findAll([:], ["data": "DESCending"])[0]["data"], 10)
-		verifyEq(collection.findAll([:], ["data": "DESCending"])[9]["data"],  1)
+		verifyEq(collection.find(null) { it->sort = ["data": -1] }.toList[0]["data"], 10)
+		verifyEq(collection.find(null) { it->sort = ["data": -1] }.toList[9]["data"],  1)
 		
 		// test hint
-		collection.index("up").create(["data": 1])
+		collection.index("up"  ).create(["data":  1])
 		collection.index("down").create(["data": -1])
 		
-		verifyEq(collection.findAll([:], "up")[0]["data"],  1)
-		verifyEq(collection.findAll([:], "up")[9]["data"], 10)
+		verifyEq(collection.find(null) { it->hint = "up"   }.toList[0]["data"],  1)
+		verifyEq(collection.find(null) { it->hint = "up"   }.toList[9]["data"], 10)
 		
-		verifyEq(collection.findAll([:], "down")[0]["data"], 10)
-		verifyEq(collection.findAll([:], "down")[9]["data"],  1)
+		verifyEq(collection.find(null) { it->hint = "down" }.toList[0]["data"], 10)
+		verifyEq(collection.find(null) { it->hint = "down" }.toList[9]["data"],  1)
 		
 		// test invalid
-//		verifyErr(MongoOpErr#) {
-//			collection.findAll([:], ["data":"lavalamp"])
-//		}
-
-		verifyErr(ArgErr#) {
-			collection.findAll([:], 6)
-		}
-		
-		verifyErr(ArgErr#) {
-			collection.findAll([:], ["data":-1, "data2":1])
+		verifyErr(MongoErr#) {
+			collection.find(null) { it->sort = ["data": "lavalamp"] }
 		}
 	}
 }

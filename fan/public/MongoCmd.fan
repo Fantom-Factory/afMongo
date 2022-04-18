@@ -39,7 +39,28 @@ class MongoCmd {
 			all.each |v, k| { this.add(k, v) }
 		return this
 	}	
+	
+	** Like 'with()', but 'fn' may be 'null'.
+	This withFn(|MongoCmd|? fn) {
+		fn?.call(this)
+		return this
+	}
 
+	Bool containsKey(Str key) {
+		cmd.containsKey(key)
+	}	
+
+	Str:Obj? extract(Str[] keys) {
+		map := Str:Obj?[:]
+		map.ordered = true
+		keys.each |key| {
+			val := cmd.remove(key)
+			if (val != null)
+				map[key] = val			
+		}
+		return map
+	}
+	
 	@Operator
 	Obj? get(Str key) {
 		cmd[key]
@@ -50,11 +71,16 @@ class MongoCmd {
 		cmd[key] = val
 		return this
 	}	
-
-	Bool containsKey(Str key) {
-		cmd.containsKey(key)
-	}	
 	
+	@NoDoc
+	override Obj? trap(Str name, Obj?[]? args := null) {
+		if (args == null || args.isEmpty)
+			return get(name)
+		if (args.size == 1)
+			return set(name, args.first)
+		throw UnsupportedErr("MongoCmd->${name}(${args})")
+	}
+
 	Str:Obj? run(Bool checked := true) {
 		doc := (Str:Obj?) connMgr.leaseConn |con->Str:Obj?| {
 			MongoOp(con).runCommand(dbName, cmd, checked)
