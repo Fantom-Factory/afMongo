@@ -102,7 +102,7 @@ internal class HostDetails {
 	This populate() {
 		contacted = true
 		
-		connection	:= MongoTcpConn(ssl)
+		connection	:= MongoTcpConn(ssl, log)
 		mongUrl		:= `mongodb://${address}:${port}`
 		try {
 			connection.connect(address, port)

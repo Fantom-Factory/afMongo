@@ -96,7 +96,7 @@ const class MongoIndex {
 			.add("unique",			unique)
 		opts := createCmd.extract("writeConcern commitQuorum comment".split)
 		return cmd("createIndexes",	name)
-			.add("indexes",			[createCmd])
+			.add("indexes",			[createCmd.cmd])
 			.addAll(				opts)
 			.add("writeConcern",	connMgr.writeConcern)
 			.run

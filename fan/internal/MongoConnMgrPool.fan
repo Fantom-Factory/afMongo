@@ -229,10 +229,9 @@ const class MongoConnMgrPool : MongoConnMgr {
 
 		// set our connection factory
 		connectionState.sync |MongoConnMgrPoolState state| {
-echo("Setting state.connFac")
 			state.connFactory = |->MongoConn| {
 				socket := newSocket
-				return MongoTcpConn(socket).connect(mongoUrl.host, mongoUrl.port) {
+				return MongoTcpConn(socket, log).connect(mongoUrl.host, mongoUrl.port) {
 					it.mongoUrl = mongoUrl
 				}
 			} 
@@ -319,8 +318,6 @@ echo("Setting state.connFac")
 				}
 
 				if (state.checkedOut.size < mongoConnUrl.maxPoolSize) {
-	echo("State = $state")
-	echo("StateCon = ${state.connFactory}")
 					connection := state.connFactory()
 					state.checkedOut.push(connection)
 					return Unsafe(connection)

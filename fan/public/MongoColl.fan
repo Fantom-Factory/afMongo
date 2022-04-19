@@ -208,7 +208,7 @@ const class MongoColl {
 			.add("multi",		true)	// default to multi-doc updates
 		opts := updateCmd.extract("ordered writeConcern bypassDocumentValidation comment let".split)
 		return cmd("update",	 name)
-			.add("updates",		[updateCmd])
+			.add("updates",		[updateCmd.cmd])
 			.addAll(			opts)
 			.add("writeConcern",connMgr.writeConcern)
 			.run
@@ -229,9 +229,10 @@ const class MongoColl {
 	Int delete(Str:Obj? filter, |MongoCmd cmd|? optsFn := null) {
 		deleteCmd := cmd("q",	filter)
 			.withFn(			optsFn)
+			.add("limit",		0)		// 0 == delete all matching documents
 		opts := deleteCmd.extract("comment let ordered writeConcern".split)
 		return cmd("delete",	 name)
-			.add("deletes",		[deleteCmd])
+			.add("deletes",		[deleteCmd.cmd])
 			.addAll(			opts)
 			.add("writeConcern",connMgr.writeConcern)
 			.run["n"]->toInt
@@ -278,7 +279,7 @@ const class MongoColl {
 					]
 				]
 			]
-		]).toList.first["count"]
+		]).toList.first?.get("count") ?: 0
 	}
 
 	** Returns the number of documents in the collection.

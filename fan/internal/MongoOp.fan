@@ -8,10 +8,12 @@ using afBson::BsonIO
 class MongoOp {
 	private static const AtomicInt	reqIdSeq	:= AtomicInt(0)
 
-	private MongoConn connection
+	private Log			log
+	private MongoConn	conn
 
-	new make(MongoConn connection) {
-		this.connection = connection
+	new make(MongoConn conn) {
+		this.conn	= conn
+		this.log	= conn.log
 	}
 
 	Str:Obj? runCommand(Str dbName, Str:Obj? cmd, Bool checked := true) {
@@ -22,7 +24,7 @@ class MongoOp {
 		cmd["\$db"]	= dbName
 
 		reqId	:= reqIdSeq.incrementAndGet
-		out		:= connection.out
+		out		:= conn.out
 		out.endian	= Endian.little
 		
 		// TODO support compression
@@ -31,9 +33,11 @@ class MongoOp {
 		// TODO retryable writes
 		// https://github.com/mongodb/specifications/blob/master/source/retryable-writes/retryable-writes.rst
 		
-		echo("REQ: $reqId")
-		BsonPrinter().print(cmd) { echo(it) }
-		echo
+		if (log.isDebug) {
+			msg := "Mongo Req ($reqId):"
+			msg += BsonPrinter().print(cmd)
+			log.debug(msg)
+		}
 		
 		cmdBuf	:= BsonIO().writeDocument(cmd)	
 		msgSize	:= cmdBuf.size
@@ -52,7 +56,7 @@ class MongoOp {
 		out.flush
 		
 		
-		in		:= connection.in
+		in			:= conn.in
 		in.endian	= Endian.little
 		
 		// read std header
@@ -75,13 +79,16 @@ class MongoOp {
 
 		resDoc	:= BsonIO().readDocument(in)
 		
-		echo("RES: $resId")
-		BsonPrinter().print(resDoc) { echo(it) }
-		echo
+		if (log.isDebug) {
+			msg := "Mongo Res ($resId):"
+			msg += BsonPrinter().print(resDoc)
+			log.debug(msg)
+		}
 		
 		if (checked && resDoc["ok"] != 1f && resDoc["ok"] != 1) {
+			cmdName	:= cmd.keys.first
 			errMsg  := resDoc["errmsg"] as Str
-			msg		:= errMsg == null ? "Command '${cmd}' failed" : "Command '${cmd}' failed. MongoDB says: ${errMsg}"
+			msg		:= errMsg == null ? "Command '${cmdName}' failed" : "Command '${cmdName}' failed. MongoDB says: ${errMsg}"
 			throw MongoErr(msg, resDoc)
 		}
 		

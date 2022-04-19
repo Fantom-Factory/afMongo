@@ -5,6 +5,8 @@ using util::Random
 ** Represents a connection to a MongoDB instance.
 @NoDoc	// advanced use only
 mixin MongoConn {
+	
+	abstract Log		log()
 
 	** Data *from* MongoDB *to* the client.
 	abstract InStream 	in()
@@ -24,19 +26,22 @@ mixin MongoConn {
 
 ** Connects to MongoDB via an 'inet::TcpSocket'.
 internal class MongoTcpConn : MongoConn {
+	override Log		log
 			 TcpSocket	socket
 			 Uri?		mongoUrl			// used by MongoConnMgrPool
 			 Bool		forceCloseOnCheckIn	// used by MongoConnMgrPool
 	override Bool		isAuthenticated
 	
 	** Allows you to pass in a TcpSocket with options already set.
-	new fromSocket(TcpSocket socket) {
+	new fromSocket(TcpSocket socket, Log log) {
 		this.socket = socket
+		this.log	= log
 	}
 
 	** Creates a new TCP Socket
-	new make(Bool ssl) {
+	new make(Bool ssl, Log log) {
 		this.socket = newSocket(ssl)
+		this.log	= log
 	}
 	
 	This connect(Str address, Int port) {
