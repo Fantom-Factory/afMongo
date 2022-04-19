@@ -51,7 +51,7 @@ const class MongoColl {
 
 	** Returns all the index names in this collection.
 	Str[] listIndexNames() {
-		listIndexes.toList.map { it["name"] }
+		listIndexes.toList.map |i->Str| { i["name"] }
 	}
 
 	** Drops ALL indexes on the collection. *Be careful!*
@@ -83,15 +83,16 @@ const class MongoColl {
 	** syntax: fantom
 	** db.collection("name").create {
 	**   it->capped = true
-	**   it->size   = 64 * 1024
+	**   it->size   = 64 * 1024  // no of bytes
+	**   it->max    = 14         // no of docs
 	** }
 	** <pre
 	** 
 	** @see `https://www.mongodb.com/docs/manual/reference/command/create/`
 	Void create(|MongoCmd cmd|? optsFn := null) {
 		cmd("create", name)
-			.add("writeConcern",	connMgr.writeConcern)
 			.withFn(				optsFn)
+			.add("writeConcern",	connMgr.writeConcern)
 			.run
 	}
 
@@ -132,9 +133,9 @@ const class MongoColl {
 		if (documents.isEmpty)
 			throw ArgErr("Documents MUST not be empty.")
 		cmd("insert",				name)
+			.withFn(				optsFn)
 			.add("documents",		documents)
 			.add("writeConcern",	connMgr.writeConcern)
-			.withFn(				optsFn)
 			.run
 	}
 	
@@ -178,8 +179,8 @@ const class MongoColl {
 	**  - @see `https://www.mongodb.com/docs/manual/tutorial/query-documents/`
 	MongoCur find([Str:Obj?]? filter := null, |MongoCmd cmd|? optsFn := null) {
 		cmd("find", name)
-			.add("filter",	filter)
 			.withFn(		optsFn)
+			.add("filter",	filter)
 			.cursor
 	}
 
@@ -203,8 +204,8 @@ const class MongoColl {
 	** @see `https://www.mongodb.com/docs/manual/reference/operator/update/`
 	Str:Obj? update(Str:Obj? filter, Str:Obj? updates, |MongoCmd cmd|? optsFn := null) {
 		updateCmd := cmd("q",	filter)
-			.add("u",			updates)
 			.withFn(			optsFn)
+			.add("u",			updates)
 			.add("multi",		true)	// default to multi-doc updates
 		opts := updateCmd.extract("ordered writeConcern bypassDocumentValidation comment let".split)
 		return cmd("update",	 name)
@@ -258,8 +259,8 @@ const class MongoColl {
 	**  - `http://docs.mongodb.org/manual/reference/aggregation/`
 	MongoCur aggregate([Str:Obj?][] pipeline, |MongoCmd cmd|? optsFn := null) {
 		cmd("aggregate",		name)
-			.add("pipeline", 	pipeline)
 			.withFn(			optsFn)
+			.add("pipeline", 	pipeline)
 			.add("cursor",		Str:Obj?[:])	// MUST specify an empty cursor
 			.add("writeConcern",connMgr.writeConcern)
 			.cursor

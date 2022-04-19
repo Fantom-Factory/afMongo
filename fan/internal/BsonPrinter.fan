@@ -66,7 +66,7 @@ const class BsonPrinter {
 
 	private This _writeJsonToStream(BsonPrinterCtx ctx, Obj? obj) {
 		obj = convertHook(obj)
-			 if (obj is Str)		_writeJsonStr		(ctx, obj)
+			 if (obj is Str)		_writeJsonStr		(ctx, obj, true)
 		else if (obj is Map)		_writeJsonMap		(ctx, obj)
 		else if (obj is List)		_writeJsonList		(ctx, obj)
 		else if (obj is Binary)		_writeBsonBinary	(ctx, obj)
@@ -85,7 +85,7 @@ const class BsonPrinter {
 		map.each |val, key| {
 			if (key isnot Str) throw Err("MongoDB map key is not Str type: $key [$key.typeof]")
 			if (notFirst) ctx.objectVal
-			_writeJsonStr(ctx, key)
+			_writeJsonStr(ctx, key, false)
 			ctx.objectKey
 			_writeJsonToStream(ctx, val)
 			notFirst = true
@@ -104,9 +104,9 @@ const class BsonPrinter {
 		ctx.arrayEnd
 	}
 
-	private Void _writeJsonStr(BsonPrinterCtx ctx, Str str) {
+	private Void _writeJsonStr(BsonPrinterCtx ctx, Str str, Bool quote) {
 		ctx.valueStart
-		ctx.writeChar(BsonValWriter.quote)
+		if (quote) ctx.writeChar(BsonValWriter.quote)
 		str.each |char| {
 			if (char <= 0x7f) {
 				switch (char) {
@@ -128,7 +128,7 @@ const class BsonPrinter {
 				ctx.writeChar('\\').writeChar('u').print(char.toHex(4))
 			}
 		}
-		ctx.writeChar(BsonValWriter.quote)
+		if (quote) ctx.writeChar(BsonValWriter.quote)
 		ctx.valueEnd
 	}
 

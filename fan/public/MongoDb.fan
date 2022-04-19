@@ -71,7 +71,7 @@ const class MongoDb {
 			.add("nameOnly", true)
 			.cursor
 			.toList
-			.map { it["name"] }
+			.map |d->Str| { d["name"] }
 	}	
 	
 	// TODO support authenticate() and the  x.509 authentication mechanism (Stable API)

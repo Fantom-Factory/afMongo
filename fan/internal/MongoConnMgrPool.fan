@@ -67,7 +67,8 @@ const class MongoConnMgrPool : MongoConnMgr {
 	** 
 	**   connMgr := MongoConnMgrPool(ActorPool(), `mongodb://localhost:27017`)
 	new make(Uri connectionUrl, Log? log := null, ActorPool? actorPool := null, |This|? f := null) {
-		this.connectionState	= SynchronizedState(actorPool ?: ActorPool() { it.name="MongoConnMgrPool" }, MongoConnMgrPoolState#)
+			 actorPool			= actorPool ?: ActorPool() { it.name="MongoConnMgrPool" }
+		this.connectionState	= SynchronizedState(actorPool, MongoConnMgrPoolState#)
 		this.mongoConnUrl		= MongoConnUrl(connectionUrl)
 		this.failOverThread		= connectionState.lock
 		this.log				= log ?: MongoConnMgrPool#.pod.log

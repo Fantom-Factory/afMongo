@@ -12,16 +12,22 @@ const class MongoErr : Err {
 	
 	** Returns the 'code', if it exists.
 	Int? code() {
-		errRes["code"]
+		errObj("code")
 	}
 
 	** Returns the 'codeName', if it exists. 
 	Str? codeName() {
-		errRes["codeName"]
+		errObj("codeName")
 	}
 
 	** Returns the 'errmsg', if it exists. 
 	Str? errMsg() {
-		errRes["errmsg"]
+		errObj("errmsg")
+	}
+	
+	// TODO BSON PrettyPrint the errDoc in toStr()
+
+	private Obj? errObj(Str name) {
+		errRes[name] ?: errRes["writeErrors"]?->first?->get(name)
 	}
 }

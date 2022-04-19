@@ -54,9 +54,15 @@ internal class TestCollectionDb : MongoDbTest {
 		verifyEq(col.count(["milk":"juggs"]), 4)
 		verifyEq(col.count(["coke":"juggs"]), 0)
 
-		verifyEq(col.delete(["milk":"juggs"]), 1)
+		verifyEq(col.delete(["milk":"juggs"]), 4)
+		verifyEq(col.size, 0)
+		verifyEq(col.count(["milk":"juggs"]), 0)
+
+		// bring those juggs back!
+		col.insert(["milk":"juggs"])
+		col.insert(["milk":"juggs"])
+		col.insert(["milk":"juggs"])
 		verifyEq(col.size, 3)
-		verifyEq(col.count(["milk":"juggs"]), 3)
 
 		verifyEq(col.update(["milk":"juggs"], ["\$set": ["milk": "muggs"]])["n"], 3)
 		
@@ -70,39 +76,41 @@ internal class TestCollectionDb : MongoDbTest {
 		
 		col.drop
 		verifyEq(col.exists, false)
-		verifyEq(col.size, 0)
-		verifyEq(col.exists, false)
 	}
 	
-//	Void testCappedCollections() {
-//		col := db["col-cap-test"]
-//		col.drop
-//		
-//		verifyEq(col.exists, false)
-//		col.createCapped(2*1024, 3)
-//		verifyEq(col.exists, true)
-//		verifyEq(col.size, 0)
-//		
-//		verifyEq(col.insert(["milk":"1 pint"]), 1)
-//		verifyEq(col.insert(["milk":"2 pints"]), 1)
-//		verifyEq(col.insert(["milk":"3 pints"]), 1)
-//		verifyEq(col.size, 3)
-//		verifyEq(col.findCount(["milk":"1 pint"]), 1)
-//		
-//		verifyEq(col.insert(["milk":"4 pints"]), 1)
-//		verifyEq(col.size, 3)
-//		verifyEq(col.findCount(["milk":"1 pint"]), 0)
-//		verifyEq(col.findCount(["milk":"2 pints"]), 1)
-//		verifyEq(col.findCount(["milk":"3 pints"]), 1)
-//		verifyEq(col.findCount(["milk":"4 pints"]), 1)
-//		
-//		verifyEq(col.insert(["milk":"5 pints"]), 1)
-//		verifyEq(col.size, 3)
-//		verifyEq(col.findCount(["milk":"2 pints"]), 0)
-//		verifyEq(col.findCount(["milk":"3 pints"]), 1)
-//		verifyEq(col.findCount(["milk":"4 pints"]), 1)		
-//		verifyEq(col.findCount(["milk":"5 pints"]), 1)		
-//	}
+	Void testCappedCollections() {
+		col := db["col-cap-test"]
+		col.drop
+		
+		verifyEq(col.exists, false)
+		col.create {
+			it->capped	= true
+			it->size	= 1024
+			it->max		= 3
+		}
+		verifyEq(col.exists, true)
+		verifyEq(col.size, 0)
+		
+		col.insert(["milk":"1 pint"])
+		col.insert(["milk":"2 pints"])
+		col.insert(["milk":"3 pints"])
+		verifyEq(col.size, 3)
+		verifyEq(col.count(["milk":"1 pint"]), 1)
+		
+		col.insert(["milk":"4 pints"])
+		verifyEq(col.size, 3)
+		verifyEq(col.count(["milk":"1 pint"]), 0)
+		verifyEq(col.count(["milk":"2 pints"]), 1)
+		verifyEq(col.count(["milk":"3 pints"]), 1)
+		verifyEq(col.count(["milk":"4 pints"]), 1)
+		
+		col.insert(["milk":"5 pints"])
+		verifyEq(col.size, 3)
+		verifyEq(col.count(["milk":"2 pints"]), 0)
+		verifyEq(col.count(["milk":"3 pints"]), 1)
+		verifyEq(col.count(["milk":"4 pints"]), 1)		
+		verifyEq(col.count(["milk":"5 pints"]), 1)		
+	}
 	
 	Void testFind() {
 		second := collection.find.toList[1]

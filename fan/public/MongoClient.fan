@@ -100,7 +100,7 @@ const class MongoClient {
 			.add("nameOnly", true)
 			.run
 			.get("databases")) as [Str:Obj?][])
-			.map { it["name"] }.sort
+			.map |i->Str| { i["name"] }.sort
 	}
 	
 	** Sends a 'ping' command to the server. 
