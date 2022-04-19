@@ -99,8 +99,6 @@ class MongoOp {
 			msg		:= errMsg == null ? "Command '${cmdName}' failed" : "Command '${cmdName}' failed. MongoDB says: ${errMsg}"
 			throw MongoErr(msg, resDoc)
 		}
-		// FIXME check for multiple write errors
-		// https://www.mongodb.com/docs/manual/reference/command/update/#output
 		
 		return resDoc
 	}
