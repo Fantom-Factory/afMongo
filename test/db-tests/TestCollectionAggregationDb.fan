@@ -2,7 +2,7 @@ using afBson
 
 internal class TestCollectionAggregationDb : MongoDbTest {
 	
-	MongoCol? collection
+	MongoColl? collection
 	
 	override Void setup() {
 		super.setup

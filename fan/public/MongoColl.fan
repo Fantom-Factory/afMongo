@@ -3,7 +3,7 @@
 ** Represents a MongoDB collection.
 ** 
 ** @see `https://github.com/mongodb/specifications/blob/master/source/crud/crud.rst`
-const class MongoCol {
+const class MongoColl {
 	
 //	private const Namespace	namespace
 	

@@ -19,13 +19,13 @@ const class MongoDb {
 	** Returns a 'Collection' with the given name.
 	** 
 	** Note this just instantiates the Fantom object, it does not create anything in MongoDB. 
-	MongoCol collection(Str collectionName) {
-		MongoCol(connMgr, name, collectionName)
+	MongoColl collection(Str collectionName) {
+		MongoColl(connMgr, name, collectionName)
 	}
 
 	** Convenience / shorthand notation for 'collection(name)'
 	@Operator
-	MongoCol get(Str collectionName) {
+	MongoColl get(Str collectionName) {
 		collection(collectionName)
 	}
 	

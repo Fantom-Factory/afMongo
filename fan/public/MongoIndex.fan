@@ -23,7 +23,7 @@ const class MongoIndex {
 	new make(MongoConnMgr connMgr, Str dbName, Str colName, Str indexName) {
 		this.connMgr	= connMgr
 		this.dbName		= MongoDb.validateName(dbName)
-		this.colName	= MongoCol.validateName(colName)
+		this.colName	= MongoColl.validateName(colName)
 		this.name		= indexName
 	}
 
