@@ -5,11 +5,10 @@
 ** @see `https://github.com/mongodb/specifications/blob/master/source/crud/crud.rst`
 const class MongoColl {
 	
-//	private const Namespace	namespace
-	
 	** The underlying connection manager.
 	const MongoConnMgr connMgr
 	
+	** The name of the database.
 	const Str dbName
 
 	** The simple name of the collection.
@@ -44,6 +43,8 @@ const class MongoColl {
 	}
 	
 	** Returns all the indexes in this collection.
+	** 
+	** @see `https://www.mongodb.com/docs/manual/reference/command/listIndexes/`
 	MongoCur listIndexes() {
 		cmd("listIndexes", name).cursor
 	}

@@ -2,7 +2,7 @@
 ** Represents a MongoDB database.
 const class MongoDb {
 	
-	** The connection manager that Mongo connections are leased from.
+	** The underlying connection manager.
 	const MongoConnMgr	connMgr
 	
 	** The name of the database.

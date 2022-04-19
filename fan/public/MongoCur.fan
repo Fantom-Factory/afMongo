@@ -7,7 +7,7 @@
 **  - `https://github.com/mongodb/specifications/blob/master/source/find_getmore_killcursors_commands.rst`
 class MongoCur {
 	
-	** The connection manager that Mongo connections are leased from.
+	** The underlying connection manager.
 	const MongoConnMgr	connMgr
 	
 	** The database this cursors iterates in.
