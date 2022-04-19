@@ -48,7 +48,19 @@ const class MongoCol {
 		cmd("listIndexes", name).cursor
 	}
 
+	** Returns all the index names in this collection.
+	Str[] listIndexNames() {
+		listIndexes.toList.map { it["name"] }
+	}
 
+	** Drops ALL indexes on the collection. *Be careful!*
+	** 
+	** @see `https://www.mongodb.com/docs/manual/reference/command/dropIndexes/`
+	Void dropAllIndexes() {
+		cmd("dropIndexes", name).add("index", "*").run
+	}
+	
+	
 	
 	// ---- Commands ----------------------------
 
@@ -170,17 +182,6 @@ const class MongoCol {
 			.cursor
 	}
 
-	** Returns the number of documents that would be returned by the given 'query'.
-	** 
-	** @see `Cursor.count`
-	Int findCount([Str:Obj?]? query := null) {
-		throw UnsupportedErr()
-//		query = query ?: Str:Obj?[:]
-//		return find(query) |cur->Int| {
-//			cur.count
-//		}
-	}
-
 	** Runs the given 'updateCmd' against documents that match the given filter.
 	** 
 	** pre>
@@ -242,121 +243,55 @@ const class MongoCol {
 		delete([:]) { it->limit=0 }
 	}	
 	
+	// TODO support findAndModify() commands
+	// findAndModify() commands show no discernible advantage over separate
+	// update() & find() commands, or find() followed by update().
+	// findAndModify() is not atomic, and has the same semantics,
+	// only it's much more confusing!
+	//
+	// So I'm voting to leave them out for now - even though it IS in the Stable API.
 	
-	
-	** Modifies and returns a single document. 
-	** If the query returns multiple documents then the first one is updated.
-	** 
-	** If 'returnModified' is 'true' then the document is returned *after* the updates have been applied.
-	** 
-	** Returns 'null' if no document was found.
-	** 
-	** The 'options' parameter is merged with the Mongo command and may contain the following:
-	** 
-	**   table:
-	**   Options  Type  Desc
-	**   -------  ----  ----
-	**   upsert   Bool  Creates a new document if no document matches the query
-	**   sort     Doc   Orders the result to determine which document to update.
-	**   fields   Doc   Defines which fields to return.
-	** 
-	** Example:
-	** 
-	**   syntax: fantom
-	**   collection.findAndUpdate(query, cmd, true, ["upsert":true, "fields": ["myEntity.myField":1]]
-	** 
-	** @see `http://docs.mongodb.org/manual/reference/command/findAndModify/`
-	[Str:Obj?]? findAndModify(Str:Obj? filter, Str:Obj? updateCmd, Bool returnModified, [Str:Obj?]? options := null) {
-		cmd		("findAndModify",	name)
-			.add("query", 			filter)
-			.add("update", 			updateCmd)
-			.add("new", 			returnModified)
-			.addAll(options)
-			.run["value"]
-	}
-	
-
-
-	// ---- Write Operations ----------------------------------------------------------------------
-
-
-
-
-
-	** Deletes and returns a single document.
-	** If the query returns multiple documents then the first one is delete.
-	** 
-	** The 'options' parameter is merged with the Mongo command and may contain the following:
-	** 
-	**   table:
-	**   Options  Type  Desc  
-	**   -------  ----  ----
-	**   sort     Doc   Orders the result to determine which document to delete.
-	**   fields   Doc   Defines which fields to return.
-	** 
-	** Example:
-	** 
-	**   syntax: fantom
-	**   collection.findAndDelete(query, ["fields": ["myEntity.myField":1]]
-	** 
-	** @see `http://docs.mongodb.org/manual/reference/command/findAndModify/`
-	[Str:Obj?] findAndDelete(Str:Obj? query, [Str:Obj?]? options := null) {
-		cmd		("findAndModify",	name)
-			.add("query", 			query)
-			.add("remove", 			true)
-			.addAll(options)
-			.run["value"]
-	}	
-	
-	// ---- Aggregation Commands ------------------------------------------------------------------
-	
-	** Returns the number of documents in the collection.
-	** 
-	** @see `http://docs.mongodb.org/manual/reference/command/count/`
-	Int size() {
-		cmd("count", name).run["n"]->toInt
-	}
-
 	** @see 
 	**  - `http://docs.mongodb.org/manual/reference/command/aggregate/`
 	**  - `http://docs.mongodb.org/manual/reference/aggregation/`
-	MongoCur aggregate([Str:Obj?][] pipeline) {
-		
-		// FIXME
-		throw UnsupportedErr()
-		
-//		cmd := cmd
-//			.add("aggregate",	name)
-//			.add("pipeline", 	pipeline)
-//			.add("cursor",		["batchSize": 0])
-//
-//		results	 := (Str:Obj?) cmd.run["cursor"]
-//		cursorId := results["id"]
-//		firstBat := results["firstBatch"]
-//
-//		return connMgr.leaseConnection |con->Obj?| {
-//			cursor := Cursor(con, namespace, cmd.query, cursorId, firstBat)
-//			try return	func(cursor)
-//			finally		cursor.kill
-//		}
+	MongoCur aggregate([Str:Obj?][] pipeline, |MongoCmd cmd|? optsFn := null) {
+		cmd("aggregate",		name)
+			.add("pipeline", 	pipeline)
+			.withFn(			optsFn)
+			.add("cursor",		Str:Obj?[:])	// MUST specify an empty cursor
+			.add("writeConcern",connMgr.writeConcern)
+			.cursor
 	}
 	
-	// ---- Indexes -------------------------------------------------------------------------------
-
-	** Returns all the index names of this collection.
-	Str[] indexNames() {
-		res := cmd("listIndexes", name).run
-		nfo := ([Str:Obj?][]) res["cursor"]->get("firstBatch")
-		return nfo.map |i->Str| { i["name"] }
+	** Returns the number of documents that match the given filter.
+	Int count([Str:Obj?]? filter := null) {
+		aggregate([
+			[
+				"\$match"			: filter ?: Str:Obj?[:]
+			],
+			[
+				"\$group"			: Str:Obj?[
+					"_id"			: null,
+					"count"			: Str:Obj?[
+						"\$sum"		: 1
+					]
+				]
+			]
+		]).toList.first["count"]
 	}
 
-	** Drops ALL indexes on the collection. *Be careful!*
+	** Returns the number of documents in the collection.
 	** 
-	** @see `http://docs.mongodb.org/manual/reference/command/dropIndexes/`
-	This dropAllIndexes() {
-		cmd("dropIndexes", name).add("index", "*").run
-		// [nIndexesWas:2, ok:1.0]
-		return this
+	** The count is based on the collection's metadata, which provides a fast but sometimes 
+	** inaccurate count for sharded clusters.
+	Int size() {
+		aggregate([
+			[
+				"\$collStats" 	: [
+					"count"		: Str:Obj?[:]
+				]
+			]
+		]).toList.first["count"]
 	}
 	
 	Str qname() {
@@ -370,7 +305,7 @@ const class MongoCol {
 			throw ArgErr("Collection name '${name}' may not contain any of the following: \$")
 		return name
 	}
-		
+	
 	@NoDoc
 	override Str toStr() { qname }
 

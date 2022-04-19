@@ -74,6 +74,8 @@ const class MongoDb {
 			.map { it["name"] }
 	}	
 	
+	// TODO support authenticate() and the  x.509 authentication mechanism (Stable API)
+	
 	** See `https://www.mongodb.com/docs/manual/reference/limits/#naming-restrictions`
 	private static const Int[] invalidNameChars	:= "/\\. \"*<>:|?".chars	
 

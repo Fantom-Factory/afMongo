@@ -10,33 +10,32 @@ internal class TestCollectionDb : MongoDbTest {
 		10.times |i| { collection.insert(["data":i+1]) }
 	}
 
-	Void testFindAndUpdate() {
-		collection.drop
-		collection.insert([
-			"author"	: "abc123",
-			"score"		: 3
-		])
-		collection.insert([
-			"author"	: "SlimerDude",
-			"score"		: 5
-		])
-		
-		// return pre-modify
-		slimer := collection.findAndModify(["author":"SlimerDude"], ["\$inc":["score": 3]], false)
-		verifyEq(slimer["score"], 5)
-		slimer = collection.findOne(["author":"SlimerDude"])
-		verifyEq(slimer["score"], 8)
-
-		// return post-modify
-		slimer = collection.findAndModify(["author":"SlimerDude"], ["\$inc":["score": 2]], true)
-		verifyEq(slimer["score"], 10)
-		
-		verifyEq(collection.size, 2)
-		slimer = collection.findAndDelete(["author":"SlimerDude"])
-		verifyEq(slimer["score"], 10)
-		verifyEq(collection.size, 1)
-	}
-
+//	Void testFindAndUpdate() {
+//		collection.drop
+//		collection.insert([
+//			"author"	: "abc123",
+//			"score"		: 3
+//		])
+//		collection.insert([
+//			"author"	: "SlimerDude",
+//			"score"		: 5
+//		])
+//		
+//		// return pre-modify
+//		slimer := collection.findAndModify(["author":"SlimerDude"], ["\$inc":["score": 3]], false)
+//		verifyEq(slimer["score"], 5)
+//		slimer = collection.findOne(["author":"SlimerDude"])
+//		verifyEq(slimer["score"], 8)
+//
+//		// return post-modify
+//		slimer = collection.findAndModify(["author":"SlimerDude"], ["\$inc":["score": 2]], true)
+//		verifyEq(slimer["score"], 10)
+//		
+//		verifyEq(collection.size, 2)
+//		slimer = collection.findAndDelete(["author":"SlimerDude"])
+//		verifyEq(slimer["score"], 10)
+//		verifyEq(collection.size, 1)
+//	}
 	
 	Void testBasicMethods() {
 		col := db["col-test"]
@@ -52,18 +51,18 @@ internal class TestCollectionDb : MongoDbTest {
 		col.insert(["milk":"juggs"])
 		
 		verifyEq(col.size, 4)
-		verifyEq(col.findCount(["milk":"juggs"]), 4)
-		verifyEq(col.findCount(["coke":"juggs"]), 0)
+		verifyEq(col.count(["milk":"juggs"]), 4)
+		verifyEq(col.count(["coke":"juggs"]), 0)
 
 		verifyEq(col.delete(["milk":"juggs"]), 1)
 		verifyEq(col.size, 3)
-		verifyEq(col.findCount(["milk":"juggs"]), 3)
+		verifyEq(col.count(["milk":"juggs"]), 3)
 
 		verifyEq(col.update(["milk":"juggs"], ["\$set": ["milk": "muggs"]])["n"], 3)
 		
 		verifyEq(col.size, 3)
-		verifyEq(col.findCount(["milk":"juggs"]), 0)
-		verifyEq(col.findCount(["milk":"muggs"]), 3)
+		verifyEq(col.count(["milk":"juggs"]), 0)
+		verifyEq(col.count(["milk":"muggs"]), 3)
 		
 		verifyEq(col.delete(["milk":"muggs"]), 3)
 		verifyEq(col.size, 0)

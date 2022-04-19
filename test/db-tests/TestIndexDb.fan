@@ -15,7 +15,7 @@ internal class TestIndexDb : MongoDbTest {
 	Void testBasicMethods() {
 		10.times |i| { collection.insert(["data":i+1]) }
 		
-		verifyEq(collection.indexNames, Str["_id_"])
+		verifyEq(collection.listIndexNames, Str["_id_"])
 		
 		indat := collection.index("_data_")
 		verifyEq(indat.exists, false)
