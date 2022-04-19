@@ -34,5 +34,4 @@ internal class TestScram : MongoTest {
 		md:=Buf().print("n,,n=user,r=fyko+d2lbbFgONRv9qkxdawL")	//.toDigest("SHA-1")
 		echo(md.toBase64)
 	}
-	
 }

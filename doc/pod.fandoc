@@ -54,11 +54,10 @@ Quick Start [#quickStart]
             ]
             collection.insert(documentIn)
 
-            emma   := collection.findAll.first
-            result := PrettyPrinter { it.maxWidth = 20 }.print(emma)
+            emma        := collection.find.toList.first
 
             echo("Emma:")
-            echo(result)
+            echo(BsonIO().print(emma, 20))
 
             mongoClient.shutdown
         }
@@ -68,13 +67,13 @@ Quick Start [#quickStart]
 
     C:\> fan Example.fan
 
-          Alien-Factory
+          Fantom-Factory
       _____ ___ ___ ___ ___
      |     | . |   | . | . |
      |_|_|_|___|_|_|_  |___|
-                  |___|1.1.0
+                  |___|2.0.0
 
-    Connected to MongoDB v3.2.10 (at mongodb://localhost:27017)
+    Connected to MongoDB v5.2.0 (at mongodb://localhost:27017)
 
     Emma:
     {

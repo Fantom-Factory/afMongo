@@ -1,4 +1,57 @@
 
+
+Mongo v2 - Stable API commands
+********
+https://www.mongodb.com/developer/how-to/upgrade-fearlessly-stable-api/
+https://www.mongodb.com/docs/manual/reference/stable-api/#std-label-stable-api
+
+Design
+Only the common (and less common := null) options are catered for. Advanced use for power users can use the MongoCmd directly.
+
+Client
+ - listDatabases	- X
+ - saslContinue		- X
+ - saslStart		- X
+ - ping				- X
+ - hello / isMaster	- X
+
+Database
+ - authenticate		- X (via x.509 only)
+ - dropDatabase		- X
+ - listCollections	- X
+
+Collection
+ - create			- X
+ - drop				- X
+ - insert			- X
+ - find				- X
+ - delete			- X
+ - update			- X
+ - aggregate		- X
+ - collMod			- XXX
+ - findAndModify	- XXX
+ - explain			- XXX
+
+Index
+ - listIndexes		- X
+ - createIndexes	- X 
+ - dropIndexes		- X
+ 
+Cursor
+ - getMore			- X
+ - killCursors		- X
+
+Transaction
+ - abortTransaction
+ - commitTransaction
+ - endSessions
+ - refreshSessions
+
+ 
+
+
+
+
 For Future
 ----------
 Role Commands (new in 2.6)

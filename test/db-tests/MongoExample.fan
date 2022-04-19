@@ -1,12 +1,12 @@
 using afBson
 //using afMongo
-using concurrent
 
 internal
 class MongoExample {
 	
 	Void main() {
-		mongoClient := MongoClient(ActorPool(), `mongodb://localhost:27017`)
+		mongoUrl	:= `mongodb://localhost:27017`
+		mongoClient := MongoClient(mongoUrl)
 		collection  := mongoClient.db("friends").collection("birds")
 		
 		documentIn  := [
@@ -16,11 +16,10 @@ class MongoExample {
 		]
 		collection.insert(documentIn)
 		
-		emma   := collection.findAll.first
-		result := PrettyPrinter { it.maxWidth = 20 }.print(emma)
+		emma		:= collection.find.toList.first
 		
 		echo("Emma:")
-		echo(result)
+		echo(BsonIO().print(emma, 20))
 		
 		mongoClient.shutdown
 	}
