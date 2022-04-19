@@ -1,3 +1,4 @@
+using afBson::BsonIO
 
 ** Mongo Cursors iterate over Collection data.
 ** 
@@ -107,7 +108,7 @@ class MongoCur {
 		// double check and log a warning if something seems afoot
 		killed := res["cursorsKilled"] as Int[]
 		if (killed.contains(cursorId) == false)
-			connMgr.log.warn("Cursor (${cursorId}) not killed. Mongo says:\n" + BsonPrinter().print(res))
+			connMgr.log.warn("Cursor (${cursorId}) not killed. Mongo says:\n" + BsonIO().print(res))
 	}
 
 	** Iterates over all *remaining* and unread documents.

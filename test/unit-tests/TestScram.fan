@@ -19,7 +19,7 @@ internal class TestScram : MongoTest {
 		qname	:= secret.in.readNullTerminatedStr
 		skip	:= secret.in.readS4
 		limit	:= secret.in.readS4
-		query	:= BsonIO().readDocument(secret.in)
+		query	:= BsonIO().readDoc(secret.in)
 		
 		echo(query)
 	}

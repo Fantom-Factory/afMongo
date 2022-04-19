@@ -35,11 +35,11 @@ class MongoOp {
 		
 		if (log.isDebug) {
 			msg := "Mongo Req ($reqId):"
-			msg += BsonPrinter().print(cmd)
+			msg += BsonIO().print(cmd)
 			log.debug(msg)
 		}
 		
-		cmdBuf	:= BsonIO().writeDocument(cmd)	
+		cmdBuf	:= BsonIO().writeDoc(cmd)	
 		msgSize	:= cmdBuf.size
 		
 		// write std header
@@ -77,11 +77,11 @@ class MongoOp {
 		if (payloadType != 0)
 			throw Err("Wot, payload not type 0!? $payloadType")
 
-		resDoc	:= BsonIO().readDocument(in)
+		resDoc	:= BsonIO().readDoc(in)
 		
 		if (log.isDebug) {
 			msg := "Mongo Res ($resId):"
-			msg += BsonPrinter().print(resDoc)
+			msg += BsonIO().print(resDoc)
 			log.debug(msg)
 		}
 		
