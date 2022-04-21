@@ -129,6 +129,29 @@ class MongoCur {
 		finally kill
 	}
 
+	** Converts all *remaining* and unread documents to a List.
+	** The new list is typed based on the return type of the function.
+	** 
+	** This cursor is guaranteed to be killed.
+	** 
+	** pre>
+	** syntax: fantom
+	** 
+	** list := cursor.map |Str:Obj? doc, Int index -> Obj?| {
+	**     ...
+	** }
+	** <pre
+	Obj?[] map(|Str:Obj? doc, Int index->Obj?| fn) {
+		type := fn.returns == Void# ? Obj?# : fn.returns
+		list := List.make(type, 16)
+		try while (isAlive) {
+			obj := fn(next, _totalIndex)
+			list.add(obj)
+		}
+		finally kill
+		return list
+	}
+
 	** Return all *remaining* and unread documents as a List.
 	** 
 	** This cursor is guaranteed to be killed.

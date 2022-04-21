@@ -102,9 +102,5 @@ class MongoOp {
 		
 		return resDoc
 	}
-	
-	static Str operation_resOpCodeInvalid(Int opCode) {
-		"Response OpCode from MongoDB '${opCode}' should be : {OpCode.OP_REPLY.id} - {OpCode.OP_REPLY.name}"
-	}
 }
 
