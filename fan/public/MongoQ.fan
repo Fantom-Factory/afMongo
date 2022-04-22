@@ -1,13 +1,14 @@
 using afBson::BsonIO
 
-** A means to build common Mongo queries with sane objects and methods. (And not some incomprehensible mess of nested maps and lists!)
+** A means to build common Mongo queries with sane objects and methods.
+** (And not some incomprehensible mess of nested maps and lists!)
 ** 
 ** pre>
 ** syntax: fantom
-** query := MongoQ().with |q| {
-**     q.and(
-**         q.or( q.eq("price", 0.99f), q.eq("price", 1.99f)  ),
-**         q.or( q.eq("sale", true),   q.lessThan("qty", 29) )
+** query := MongoQ {
+**     and(
+**         or( eq("price", 0.99f), eq("price", 1.99f)  ),
+**         or( eq("sale", true),   lessThan("qty", 29) )
 **     )
 ** }.query
 ** <pre
@@ -15,13 +16,17 @@ class MongoQ {
 	// this weird class is both the MongoQ AND its own builder!
 
 	** The underlying query that's being build up.
-	Str:Obj? query() { _innerQ?._query ?: _query }
+	Str:Obj? query() {
+		_innerQ != null
+			? (obj[_innerQ._key] = _innerQ._val)
+			: (obj[_key] = _val)
+	}
 	
-	private Str:Obj? _query { private set }
+	private Str?	_key
+	private Obj?	_val
 	
 	** Creates a standard MongoQ instance.
 	new make() {
-		this._query			= obj
 		this._nameHookFn	= _defHookFn
 		this._valueHookFn	= _defHookFn
 	}
@@ -29,14 +34,13 @@ class MongoQ {
 	** Create a query instance with name / value hooks.
 	@NoDoc
 	new makeWithHookFns(|Obj->Str| nameHookFn, |Obj?->Obj| valueHookFn) {
-		this._query			= obj
 		this._nameHookFn	= nameHookFn
 		this._valueHookFn	= valueHookFn
 	}	
 
 
 
-	// ---- Comparison MongoQ Operators ------------------------------------------------------------
+	// ---- Comparison MongoQ Operators ---------
 	
 	** Matches values that are equal to the given object.
 	** 
@@ -54,7 +58,7 @@ class MongoQ {
 	**   syntax: fantom
 	**   q.notEq("score", 11)
 	** 
-	** @see `http://docs.mongodb.org/manual/reference/operator/query/ne/`
+	** @see `https://www.mongodb.com/docs/manual/reference/operator/query/ne/`
 	MongoQ notEq(Obj name, Obj? value) {
 		q.op(name, "\$ne", value)
 	}
@@ -64,7 +68,7 @@ class MongoQ {
 	**   syntax: fantom
 	**   q.in("score", [9, 10, 11])
 	** 
-	** @see `http://docs.mongodb.org/manual/reference/operator/query/in/`
+	** @see `https://www.mongodb.com/docs/manual/reference/operator/query/in/`
 	MongoQ in(Obj name, Obj[] values) {
 		q.op(name, "\$in", values)	// BSON converter is deep!
 	}	
@@ -76,7 +80,7 @@ class MongoQ {
 	**   syntax: fantom
 	**   q.notIn("score", [1, 2, 3])
 	** 
-	** @see `http://docs.mongodb.org/manual/reference/operator/query/nin/`
+	** @see `https://www.mongodb.com/docs/manual/reference/operator/query/nin/`
 	MongoQ notIn(Obj name, Obj[] values) {
 		q.op(name, "\$nin", values)	// BSON converter is deep!
 	}	
@@ -86,7 +90,7 @@ class MongoQ {
 	**   syntax: fantom
 	**   q.greaterThan("score", 8)
 	** 
-	** @see `http://docs.mongodb.org/manual/reference/operator/query/gt/`
+	** @see `https://www.mongodb.com/docs/manual/reference/operator/query/gt/`
 	MongoQ greaterThan(Obj name, Obj value) {
 		q.op(name, "\$gt", value)
 	}
@@ -96,7 +100,7 @@ class MongoQ {
 	**   syntax: fantom
 	**   q.greaterThanOrEqTo("score", 8)
 	** 
-	** @see `http://docs.mongodb.org/manual/reference/operator/query/gte/`
+	** @see `https://www.mongodb.com/docs/manual/reference/operator/query/gte/`
 	MongoQ greaterThanOrEqTo(Obj name, Obj value) {
 		q.op(name, "\$gte", value)
 	}	
@@ -106,7 +110,7 @@ class MongoQ {
 	**   syntax: fantom
 	**   q.lessThan("score", 5)
 	** 
-	** @see `http://docs.mongodb.org/manual/reference/operator/query/gt/`
+	** @see `https://www.mongodb.com/docs/manual/reference/operator/query/gt/`
 	MongoQ lessThan(Obj name, Obj value) {
 		q.op(name, "\$lt", value)
 	}
@@ -116,35 +120,35 @@ class MongoQ {
 	**   syntax: fantom
 	**   q.lessThanOrEqTo("score", 5)
 	** 
-	** @see `http://docs.mongodb.org/manual/reference/operator/query/lte/`
+	** @see `https://www.mongodb.com/docs/manual/reference/operator/query/lte/`
 	MongoQ lessThanOrEqTo(Obj name, Obj value) {
 		q.op(name, "\$lte", value)
 	}	
 	
 
 	
-	// ---- Element MongoQ Operators ---------------------------------------------------------------
+	// ---- Element MongoQ Operators ------------
 
 	** Matches if the field exists (or not), even if it is 'null'.
 	** 
 	**   syntax: fantom
 	**   q.exists("score")
 	** 
-	** @see `http://docs.mongodb.org/manual/reference/operator/query/exists/`
+	** @see `https://www.mongodb.com/docs/manual/reference/operator/query/exists/`
 	MongoQ exists(Obj name, Bool exists := true) {
 		q.op(name, "\$exists", exists)
 	}
 	
 	
 	
-	// ---- String MongoQ Operators ----------------------------------------------------------------
+	// ---- String MongoQ Operators -------------
 	
 	** Matches string values that equal the given regular expression.
 	** 
 	**   syntax: fantom
 	**   q.matchesRegex("name", "Emm?")
 	** 
-	** @see `http://docs.mongodb.org/manual/reference/operator/query/regex/`
+	** @see `https://www.mongodb.com/docs/manual/reference/operator/query/regex/`
 	MongoQ matchesRegex(Obj name, Regex regex) {
 		q.op(name, "\$regex", regex)
 	}
@@ -155,7 +159,7 @@ class MongoQ {
 	**   syntax: fantom
 	**   q.eqIgnoreCase("name", "emm?")
 	** 
-	** @see `http://docs.mongodb.org/manual/reference/operator/query/regex/`
+	** @see `https://www.mongodb.com/docs/manual/reference/operator/query/regex/`
 	MongoQ eqIgnoreCase(Obj name, Str value) {
 		matchesRegex(name, "(?i)^${Regex.quote(value)}\$".toRegex)
 	}
@@ -166,7 +170,7 @@ class MongoQ {
 	**   syntax: fantom
 	**   q.contains("name", "Em")
 	** 
-	** @see `http://docs.mongodb.org/manual/reference/operator/query/regex/`
+	** @see `https://www.mongodb.com/docs/manual/reference/operator/query/regex/`
 	MongoQ contains(Obj name, Str value, Bool caseInsensitive := true) {
 		i := caseInsensitive ? "(?i)" : ""
 		return matchesRegex(name, "${i}${Regex.quote(value)}".toRegex)
@@ -178,7 +182,7 @@ class MongoQ {
 	**   syntax: fantom
 	**   q.startsWith("name", "Em")
 	** 
-	** @see `http://docs.mongodb.org/manual/reference/operator/query/regex/`
+	** @see `https://www.mongodb.com/docs/manual/reference/operator/query/regex/`
 	MongoQ startsWith(Obj name, Str value, Bool caseInsensitive := true) {
 		i := caseInsensitive ? "(?i)" : ""
 		return matchesRegex(name, "${i}^${Regex.quote(value)}".toRegex)
@@ -190,7 +194,7 @@ class MongoQ {
 	**   syntax: fantom
 	**   q.endsWith("name", "ma")
 	** 
-	** @see `http://docs.mongodb.org/manual/reference/operator/query/regex/`
+	** @see `https://www.mongodb.com/docs/manual/reference/operator/query/regex/`
 	MongoQ endsWith(Obj name, Str value, Bool caseInsensitive := true) {
 		i := caseInsensitive ? "(?i)" : ""
 		return matchesRegex(name, "${i}${Regex.quote(value)}\$".toRegex)
@@ -198,21 +202,21 @@ class MongoQ {
 	
 	
 	
-	// ---- Evaluation MongoQ Operators ------------------------------------------------------------
+	// ---- Evaluation MongoQ Operators ---------
 
 	** Matches values based on their remainder after a division (modulo operation).
 	** 
 	**   syntax: fantom
 	**   q.mod("score", 3, 0)
 	** 
-	** @see `http://docs.mongodb.org/manual/reference/operator/query/mod/`
+	** @see `https://www.mongodb.com/docs/manual/reference/operator/query/mod/`
 	MongoQ mod(Obj name, Int divisor, Int remainder) {
 		q.op(name, "\$mod", Int[divisor, remainder])	// BSON converter is deep!
 	}
 	
 	
 	
-	// ---- Logical MongoQ Operators ---------------------------------------------------------------
+	// ---- Logical MongoQ Operators ------------
 	
 	** Selects documents that do **not** match the given following criterion.
 	** Example:
@@ -221,15 +225,9 @@ class MongoQ {
 	**   q.eq("score", 11).not
 	**   q.not(q.eq("score", 11))
 	** 
-	** @see `http://docs.mongodb.org/manual/reference/operator/query/not/`
+	** @see `https://www.mongodb.com/docs/manual/reference/operator/query/not/`
 	MongoQ not(MongoQ query := this) {
-query.dump
-echo(query._query)
-echo(query._innerQ)
-		
-//		a:=	q.set("\$not", query._query)
-		query._query = obj["\$not"] = query._query
-		query.dump
+		query._val = (obj["\$not"] = query._val)
 		return query
 	}	
 	
@@ -241,7 +239,7 @@ echo(query._innerQ)
 	**     q.eq("price", 10)
 	**   )
 	** 
-	** @see `http://docs.mongodb.org/manual/reference/operator/query/and/`
+	** @see `https://www.mongodb.com/docs/manual/reference/operator/query/and/`
 	MongoQ and(MongoQ q1, MongoQ q2, MongoQ? q3 := null, MongoQ? q4 := null) {
 		qs := [q1._query, q2._query]
 		if (q3 != null) qs.add(q3._query)
@@ -257,7 +255,7 @@ echo(query._innerQ)
 	**     eq("price", 10)
 	**   )
 	** 
-	** @see `http://docs.mongodb.org/manual/reference/operator/query/or/`
+	** @see `https://www.mongodb.com/docs/manual/reference/operator/query/or/`
 	MongoQ or(MongoQ q1, MongoQ q2, MongoQ? q3 := null, MongoQ? q4 := null) {
 		qs := [q1._query, q2._query]
 		if (q3 != null) qs.add(q3._query)
@@ -273,7 +271,7 @@ echo(query._innerQ)
 	**     eq("price", 10)
 	**   )
 	** 
-	** @see `http://docs.mongodb.org/manual/reference/operator/query/nor/`
+	** @see `https://www.mongodb.com/docs/manual/reference/operator/query/nor/`
 	MongoQ nor(MongoQ q1, MongoQ q2, MongoQ? q3 := null, MongoQ? q4 := null) {
 		qs := [q1._query, q2._query]
 		if (q3 != null) qs.add(q3._query)
@@ -283,7 +281,7 @@ echo(query._innerQ)
 	
 	
 	
-	// ---- Text Operators ---------------------------------------------------------------
+	// ---- Text Operators ----------------------
 	
 	** Performs a text search on the collection. 
 	** 
@@ -319,14 +317,14 @@ echo(query._innerQ)
 	** 
 	** Only 1 *where* function is allowed per query.
 	** 
-	** @see `http://docs.mongodb.org/manual/reference/operator/query/where/`
+	** @see `https://www.mongodb.com/docs/manual/reference/operator/query/where/`
 	MongoQ where(Str where) {
 		q.set("\$where", where)
 	}
 	
 	
 
-	// ---- Other ---------------------------------------------------------------
+	// ---- Other -------------------------------
 	
 	Str print(Int maxWidth := 60, Str indent := "  ") {
 		BsonIO().print(query, maxWidth, indent)
@@ -344,14 +342,15 @@ echo(query._innerQ)
 	@NoDoc
 	@Operator
 	Obj? get(Obj name) {
-		_query.get(name)
+		name == _key ? _val : null
 	}
 	
 	** Sets the named query
 	@NoDoc
 	@Operator
 	This set(Obj name, Obj? value) {
-		_query.set(_nameHookFn(name), _valueHookFn(value))
+		_key = _nameHookFn(name)
+		_val = _valueHookFn(value)
 		return this
 	}
 	
@@ -360,7 +359,8 @@ echo(query._innerQ)
 	**   q.op("score", "\$neq", 11)  -->  q.set("score", ["\$neg", 11])
 	@NoDoc
 	This op(Obj name, Str op, Obj? value) {
-		_query[_nameHookFn(name)] = (obj[op] = _valueHookFn(value))
+		_key = _nameHookFn(name)
+		_val = (obj[op] = _valueHookFn(value))
 		return this
 	}
 	
@@ -368,8 +368,8 @@ echo(query._innerQ)
 	private |Obj ->Str |		_nameHookFn
 	private |Obj?->Obj?|		_valueHookFn
 	private MongoQ?				_innerQ
+	private Str:Obj				_query() 	{ obj[_key] = _val }
 	private static const Func	_defHookFn 	:= |Obj? v -> Obj?| { v }.toImmutable
-	
 	private MongoQ q() {
 		// we can't check / throw this, 'cos we *may* be creating multiple instances for an AND or an OR filter.
 		//if (_innerQ != null)	throw Err("Top level Mongo Query has already been set: ${toStr}")
