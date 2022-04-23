@@ -31,6 +31,11 @@ const class MongoConnUrl {
 	** 
 	**   mongodb://username:password@example1.com/puppies?maxPoolSize=50
 	const Uri connectionUrl
+	
+	** The default database name - taken from the path.
+	** 
+	**   mongodb://example1.com/<database>
+	const Str? database
 
 	** The default write concern for all write operations. 
 	** Set by specifying the 'w', 'wtimeoutMS' and 'journal' connection string options. 
@@ -148,6 +153,7 @@ const class MongoConnUrl {
 			database = "admin"
 		if (username == null && password == null)	// a default database has no meaning without credentials
 			database = null
+		this.database = database
 		
 		if (authMech != null) {
 			props	:= Str:Obj?[:] { it.ordered = true }
