@@ -9,7 +9,8 @@ internal class MongoDbTest : MongoTest {
 		mc = MongoClient(mongoUri)
 		db = mc["afMongoTest"]
 		// not dropping the DB makes the test x10 faster!
-		db.listCollectionNames.each { db[it].deleteAll }
+		// but you can't delete from a capped collection!
+		db.listCollectionNames.each { db[it].drop }
 		Pod.of(this).log.level = LogLevel.warn
 	}
 
