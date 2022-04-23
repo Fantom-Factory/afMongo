@@ -34,11 +34,11 @@ const class MongoColl {
 	
 	// ---- Indexes -----------------------------
 		
-	** Returns an 'MongoIndex' of the given name.
+	** Returns an 'MongoIdx' of the given name.
 	** 
 	** Note this just instantiates the Fantom object, it does not create anything in MongoDB. 
-	MongoIndex index(Str indexName) { 
-		MongoIndex(connMgr, dbName, name, indexName)
+	MongoIdx index(Str indexName) { 
+		MongoIdx(connMgr, dbName, name, indexName)
 	}
 	
 	** Returns all the indexes in this collection.
@@ -374,6 +374,9 @@ const class MongoColl {
 	}
 	
 	** Returns the qualified name of this collection.
+	** It takes the form of:
+	**
+	**   <database>.<collection>
 	Str qname() {
 		"${dbName}.${name}"
 	}

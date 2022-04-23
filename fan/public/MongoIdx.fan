@@ -1,6 +1,6 @@
 
 ** Represents a MongoDB index.
-const class MongoIndex {
+const class MongoIdx {
 	
 	** Use in 'key' arguments to denote field sort order.
 	static const Int ASC	:= 1
@@ -23,11 +23,11 @@ const class MongoIndex {
 	** The simple name of this index. 
 	const Str	name
 	
-	new make(MongoConnMgr connMgr, Str dbName, Str colName, Str indexName) {
+	new make(MongoConnMgr connMgr, Str dbName, Str colName, Str idxName) {
 		this.connMgr	= connMgr
 		this.dbName		= MongoDb.validateName(dbName)
 		this.colName	= MongoColl.validateName(colName)
-		this.name		= indexName
+		this.name		= idxName
 	}
 
 	** Returns index info.
@@ -58,8 +58,8 @@ const class MongoIndex {
 	** pre>
 	** syntax: fantom
   	** index.create([
-  	**   "dateAdded" : MongoIndex.DESC,
-  	**   "name"      : MongoIndex.ASC,
+  	**   "dateAdded" : MongoIdx.DESC,
+  	**   "name"      : MongoIdx.ASC,
   	** ], false) {
   	**   it->background         = true   // build in background
   	**   it->expireAfterSeconds = 60     // time in secs
@@ -71,8 +71,8 @@ const class MongoIndex {
 	** pre>
 	** syntax: fantom
   	** index.create([
-  	**   "boringText"         : MongoIndex.TEXT,
-  	**   "importantText"      : MongoIndex.TEXT,
+  	**   "boringText"         : MongoIdx.TEXT,
+  	**   "importantText"      : MongoIdx.TEXT,
   	** ], false) {
   	**   it->default_language = "english",  // optional
   	**   it->collation        = [...],      // optional 

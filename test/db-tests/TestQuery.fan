@@ -23,7 +23,7 @@ internal class TestQuery : MongoDbTest {
 			"name"	: "Wotever",
 			"value"	: 20,
 		])
-		col.index("_text_").ensure(["name":MongoIndex.TEXT])
+		col.index("_text_").ensure(["name":MongoIdx.TEXT])
 	}
 	
 	Void testExample() {

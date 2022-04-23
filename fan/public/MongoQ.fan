@@ -33,7 +33,7 @@ class MongoQ {
 	
 	** Create a query instance with name / value hooks.
 	@NoDoc
-	new makeWithHookFns(|Obj->Str| nameHookFn, |Obj?->Obj| valueHookFn) {
+	new makeWithHookFns(|Obj->Str| nameHookFn, |Obj?->Obj?| valueHookFn) {
 		this._nameHookFn	= nameHookFn
 		this._valueHookFn	= valueHookFn
 	}	
