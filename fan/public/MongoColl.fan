@@ -1,4 +1,3 @@
-//using afBson::Code
 
 ** Represents a MongoDB collection.
 ** 
@@ -183,6 +182,38 @@ const class MongoColl {
 			.add("filter",	filter)
 			.cursor
 	}
+	
+	** Performs a text search on the collection. 
+	** 
+	** Text searching makes use of stemming and ignores language stop words.
+	** Quotes may be used to search for exact phrases and prefixing a word with a hyphen-minus (-) negates it.
+	** 
+	** Results are automatically ordered by search relevance.
+	**  
+	** To use text searching, make sure the Collection has a text Index else MongoDB will throw an Err.
+	** 
+	**   col.textSearch("some text")
+	** 
+	** 'options' may include the following:
+	** 
+	**   table:
+	**   Name                 Type  Desc
+	**   ----                 ----  ----                                              
+	**   $language            Bool  Determines the list of stop words for the search and the rules for the stemmer and tokenizer. See [Supported Text Search Languages]`https://docs.mongodb.com/manual/reference/text-search-languages/#text-search-languages`. Specify 'none' for simple tokenization with no stop words and no stemming. Defaults to the language of the index.
+	**   $caseSensitive       Bool  Enable or disable case sensitive searching. Defaults to 'false'.
+	**   $diacriticSensitive  Int   Enable or disable diacritic sensitive searching. Defaults to 'false'.
+	** 
+	** Text searches may be mixed with regular filters. See 'MongoQ' for details.
+	** 
+	** @see `https://docs.mongodb.com/manual/reference/operator/query/text/`.
+	MongoCur textSearch(Str search, [Str:Obj?]? opts := null) {
+		filter := Str:Obj?["\$text": ["\$search": search].addAll(opts ?: Str:Obj?[:])]
+		return cmd("find", name)
+			.add("filter",		filter)
+			.add("projection",	["_textScore": ["\$meta": "textScore"]])
+			.add("sort",		["_textScore": ["\$meta": "textScore"]])
+			.cursor
+	}
 
 	** Runs the given 'updateCmd' against documents that match the given filter.
 	** 
@@ -296,6 +327,8 @@ const class MongoColl {
 			.run["value"]
 	}
 	
+	** Processes documents through an aggregation pipeline.
+	** 
 	** @see 
 	**  - `http://docs.mongodb.org/manual/reference/command/aggregate/`
 	**  - `http://docs.mongodb.org/manual/reference/aggregation/`
@@ -340,6 +373,7 @@ const class MongoColl {
 		]).toList.first["count"]
 	}
 	
+	** Returns the qualified name of this collection.
 	Str qname() {
 		"${dbName}.${name}"
 	}

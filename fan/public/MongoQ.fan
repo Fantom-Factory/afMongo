@@ -288,11 +288,15 @@ class MongoQ {
 	** Text searching makes use of stemming and ignores language stop words.
 	** Quotes may be used to search for exact phrases and prefixing a word with a hyphen-minus (-) negates it.
 	** 
-	** Results are automatically ordered by search relevance.
-	**  
-	** To use text searching, make sure the Collection has a text Index else MongoDB will throw an Err.
+	** To enable text searching, ensure the Collection has a text Index else MongoDB will throw an Err.
 	** 
-	**   q.textSearch("some text")
+	** To sort by search relevance, add the following projection AND sort.
+	** 
+	**   syntax: fantom
+	**   col.find(MongoQ { textSearch("quack") }) {
+	**     it->projection = ["_textScore": ["\$meta": "textScore"]]
+	**     it->sort       = ["_textScore": ["\$meta": "textScore"]]
+	**   }
 	** 
 	** 'options' may include the following:
 	** 
@@ -306,8 +310,6 @@ class MongoQ {
 	** @see `https://docs.mongodb.com/manual/reference/operator/query/text/`.
 	MongoQ textSearch(Str search, [Str:Obj?]? opts := null) {
 		q.set("\$text", (obj["\$search"] = search).setAll(opts ?: obj))
-		// FIXME auto-order by scoew	
-//		((Str:Obj?) _orderBy)["_textScore"] = ["\$meta": "textScore"]
 	}
 
 	** Selects documents based on the return value of a javascript function. Example:

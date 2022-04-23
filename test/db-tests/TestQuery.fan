@@ -272,6 +272,10 @@ internal class TestQuery : MongoDbTest {
 		}
 		verifyEq(res.size, 1)
 		verifyEq(res.first["name"], "Dredd")
+		
+		res = col.textSearch("Dredd").toList
+		verifyEq(res.size, 1)
+		verifyEq(res.first["name"], "Dredd")
 	}
 	
 	// ---- Sort Tests ----------------------------------------------------------------------------
