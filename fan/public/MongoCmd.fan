@@ -53,7 +53,8 @@ class MongoCmd {
 	Str:Obj? extract(Str[] keys) {
 		map := Str:Obj?[:]
 		map.ordered = true
-		keys.each |key| {
+		for (i := 0; i < keys.size; ++i) {
+			key := keys[i]
 			val := cmd.remove(key)
 			if (val != null)
 				map[key] = val			

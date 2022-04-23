@@ -16,7 +16,7 @@ Client
  - hello / isMaster	- X
 
 Database
- - authenticate		- X (via x.509 only)
+ - authenticate		- XXX (via x.509 only)
  - dropDatabase		- X
  - listCollections	- X
 
@@ -29,7 +29,7 @@ Collection
  - update			- X
  - aggregate		- X
  - collMod			- XXX
- - findAndModify	- XXX
+ - findAndModify	- X
  - explain			- XXX
 
 Index
@@ -62,6 +62,7 @@ GridFs
  - http://docs.mongodb.org/manual/core/gridfs/
  - http://docs.mongodb.org/manual/applications/gridfs
  - http://docs.mongodb.org/manual/reference/gridfs/
+ - https://github.com/mongodb/specifications/blob/master/source/gridfs/gridfs-spec.rst
 ReplicaSets
  - set a read preference
     - http://docs.mongodb.org/manual/reference/connection-string/#read-preference-options

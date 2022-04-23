@@ -214,6 +214,29 @@ const class MongoColl {
 			.add("writeConcern",connMgr.writeConcern)
 			.run
 	}
+	
+	** Finds a single document that matches the given filter, and replaces it.
+	** The '_id' field is NOT replaced.
+	** 
+	** pre>
+	** syntax: fantom
+	** update(["rick":"morty"], ["rick":"sanchez"])
+	** <pre
+	** 
+	** @see `https://www.mongodb.com/docs/manual/reference/command/update/`
+	** @see `https://www.mongodb.com/docs/manual/reference/operator/update/`
+	Str:Obj? replace(Str:Obj? filter, Str:Obj? replacement, |MongoCmd cmd|? optsFn := null) {
+		updateCmd := cmd("q",	filter)
+			.withFn(			optsFn)
+			.add("u",			replacement)
+			.add("multi",		false)	// default to multi-doc updates
+		opts := updateCmd.extract("ordered writeConcern bypassDocumentValidation comment let".split)
+		return cmd("update",	 name)
+			.add("updates",		[updateCmd.cmd])
+			.addAll(			opts)
+			.add("writeConcern",connMgr.writeConcern)
+			.run
+	}
 
 	** Deletes documents that match the given filter, and returns the number of documents deleted.
 	** 
@@ -246,13 +269,32 @@ const class MongoColl {
 		delete([:]) { it->limit=0 }
 	}	
 	
-	// TODO support findAndModify() commands
-	// findAndModify() commands show no discernible advantage over separate
-	// update() & find() commands, or find() followed by update().
-	// findAndModify() is not atomic, and has the same semantics,
-	// only it's much more confusing!
-	//
-	// So I'm voting to leave them out for now - even though it IS in the Stable API.
+	** Finds, updates, and returns a single document.
+	** Returns 'null' if no matching document was found.
+	**  
+	** @see `https://www.mongodb.com/docs/manual/reference/command/findAndModify/`
+	[Str:Obj?]? findAndUpdate(Str:Obj? filter, Str:Obj? update, |MongoCmd cmd|? optsFn := null) {
+		cmd("findAndModify",		name)
+			.withFn(				optsFn)
+			.add("query",			filter)
+			.add("update",			update)
+			.add("new",				true)
+			.add("writeConcern",	connMgr.writeConcern)
+			.run["value"]
+	}
+
+	** Finds, deletes, and returns a single document.
+	** Returns 'null' if no matching document was found.
+	**  
+	** @see `https://www.mongodb.com/docs/manual/reference/command/findAndModify/`
+	[Str:Obj?]? findAndDelete(Str:Obj? filter, |MongoCmd cmd|? optsFn := null) {
+		cmd("findAndModify",		name)
+			.withFn(				optsFn)
+			.add("query",			filter)
+			.add("remove",			true)
+			.add("writeConcern",	connMgr.writeConcern)
+			.run["value"]
+	}
 	
 	** @see 
 	**  - `http://docs.mongodb.org/manual/reference/command/aggregate/`
@@ -267,6 +309,7 @@ const class MongoColl {
 	}
 	
 	** Returns the number of documents that match the given filter.
+	** (Uses an 'aggregate' cmd.)
 	Int count([Str:Obj?]? filter := null) {
 		aggregate([
 			[

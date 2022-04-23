@@ -34,7 +34,7 @@ class MongoOp {
 		// https://github.com/mongodb/specifications/blob/master/source/retryable-writes/retryable-writes.rst
 		
 		if (log.isDebug) {
-			msg := "Mongo Req ($reqId):"
+			msg := "Mongo Req ($reqId):\n"
 			msg += BsonIO().print(cmd)
 			log.debug(msg)
 		}
@@ -80,7 +80,7 @@ class MongoOp {
 		resDoc	:= BsonIO().readDoc(in)
 		
 		if (log.isDebug) {
-			msg := "Mongo Res ($resId):"
+			msg := "Mongo Res ($resId):\n"
 			msg += BsonIO().print(resDoc)
 			log.debug(msg)
 		}
