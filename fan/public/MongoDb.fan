@@ -11,16 +11,16 @@ const class MongoDb {
 	** Creates a 'Database' with the given name.
 	** 
 	** Note this just instantiates the Fantom object, it does not create anything in MongoDB. 
-	new make(MongoConnMgr connMgr, Str name) {
+	new make(MongoConnMgr connMgr, Str? name := null) {
 		this.connMgr	= connMgr
-		this.name		= validateName(name)
+		this.name		= validateName(name ?: connMgr.database)
 	}
 
 	** Returns a 'Collection' with the given name.
 	** 
 	** Note this just instantiates the Fantom object, it does not create anything in MongoDB. 
 	MongoColl collection(Str collectionName) {
-		MongoColl(connMgr, name, collectionName)
+		MongoColl(connMgr, collectionName, name)
 	}
 
 	** Convenience / shorthand notation for 'collection(name)'
@@ -79,7 +79,9 @@ const class MongoDb {
 	** See `https://www.mongodb.com/docs/manual/reference/limits/#naming-restrictions`
 	private static const Int[] invalidNameChars	:= "/\\. \"*<>:|?".chars	
 
-	internal static Str validateName(Str name) {
+	internal static Str validateName(Str? name) {
+		if (name == null)
+			throw ArgErr("Database name is null")
 		if (name.isEmpty)
 			throw ArgErr("Database name can not be empty")
 		if (name.any { invalidNameChars.contains(it) })

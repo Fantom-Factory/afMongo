@@ -52,6 +52,10 @@ const class MongoConnMgrPool : MongoConnMgr {
 	** The parsed Mongo Connection URL.	
 	const MongoConnUrl mongoConnUrl
 
+	override Str? database() {
+		mongoConnUrl.database
+	}
+	
 	** When the connection pool is shutting down, this is the amount of time to wait for all 
 	** connections for close before they are forcibly closed.
 	** 

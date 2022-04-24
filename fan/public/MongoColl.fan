@@ -16,9 +16,9 @@ const class MongoColl {
 	** Creates a 'Collection' with the given name under the database.
 	** 
 	** Note this just instantiates the Fantom object, it does not create anything in the database. 
-	new make(MongoConnMgr connMgr, Str dbName, Str name) {
+	new make(MongoConnMgr connMgr, Str name, Str? dbName := null) {
 		this.connMgr 	= connMgr
-		this.dbName		= MongoDb.validateName(dbName)
+		this.dbName		= MongoDb.validateName(dbName ?: connMgr.database)
 		this.name 		= validateName(name)
 	}
 	
@@ -38,7 +38,7 @@ const class MongoColl {
 	** 
 	** Note this just instantiates the Fantom object, it does not create anything in MongoDB. 
 	MongoIdx index(Str idxName) { 
-		MongoIdx(connMgr, dbName, name, idxName)
+		MongoIdx(connMgr, idxName, name, dbName)
 	}
 	
 	** Returns all the indexes in this collection.

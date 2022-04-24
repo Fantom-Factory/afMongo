@@ -153,7 +153,8 @@ const class MongoConnUrl {
 			database = "admin"
 		if (username == null && password == null)	// a default database has no meaning without credentials
 			database = null
-		this.database = database
+
+		this.database = mongoUrl.pathOnly.relTo(`/`).encode.trimToNull
 		
 		if (authMech != null) {
 			props	:= Str:Obj?[:] { it.ordered = true }

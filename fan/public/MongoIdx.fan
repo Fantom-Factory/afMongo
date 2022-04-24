@@ -23,9 +23,9 @@ const class MongoIdx {
 	** The simple name of this index. 
 	const Str	name
 	
-	new make(MongoConnMgr connMgr, Str dbName, Str colName, Str idxName) {
+	new make(MongoConnMgr connMgr, Str idxName, Str colName, Str? dbName := null) {
 		this.connMgr	= connMgr
-		this.dbName		= MongoDb.validateName(dbName)
+		this.dbName		= MongoDb.validateName(dbName ?: connMgr.database)
 		this.colName	= MongoColl.validateName(colName)
 		this.name		= idxName
 	}

@@ -35,9 +35,11 @@ const class MongoClient {
 	
 	** Returns a 'Database' with the given name.
 	** 
+	** If 'dbName' is 'null', the default database from 'MongoConnMgr' is used. 
+	** 
 	** Note this just instantiates the Fantom object, it does not create anything in the database. 
-	MongoDb db(Str dbName) {
-		MongoDb(connMgr, dbName)
+	MongoDb db(Str? dbName := null) {
+		MongoDb(connMgr, dbName ?: connMgr.database)
 	}
 
 	** Convenience / shorthand notation for 'db(name)'

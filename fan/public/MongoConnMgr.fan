@@ -13,6 +13,9 @@ const mixin MongoConnMgr {
 	** It *should not* contain any user credentials and *should* be safe to log. 
 	abstract Uri? mongoUrl()
 	
+	** The default database name, taken from the the Connection URL auth source.
+	abstract Str? database()
+	
 	** The default write concern that all write operations should use.
 	abstract [Str:Obj?]? writeConcern()
 
@@ -59,5 +62,3 @@ const mixin MongoConnMgr {
 		MongoConnMgrPool(connectionUrl, log)
 	}
 }
-
-

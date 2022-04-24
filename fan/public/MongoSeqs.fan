@@ -16,8 +16,8 @@ const class MongoSeqs {
 	const MongoColl seqColl
 	
 	** Creates instance of 'MongoSeqs'.
-	new make(MongoConnMgr connMgr, Str dbName, Str collName := "Seqs") {
-		this.seqColl = MongoColl(connMgr, dbName, collName)
+	new make(MongoConnMgr connMgr, Str collName := "Seqs", Str? dbName := null) {
+		this.seqColl = MongoColl(connMgr, collName, dbName ?: connMgr.database)
 	}
 
 	** Creates instance of 'MongoSeqs' with the given collection.
