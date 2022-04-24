@@ -1,25 +1,22 @@
 Overview
 ********
-Mongo is a pure Fantom driver for [MongoDB v3.2+]`http://www.mongodb.org/`.
+Mongo is a pure Fantom driver for [MongoDB]`http://www.mongodb.org/`.
 
 Mongo driver features:
 
- - Compatible with MongoDB v3.2+
- - Standard and capped collections
+ - Optimised for MongoDB Stable API v1 (MongoDB 5.2+)
  - Pooled connection manager for multi-threaded use and automatic connection fail over.
  - Write commands: 'insert()', 'update()', 'delete()' and 'findAndModify()'
  - Optimised queries for 'findOne()' and 'findAll()'
- - Aggregation commands: 'aggregate()', 'distinct()', 'group()' and 'mapReduce()'
+ - Aggregation commands: 'aggregate()'
  - Index support: 'create()', 'ensure()' and 'drop()'
- - User support: 'create()', 'drop()', 'grant()' and 'revoke()' roles
- - Server side 'eval()' commands
  - Database authentication
  - Cursor support
  - Write concern support
  - Text indexes and text searching
  - Support for Replica Set connection URLs
 
-Mongo driver has been written specifically for MongoDB v3.2 or newer.
+This MongoDB driver is compatible with MongoDB v3.6 or newer.
 
 > **ALIEN-AID:** See [Morphia]`pod:afMorphia` for a complete Fantom to MongoDB object mapping library!
 
@@ -31,7 +28,7 @@ Quick Start [#quickStart]
     C:\> mongod
 
     MongoDB starting
-    db version v3.2.10
+    db version v5.2.0
     waiting for connections on port 27017
 
 2. Create a text file called 'Example.fan'
@@ -87,41 +84,38 @@ Quick Start [#quickStart]
 Usage
 *****
 `MongoClient` is the main entry point into 'Mongo'.
-From there you can access all other components of MongoDB, namely `Database`, `Collection`, `Index` and `User`.
+From there you can access all other components of MongoDB, namely `MongoDb`, `MongoColl`, `MongoIdx`.
 
 pre>
 MongoClient
- `-- Database
-      +-- Collection
-      |    `-- Index
-      `-- User
+ `-- MongoDb
+      +-- MongoColl
+           `-- MongoIdx
 <pre
 
 
 
 Connecting
 **********
-'MongoClient' is created with a `ConnectionManager`, which manages your connections to MongoDB.
-Use `ConnectionManagerPooled` for normal multi-threaded use:
+'MongoClient' is created with a `MongoConnMgr`, which manages your connections to MongoDB for normal multi-threaded use:
 
     syntax: fantom
-
-    conMgr := ConnectionManagerPooled(ActorPool(), `mongodb://localhost:27017`)
-    client := MongoClient(conMgr)
+    connMgr := MongoConnMgr(`mongodb://localhost:27017`)
+    client  := MongoClient(connMgr)
 
 When you create a 'MongoClient' it immediately connects to MongoDB and verifies the version:
 
 pre>
-.    Alien-Factory
+.   Fantom-Factory
  _____ ___ ___ ___ ___
 |     | . |   | . | . |
 |_|_|_|___|_|_|_  |___|
-              |___|1.1.0
+              |___|2.0.0
 
-Connected to MongoDB v3.2.10
+Connected to MongoDB v5.2.0
 <pre
 
-Note that 'ConnectionManagerPooled' will always query the supplied MongoDB host(s) to find the primary node, on which all read and write operations are performed.
+Note that 'MongoConnMgrPool' will always query the supplied MongoDB host(s) to find the primary node, on which all read and write operations are performed.
 
 
 
@@ -173,10 +167,12 @@ The 'insert()' command is simple enough and is demonstrated in the [QuickStart e
 'update()' and 'delete()' are similar in that they both take a query that describes which document(s) are to be updated / deleted.
 For most usages this will a simply be the id of the document in question:
 
+pre>
+  syntax: fantom
   collection.update( ["_id": objId], [ ...new doc...] )
+<pre
 
-Note that as of MongoDB v2.6 there is longer any need to call a 'getLastError()' function. All error handling is done via write concerns.
-By default 'Mongo' will throw a 'MongoErr' should a write error occur.
+Mongo will throw a 'MongoErr' should a write error occur.
 
 
 

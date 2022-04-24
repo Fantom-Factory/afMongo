@@ -1,14 +1,17 @@
 
+** The principle class that communicates with MongoDB servers.
 class MongoCmd {
 	const MongoConnMgr	connMgr
 	const Str			dbName
 	const Str			cmdName
 	const Obj?			cmdVal
 
+	** The backing cmd document.
 	Str:Obj? cmd {
 		private set
 	} 
 	
+	** Creates a new 'MongoCmd'.
 	new make(MongoConnMgr connMgr, Str dbName, Str cmdName, Obj? cmdVal := 1) {
 		this.connMgr	= connMgr
 		this.dbName 	= dbName
@@ -46,6 +49,7 @@ class MongoCmd {
 		return this
 	}
 
+	** Returns 'true' if this cmd contains the given key.
 	Bool containsKey(Str key) {
 		cmd.containsKey(key)
 	}	
@@ -82,6 +86,7 @@ class MongoCmd {
 		throw UnsupportedErr("MongoCmd->${name}(${args})")
 	}
 
+	** Executes this cmd on the MongoDB server, and returns the response as a BSON document.
 	Str:Obj? run(Bool checked := true) {
 		doc := (Str:Obj?) connMgr.leaseConn |con->Str:Obj?| {
 			MongoOp(con).runCommand(dbName, cmd, checked)
@@ -89,6 +94,7 @@ class MongoCmd {
 		return doc
 	}
 	
+	** Executes this cmd on the MongoDB server, and preemptively interprets the response as a cursor.
 	MongoCur cursor() {
 		cur := run()["cursor"] as Str:Obj?
 		return MongoCur(connMgr, dbName, cmdVal.toStr, cur["id"], cur["firstBatch"])

@@ -1,3 +1,14 @@
+v2.0
+****
+A complete re-write from the groud up. Optimised to work with Mongo's stable API v1, as introduced in Mongo 5.2.
+
+v2.0.0
+======
+ - New: Everything!
+ - Chg: Class names have been abbreviated and start with a 'Mongo' prefix.
+
+
+
 v1.1
 ****
 

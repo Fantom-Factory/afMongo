@@ -162,7 +162,7 @@ const class MongoColl {
 	** 
 	** pre>
 	** syntax: fantom
-	** findMany(["rick":"morty"]) {
+	** find(["rick":"morty"]) {
 	**   it->sort        = ["fieldName":1]
 	**   it->hint        = "_indexName_"
 	**   it->skip        = 50
@@ -251,7 +251,9 @@ const class MongoColl {
 	** 
 	** pre>
 	** syntax: fantom
-	** update(["rick":"morty"], ["rick":"sanchez"])
+	** replace(["rick":"morty"], ["rick":"sanchez"]) {
+	**   it->upsert  = true
+	** }
 	** <pre
 	** 
 	** @see `https://www.mongodb.com/docs/manual/reference/command/update/`
