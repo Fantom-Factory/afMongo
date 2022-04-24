@@ -90,6 +90,11 @@ class MongoCur {
 		return _batch[_batchIndex++]
 	}
 	
+	** Returns the current index of the last document.
+	Int index() {
+		_totalIndex
+	}
+	
 	** Kills this cursor.
 	** 
 	** No more documents will be returned from 'next()', 'each()', or 'toList()'.

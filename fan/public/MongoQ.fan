@@ -17,13 +17,17 @@ class MongoQ {
 
 	** The underlying query that's being build up.
 	Str:Obj? query() {
-		_innerQ != null
-			? (obj[_innerQ._key] = _innerQ._val)
-			: (obj[_key] = _val)
+		if (_innerQ != null)
+			return obj[_innerQ._key] = _innerQ._val
+		if (_key != null)
+			return obj[_key] = _val
+		// if _key is null, then NO query methods have been called - we're empty!
+		return obj
 	}
 	
 	private Str?	_key
 	private Obj?	_val
+	private Bool	_not
 	
 	** Creates a standard MongoQ instance.
 	new make() {
@@ -222,12 +226,16 @@ class MongoQ {
 	** Example:
 	** 
 	**   syntax: fantom
-	**   q.eq("score", 11).not
-	**   q.not(q.eq("score", 11))
+	**   not.eq("score", 11)
+	**   eq("score", 11).not
+	**   not(q.eq("score", 11))
 	** 
 	** @see `https://www.mongodb.com/docs/manual/reference/operator/query/not/`
 	MongoQ not(MongoQ query := this) {
-		query._val = (obj["\$not"] = query._val)
+		if (query._val != null)
+			query._val = (obj["\$not"] = query._val)
+		else
+			query._not = true
 		return query
 	}	
 	
@@ -309,7 +317,10 @@ class MongoQ {
 	** 
 	** @see `https://docs.mongodb.com/manual/reference/operator/query/text/`.
 	MongoQ textSearch(Str search, [Str:Obj?]? opts := null) {
-		q.set("\$text", (obj["\$search"] = search).setAll(opts ?: obj))
+		q := q
+		q._key = "\$text"
+		q._val = (obj["\$search"] = search).setAll(opts ?: obj)
+		return q
 	}
 
 	** Selects documents based on the return value of a javascript function. Example:
@@ -353,16 +364,24 @@ class MongoQ {
 	This set(Obj name, Obj? value) {
 		_key = _nameHookFn(name)
 		_val = _valueHookFn(value)
+		if (_not) {
+			not
+			_not = false
+		}
 		return this
 	}
 	
 	** Sets an op.
 	** 
-	**   q.op("score", "\$neq", 11)  -->  q.set("score", ["\$neg", 11])
+	**   op("score", "\$neq", 11)  -->  set("score", ["\$neg", 11])
 	@NoDoc
 	This op(Obj name, Str op, Obj? value) {
 		_key = _nameHookFn(name)
 		_val = (obj[op] = _valueHookFn(value))
+		if (_not) {
+			not
+			_not = false
+		}
 		return this
 	}
 	
@@ -375,7 +394,10 @@ class MongoQ {
 	private MongoQ q() {
 		// we can't check / throw this, 'cos we *may* be creating multiple instances for an AND or an OR filter.
 		//if (_innerQ != null)	throw Err("Top level Mongo Query has already been set: ${toStr}")
-		return _innerQ = MongoQ(_nameHookFn, _valueHookFn)
+		q := _innerQ = MongoQ(_nameHookFn, _valueHookFn)
+		q._not = _not
+		_not = false
+		return q
 	}
 
 	private Str:Obj? obj() {
