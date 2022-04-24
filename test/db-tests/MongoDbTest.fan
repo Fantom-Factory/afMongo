@@ -1,5 +1,5 @@
 
-internal class MongoDbTest : MongoTest {
+internal class MongoDbTest : Test {
 	
 	MongoClient? mc
 	MongoDb?	 db
@@ -17,5 +17,4 @@ internal class MongoDbTest : MongoTest {
 	override Void teardown() {
 		mc?.shutdown
 	}
-	
 }

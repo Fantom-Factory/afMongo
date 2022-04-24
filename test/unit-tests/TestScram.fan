@@ -1,7 +1,6 @@
-using afBson
-using concurrent
+using afBson::BsonIO
 
-internal class TestScram : MongoTest {
+internal class TestScram : Test {
 	
 	Void testDecodeConversation() {
 		data := Int[	0x00, 0x00, 0x00, 0x00, 0x74, 0x65,		0x73, 0x74, 0x2e, 0x24, 0x63, 0x6d, 0x64, 0x00,
