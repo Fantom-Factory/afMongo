@@ -271,7 +271,7 @@ const class MongoColl {
 			.run
 	}
 
-	** Deletes documents that match the given filter, and returns the number of documents deleted.
+	** Deletes all documents that match the given filter, and returns the number of documents deleted.
 	** 
 	** pre>
 	** syntax: fantom

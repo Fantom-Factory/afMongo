@@ -57,7 +57,7 @@ class MongoQ {
 	**   q->score = 11
 	** 
 	MongoQ eq(Obj name, Obj? value) {
-		q._set(name, value)
+		_q._set(name, value)
 	}
 	
 	** Matches values that are **not** equal to the given object.
@@ -69,7 +69,7 @@ class MongoQ {
 	** 
 	** @see `https://www.mongodb.com/docs/manual/reference/operator/query/ne/`
 	MongoQ notEq(Obj name, Obj? value) {
-		q.op(name, "\$ne", value)
+		_q.op(name, "\$ne", value)
 	}
 	
 	** Matches values that equal any one of the given values.
@@ -79,7 +79,7 @@ class MongoQ {
 	** 
 	** @see `https://www.mongodb.com/docs/manual/reference/operator/query/in/`
 	MongoQ in(Obj name, Obj[] values) {
-		q.op(name, "\$in", values)	// BSON converter is deep!
+		_q.op(name, "\$in", values)	// BSON converter is deep!
 	}	
 
 	** Matches values that do **not** equal any one of the given values.
@@ -91,7 +91,7 @@ class MongoQ {
 	** 
 	** @see `https://www.mongodb.com/docs/manual/reference/operator/query/nin/`
 	MongoQ notIn(Obj name, Obj[] values) {
-		q.op(name, "\$nin", values)	// BSON converter is deep!
+		_q.op(name, "\$nin", values)	// BSON converter is deep!
 	}	
 	
 	** Matches values that are greater than the given object.
@@ -101,7 +101,7 @@ class MongoQ {
 	** 
 	** @see `https://www.mongodb.com/docs/manual/reference/operator/query/gt/`
 	MongoQ greaterThan(Obj name, Obj value) {
-		q.op(name, "\$gt", value)
+		_q.op(name, "\$gt", value)
 	}
 	
 	** Matches values that are greater than or equal to the given object.
@@ -111,7 +111,7 @@ class MongoQ {
 	** 
 	** @see `https://www.mongodb.com/docs/manual/reference/operator/query/gte/`
 	MongoQ greaterThanOrEqTo(Obj name, Obj value) {
-		q.op(name, "\$gte", value)
+		_q.op(name, "\$gte", value)
 	}	
 
 	** Matches values that are less than the given object.
@@ -121,7 +121,7 @@ class MongoQ {
 	** 
 	** @see `https://www.mongodb.com/docs/manual/reference/operator/query/gt/`
 	MongoQ lessThan(Obj name, Obj value) {
-		q.op(name, "\$lt", value)
+		_q.op(name, "\$lt", value)
 	}
 
 	** Matches values that are less than or equal to the given object.
@@ -131,7 +131,7 @@ class MongoQ {
 	** 
 	** @see `https://www.mongodb.com/docs/manual/reference/operator/query/lte/`
 	MongoQ lessThanOrEqTo(Obj name, Obj value) {
-		q.op(name, "\$lte", value)
+		_q.op(name, "\$lte", value)
 	}	
 	
 
@@ -145,7 +145,7 @@ class MongoQ {
 	** 
 	** @see `https://www.mongodb.com/docs/manual/reference/operator/query/exists/`
 	MongoQ exists(Obj name, Bool exists := true) {
-		q.op(name, "\$exists", exists)
+		_q.op(name, "\$exists", exists)
 	}
 	
 	
@@ -159,7 +159,7 @@ class MongoQ {
 	** 
 	** @see `https://www.mongodb.com/docs/manual/reference/operator/query/regex/`
 	MongoQ matchesRegex(Obj name, Regex regex) {
-		q.op(name, "\$regex", regex)
+		_q.op(name, "\$regex", regex)
 	}
 
 	** Matches string values that equal (ignoring case) the given value.
@@ -220,7 +220,7 @@ class MongoQ {
 	** 
 	** @see `https://www.mongodb.com/docs/manual/reference/operator/query/mod/`
 	MongoQ mod(Obj name, Int divisor, Int remainder) {
-		q.op(name, "\$mod", Int[divisor, remainder])	// BSON converter is deep!
+		_q.op(name, "\$mod", Int[divisor, remainder])	// BSON converter is deep!
 	}
 	
 	
@@ -257,7 +257,7 @@ class MongoQ {
 		qs := [q1._query, q2._query]
 		if (q3 != null) qs.add(q3._query)
 		if (q4 != null) qs.add(q4._query)
-		return q._set("\$and", qs)
+		return _q._set("\$and", qs)
 	}
 	
 	** Selects documents that pass any of the query expressions in the given list.
@@ -273,7 +273,7 @@ class MongoQ {
 		qs := [q1._query, q2._query]
 		if (q3 != null) qs.add(q3._query)
 		if (q4 != null) qs.add(q4._query)
-		return q._set("\$or", qs)
+		return _q._set("\$or", qs)
 	}
 	
 	** Selects documents that fail **all** the query expressions in the given list.
@@ -289,7 +289,7 @@ class MongoQ {
 		qs := [q1._query, q2._query]
 		if (q3 != null) qs.add(q3._query)
 		if (q4 != null) qs.add(q4._query)
-		return q._set("\$nor", qs)
+		return _q._set("\$nor", qs)
 	}	
 	
 	
@@ -322,10 +322,10 @@ class MongoQ {
 	** 
 	** @see `https://docs.mongodb.com/manual/reference/operator/query/text/`.
 	MongoQ textSearch(Str search, [Str:Obj?]? opts := null) {
-		q := q
-		q._key = "\$text"
-		q._val = (obj["\$search"] = search).setAll(opts ?: obj)
-		return q
+		_q := _q
+		_q._key = "\$text"
+		_q._val = (obj["\$search"] = search).setAll(opts ?: obj)
+		return _q
 	}
 
 	** Selects documents based on the return value of a javascript function. Example:
@@ -337,7 +337,7 @@ class MongoQ {
 	** 
 	** @see `https://www.mongodb.com/docs/manual/reference/operator/query/where/`
 	MongoQ where(Str where) {
-		q._set("\$where", where)
+		_q._set("\$where", where)
 	}
 	
 	
@@ -392,7 +392,7 @@ class MongoQ {
 	private MongoQ?				_innerQ
 	private Str:Obj				_query() 	{ obj[_key] = _val }
 	private static const Func	_defHookFn 	:= |Obj? v -> Obj?| { v }.toImmutable
-	private MongoQ q() {
+	private MongoQ _q() {
 		// we can't check / throw this, 'cos we *may* be creating multiple instances for an AND or an OR filter.
 		//if (_innerQ != null)	throw Err("Top level Mongo Query has already been set: ${toStr}")
 		q := _innerQ = MongoQ(_nameHookFn, _valueHookFn)

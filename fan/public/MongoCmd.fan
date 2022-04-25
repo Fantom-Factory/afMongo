@@ -82,7 +82,7 @@ class MongoCmd {
 		if (args == null || args.isEmpty)
 			return get(name)
 		if (args.size == 1)
-			return set(name, args.first)
+			return add(name, args.first)
 		throw UnsupportedErr("MongoCmd->${name}(${args})")
 	}
 
