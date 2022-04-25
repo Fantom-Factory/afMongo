@@ -65,17 +65,16 @@ class MongoOp {
 		resId	:= in.readU4	// keep for logs
 		opCode	:= in.readU4	// should be OP_MSG
 		
-		// TODO throw better Errs
 		if (opCode != 2013)
-			throw Err("Wot not a OP_MSG!? $opCode")
+			throw Err("Bad Mongo response, expected OP_MSG (2013), not: $opCode")
 		
 		flagBits	:= in.readU4
 		if (flagBits != 0)
-			throw Err("Wot, got Flags!? ${flagBits.toHex}")
+			throw Err("Bad Mongo response, expected NO flags, but got: ${flagBits.toHex}")
 		
 		payloadType	:= in.read
 		if (payloadType != 0)
-			throw Err("Wot, payload not type 0!? $payloadType")
+			throw Err("Bad Mongo response, expected payload type 0, not: $payloadType")
 
 		resDoc	:= BsonIO().readDoc(in)
 		
@@ -85,11 +84,13 @@ class MongoOp {
 			log.debug(msg)
 		}
 		
+		mongoErr	:= null as MongoErr
 		if (checked && resDoc["ok"] != 1f && resDoc["ok"] != 1) {
 			cmdName	:= cmd.keys.first
 			errMsg  := resDoc["errmsg"] as Str
 			msg		:= errMsg == null ? "Command '${cmdName}' failed" : "Command '${cmdName}' failed. MongoDB says: ${errMsg}"
-			throw MongoErr(msg, resDoc)
+			
+			mongoErr = MongoErr(msg, resDoc)
 		}
 		
 		if (checked && resDoc.containsKey("writeErrors")) {
@@ -97,9 +98,27 @@ class MongoOp {
 			wErrs	:= resDoc["writeErrors"] as [Str:Obj?][]	// yep - there can be many!
 			errMsg  := wErrs.first.get("errmsg") as Str
 			msg		:= errMsg == null ? "Command '${cmdName}' failed" : "Command '${cmdName}' failed. MongoDB says: ${errMsg}"
-			throw MongoErr(msg, resDoc)
+			mongoErr = MongoErr(msg, resDoc)
 		}
 		
+		if (mongoErr != null) {
+			// make a better err msg for duplicate index errors
+			errMsg	:= mongoErr.errMsg
+			if (errMsg != null && mongoErr.code == 11000) {
+				matcher1	:= ".+_([a-zA-Z0-9]+)_.+".toRegex.matcher(errMsg)
+				indexName	:= matcher1.find ? matcher1.group(1) : null
+				matcher2	:= "\\{ : (.+?\\\")".toRegex.matcher(errMsg)
+				keyValue	:= matcher2.find ? " ${matcher2.group(1)}" : null
+
+				if (indexName != null && keyValue != null) {
+					cmdName	:= cmd.keys.first
+					msg		:= "Command '${cmdName}' failed, ${indexName}${keyValue} is already in use"
+					mongoErr = MongoErr(msg, resDoc)
+				}
+			}
+			throw mongoErr
+		}
+
 		return resDoc
 	}
 }
