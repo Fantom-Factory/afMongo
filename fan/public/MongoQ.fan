@@ -57,7 +57,7 @@ class MongoQ {
 	**   q->score = 11
 	** 
 	MongoQ eq(Obj name, Obj? value) {
-		_q._set(name, value)
+		_q._set(name, _valueHookFn(value))
 	}
 	
 	** Matches values that are **not** equal to the given object.
@@ -364,7 +364,7 @@ class MongoQ {
 	
 	private This _set(Obj name, Obj? value) {
 		_key = _nameHookFn(name)
-		_val = _valueHookFn(value)
+		_val = value
 		if (_not) {
 			not
 			_not = false

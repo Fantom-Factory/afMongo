@@ -225,6 +225,17 @@ internal class TestQuery : MongoDbTest {
 		}
 		verifyEq(res.size, 1)
 		verifyEq(res.first["name"], "Dredd")
+		
+		// check nested queries are NOT run through the valueHook
+		q := MongoQ.makeWithHookFns(|str->Str|{str}, |obj->Obj|{"oops"}) {
+			and(
+				eq("name", "Dredd"),
+				exists("value")
+			)
+		}
+		
+		// in Morphia, the key "$exists" was being converted to "\u0024exists"!
+		verifyNotEq("""{\$and: "oops"}""", q.print)
 	}
 
 	Void testOr() {
