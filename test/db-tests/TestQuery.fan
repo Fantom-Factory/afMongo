@@ -32,7 +32,7 @@ internal class TestQuery : MongoDbTest {
 				or(eq("price", 0.99f), eq("price", 1.99f)),
 				or(eq("price", 0.99f), eq("price", 1.99f))
 			)
-		}.dump
+		}
 		p :=
 		"{
 		   \$and : [
@@ -40,6 +40,14 @@ internal class TestQuery : MongoDbTest {
 		     {\$or: [{price: 0.99}, {price: 1.99}]}
 		   ]
 		 }"	
+		verifyEq(p, q.print)
+		
+		q = MongoQ {
+			and(
+				or(it->price = 0.99f, it->price = 1.99f),
+				or(it->price = 0.99f, it->price = 1.99f)
+			)
+		}
 		verifyEq(p, q.print)
 	}
 
@@ -56,6 +64,10 @@ internal class TestQuery : MongoDbTest {
 		res := query {
 			eq("name", "Judge")
 		}
+		verifyEq(res.size, 1)
+		verifyEq(res.first["name"], "Judge")
+		
+		res = query { it->name = "Judge" }
 		verifyEq(res.size, 1)
 		verifyEq(res.first["name"], "Judge")
 	}

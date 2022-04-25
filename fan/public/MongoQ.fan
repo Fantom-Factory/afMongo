@@ -51,8 +51,13 @@ class MongoQ {
 	**   syntax: fantom
 	**   q.eq("score", 11)
 	** 
+	** Shorthand notation.
+	** 
+	**   syntax: fantom
+	**   q->score = 11
+	** 
 	MongoQ eq(Obj name, Obj? value) {
-		q.set(name, value)
+		q._set(name, value)
 	}
 	
 	** Matches values that are **not** equal to the given object.
@@ -252,7 +257,7 @@ class MongoQ {
 		qs := [q1._query, q2._query]
 		if (q3 != null) qs.add(q3._query)
 		if (q4 != null) qs.add(q4._query)
-		return q.set("\$and", qs)
+		return q._set("\$and", qs)
 	}
 	
 	** Selects documents that pass any of the query expressions in the given list.
@@ -268,7 +273,7 @@ class MongoQ {
 		qs := [q1._query, q2._query]
 		if (q3 != null) qs.add(q3._query)
 		if (q4 != null) qs.add(q4._query)
-		return q.set("\$or", qs)
+		return q._set("\$or", qs)
 	}
 	
 	** Selects documents that fail **all** the query expressions in the given list.
@@ -284,7 +289,7 @@ class MongoQ {
 		qs := [q1._query, q2._query]
 		if (q3 != null) qs.add(q3._query)
 		if (q4 != null) qs.add(q4._query)
-		return q.set("\$nor", qs)
+		return q._set("\$nor", qs)
 	}	
 	
 	
@@ -332,7 +337,7 @@ class MongoQ {
 	** 
 	** @see `https://www.mongodb.com/docs/manual/reference/operator/query/where/`
 	MongoQ where(Str where) {
-		q.set("\$where", where)
+		q._set("\$where", where)
 	}
 	
 	
@@ -351,17 +356,13 @@ class MongoQ {
 	@NoDoc
 	override Str toStr() { print(60) }
 
-	** Returns the named query.
+	** it->field = value
 	@NoDoc
-	@Operator
-	Obj? get(Obj name) {
-		name == _key ? _val : null
+	override Obj? trap(Str name, Obj?[]? args := null) {
+		eq(name, args?.first)
 	}
 	
-	** Sets the named query
-	@NoDoc
-	@Operator
-	This set(Obj name, Obj? value) {
+	private This _set(Obj name, Obj? value) {
 		_key = _nameHookFn(name)
 		_val = _valueHookFn(value)
 		if (_not) {
