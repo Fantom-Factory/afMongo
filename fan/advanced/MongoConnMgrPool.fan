@@ -7,31 +7,6 @@ using afConcurrent::SynchronizedState
 using inet::IpAddr
 using inet::TcpSocket
 
-** Manages a pool of connections. 
-** 
-** Connections are created on-demand and a total of 'minPoolSize' are kept in a pool when idle. 
-** Once the pool is exhausted, any operation requiring a connection will block for (at most) 'waitQueueTimeout' 
-** waiting for an available connection.
-** 
-** This connection manager is created with the standard [Mongo Connection URL]`https://docs.mongodb.org/manual/reference/connection-string/` in the format:
-** 
-**   mongodb://[username:password@]host[:port][/[defaultauthdb][?options]]
-** 
-** Examples:
-** 
-**   mongodb://localhost:27017
-**   mongodb://username:password@example1.com/puppies?maxPoolSize=50
-** 
-** If connecting to a replica set then multiple hosts (with optional ports) may be specified:
-** 
-**   mongodb://db1.example.net,db2.example.net:2500/?connectTimeoutMS=30000
-** 
-** On 'startup()' the hosts are queried to find the primary / master node. 
-** All read and write operations are performed on the primary node.
-** 
-** When a connection to the master node is lost, all hosts are re-queried to find the new master.
-** 
-** Note this connection manager *is* safe for multi-threaded / web-application use.
 @NoDoc	// advanced use only
 const class MongoConnMgrPool : MongoConnMgr {
 	override const Log				log

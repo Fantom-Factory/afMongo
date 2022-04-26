@@ -1,5 +1,5 @@
 
-** The principle class that communicates with MongoDB servers.
+** The principle class that communicates with MongoDB.
 class MongoCmd {
 	const MongoConnMgr	connMgr
 	const Str			dbName

@@ -8,13 +8,13 @@
 **   syntax: fantom
 ** 
 **   mongo := MongoClient(`mongodb://localhost:27017/`)
-**   data  := mongo.db("db").collection("col").findMany
+**   data  := mongo.db("db").collection("col").find
 ** 
 ** Or using defaults and shorthand notation:
 ** 
 **   syntax: fantom
 ** 
-**   data  := mongo["db"]["col"].findMany
+**   data  := mongo["db"]["col"].find
 ** 
 const class MongoClient {
 

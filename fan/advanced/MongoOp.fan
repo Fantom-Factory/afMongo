@@ -1,7 +1,7 @@
 using concurrent::AtomicInt
 using afBson::BsonIO
 
-** Sends an OP_MSG to the Mongo server.
+** Sends an 'OP_MSG' to the Mongo server.
 ** 
 ** @see `https://github.com/mongodb/specifications/blob/master/source/message/OP_MSG.rst`
 @NoDoc	// advanced use only

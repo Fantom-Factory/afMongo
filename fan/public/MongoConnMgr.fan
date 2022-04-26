@@ -1,7 +1,51 @@
 using concurrent::ActorPool
 
-** Manages connections to a MongoDB instance.
+** Manages a pool of connections to a MongoDB instance.
 ** 
+** Connections are created on-demand and a total of 'minPoolSize' are kept in a pool when idle. 
+** Once the pool is exhausted, any operation requiring a connection will block for (at most) 'waitQueueTimeout' 
+** waiting for an available connection.
+** 
+** This connection manager is created with the standard [Mongo Connection URL]`https://docs.mongodb.org/manual/reference/connection-string/` in the format:
+** 
+**   mongodb://[username:password@]host[:port][/[defaultauthdb][?options]]
+** 
+** Examples:
+** 
+**   mongodb://localhost:27017
+**   mongodb://username:password@example1.com/puppies?maxPoolSize=50
+** 
+** If connecting to a replica set then multiple hosts (with optional ports) may be specified:
+** 
+**   mongodb://db1.example.net,db2.example.net:2500/?connectTimeoutMS=30000
+** 
+** The following URL options are supported:
+**  - 'minPoolSize'
+**  - 'maxPoolSize'
+**  - 'waitQueueTimeoutMS'
+**  - 'connectTimeoutMS'
+**  - 'socketTimeoutMS'
+**  - 'w'
+**  - 'wtimeoutMS'
+**  - 'journal'
+**  - 'ssl'
+**  - 'tls'
+**  - 'authSource'
+**  - 'authMechanism'
+**  - 'authMechanismProperties'
+** 
+** URL examples:
+**  - 'mongodb://username:password@example1.com/database?maxPoolSize=50'
+**  - 'mongodb://example2.com?minPoolSize=10&maxPoolSize=50&ssl=true'
+** 
+** See `https://www.mongodb.com/docs/manual/reference/connection-string/` for details.
+** 
+** On 'startup()' the hosts are queried to find the primary / master node. 
+** All read and write operations are performed on the primary node.
+** 
+** When a connection to the master node is lost, all hosts are re-queried to find the new master.
+** 
+** Note this connection manager *is* safe for multi-threaded / web-application use.
 const mixin MongoConnMgr {
 	
 	** The log instance used to report warnings.
