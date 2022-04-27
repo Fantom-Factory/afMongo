@@ -150,6 +150,16 @@ This driver also supplies a little DSL for creating queries, in the form of `Mon
 
 pre>
 syntax: fantom
+
+// query using standard BSON
+query := [
+    "\$and" : [
+        ["\$or": [["price": 0.99f], ["price": 1.99f]]],
+        ["\$or": [["sale" : true ], ["qty"  : ["\$lt": 20]]]]
+    ]
+]
+
+// same query using afMongo's DSL
 query := MongoQ {
     and(
         or( eq("price", 0.99f), eq("price", 1.99f)  ),
@@ -224,7 +234,7 @@ When a connection to the master node is lost, all hosts are automatically re-que
 
 Remarks
 *******
-The Alien-Factory MongoDB driver was inspired by [fantomongo]`https://bitbucket.org/liamstask/fantomongo` by Liam Staskawicz.
+The Fantom-Factory MongoDB driver was inspired by [fantomongo]`https://bitbucket.org/liamstask/fantomongo` by Liam Staskawicz.
 
 If you're looking for cross-platform MongoDB GUI client then look no further than [Robomongo]`http://robomongo.org/` / Robo 3T / Studio 3T Free!
 
