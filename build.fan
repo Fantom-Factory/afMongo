@@ -5,7 +5,7 @@ class Build : BuildPod {
 	new make() {
 		podName = "afMongo"
 		summary = "A pure Fantom driver for MongoDB"
-		version = Version("2.0.0")
+		version = Version("2.0.1")
 
 		meta = [
 			"pod.dis"		: "Mongo",
