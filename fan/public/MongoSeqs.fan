@@ -1,4 +1,5 @@
 
+** (Service) - 
 ** Creates sequential sequences of 'Ints' as an alternative to using BSON 'ObjectIds'.
 ** 
 ** A Mongo Collection stores the last ID created for sequences.

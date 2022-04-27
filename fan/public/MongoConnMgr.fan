@@ -1,5 +1,6 @@
 using concurrent::ActorPool
 
+** (Service) - 
 ** Manages a pool of connections to a MongoDB instance.
 ** 
 ** Connections are created on-demand and a total of 'minPoolSize' are kept in a pool when idle. 
