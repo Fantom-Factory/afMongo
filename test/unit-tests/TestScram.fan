@@ -1,9 +1,8 @@
-using afBson
-using concurrent
+using afBson::BsonIO
 
-internal class TestScram : MongoTest {
+internal class TestScram : Test {
 	
-	Void testDdecodeConversation() {
+	Void testDecodeConversation() {
 		data := Int[	0x00, 0x00, 0x00, 0x00, 0x74, 0x65,		0x73, 0x74, 0x2e, 0x24, 0x63, 0x6d, 0x64, 0x00,
 			0x00, 0x00, 0x00, 0x00, 0xff, 0xff, 0xff, 0xff,		0x61, 0x00, 0x00, 0x00, 0x10, 0x73, 0x61, 0x73,
 			0x6c, 0x53, 0x74, 0x61, 0x72, 0x74, 0x00, 0x01,		0x00, 0x00, 0x00, 0x02, 0x6d, 0x65, 0x63, 0x68,
@@ -14,13 +13,12 @@ internal class TestScram : MongoTest {
 			0x52, 0x37, 0x41, 0x57, 0x72, 0x3c, 0x26, 0x77,		0x00]
 		
 		secret := Buf().with |buf| { data.each { buf.write(it) } }.flip
-		reader := BsonReader(secret.in)
 
-		flags	:= reader.readInteger32
-		qname	:= reader.readCString
-		skip	:= reader.readInteger32
-		limit	:= reader.readInteger32
-		query	:= reader.readDocument
+		flags	:= secret.in.readS4
+		qname	:= secret.in.readNullTerminatedStr
+		skip	:= secret.in.readS4
+		limit	:= secret.in.readS4
+		query	:= BsonIO().readDoc(secret.in)
 		
 		echo(query)
 	}
@@ -35,5 +33,4 @@ internal class TestScram : MongoTest {
 		md:=Buf().print("n,,n=user,r=fyko+d2lbbFgONRv9qkxdawL")	//.toDigest("SHA-1")
 		echo(md.toBase64)
 	}
-	
 }

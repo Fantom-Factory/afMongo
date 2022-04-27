@@ -1,4 +1,57 @@
 
+
+Mongo v2 - Stable API commands
+********
+https://www.mongodb.com/developer/how-to/upgrade-fearlessly-stable-api/
+https://www.mongodb.com/docs/manual/reference/stable-api/#std-label-stable-api
+
+Design
+Only the common (and less common := null) options are catered for. Advanced use for power users can use the MongoCmd directly.
+
+Client
+ - listDatabases	- X
+ - saslContinue		- X
+ - saslStart		- X
+ - ping				- X
+ - hello / isMaster	- X
+
+Database
+ - authenticate		- XXX (via x.509 only)
+ - dropDatabase		- X
+ - listCollections	- X
+
+Collection
+ - create			- X
+ - drop				- X
+ - insert			- X
+ - find				- X
+ - delete			- X
+ - update			- X
+ - aggregate		- X
+ - collMod			- XXX
+ - findAndModify	- X
+ - explain			- XXX
+
+Index
+ - listIndexes		- X
+ - createIndexes	- X 
+ - dropIndexes		- X
+ 
+Cursor
+ - getMore			- X
+ - killCursors		- X
+
+Transaction
+ - abortTransaction
+ - commitTransaction
+ - endSessions
+ - refreshSessions
+
+ 
+
+
+
+
 For Future
 ----------
 Role Commands (new in 2.6)
@@ -9,6 +62,7 @@ GridFs
  - http://docs.mongodb.org/manual/core/gridfs/
  - http://docs.mongodb.org/manual/applications/gridfs
  - http://docs.mongodb.org/manual/reference/gridfs/
+ - https://github.com/mongodb/specifications/blob/master/source/gridfs/gridfs-spec.rst
 ReplicaSets
  - set a read preference
     - http://docs.mongodb.org/manual/reference/connection-string/#read-preference-options

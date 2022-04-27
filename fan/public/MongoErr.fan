@@ -1,42 +1,44 @@
+using afBson::BsonIO
 
-** As thrown by Mongo.
+** Models an error as returned from a MongoDB Server.
 const class MongoErr : Err {
-	new make(Str msg := "", Err? cause := null) : super(msg, cause) { }
-}
-
-@NoDoc
-const class MongoOpErr : MongoErr {
-	new make(Str msg := "", Err? cause := null) : super(msg, cause) { }
-}
-
-@NoDoc
-const class MongoIoErr : MongoErr {
-	new make(Str msg := "", Err? cause := null) : super(msg, cause) { }
-}
-
-** Wraps errors returned from a MongoDB Cmd.
-const class MongoCmdErr : MongoErr {
 	
-	** The list of errors returned by MongoDB.
-	const [Str:Obj?][] errs := [Str:Obj?][,]
+	** The error response returned by MongoDB.
+	const Str:Obj? errDoc
 
 	** Creates a 'MongoCmdErr'.
-	new make(Str msg, [Str:Obj?][] errs, Err? cause := null) : super(msg, cause) {
-		this.errs = errs
+	new make(Str msg, Str:Obj? errDoc, Err? cause := null) : super(msg, cause) {
+		this.errDoc = errDoc
 	}
 	
-	** Returns the first 'code' in the list of Mongo errors, if it exists.
+	** Returns the 'code', if it exists.
 	Int? code() {
-		errs.first["code"]
+		errObj("code")
 	}
 
-	** Returns the first 'errmsg' in the list of Mongo errors, if it exists. 
-	Str? errmsg() {
-		errs.first["errmsg"]
+	** Returns the 'codeName', if it exists. 
+	Str? codeName() {
+		errObj("codeName")
 	}
-}
 
-@NoDoc
-const class MongoCursorErr : MongoErr {
-	new make(Str msg := "", Err? cause := null) : super(msg, cause) { }
+	** Returns the 'errmsg', if it exists. 
+	Str? errMsg() {
+		errObj("errmsg")
+	}
+	
+	private Obj? errObj(Str name) {
+		errDoc[name] ?: errDoc["writeErrors"]?->first?->get(name)
+	}
+	
+	** Pretty print the err doc.
+	@NoDoc
+	override Str toStr() {
+		buf := StrBuf()
+		buf.add("${typeof.qname}: ${msg}\n")
+		buf.add("\nMongo Error Response:\n")
+		buf.add(BsonIO().print(errDoc, 60))
+		buf.add("\n")
+		buf.add("\nStack Trace:")
+		return buf.toStr
+	}
 }

@@ -1,5 +1,3 @@
-using concurrent
-using inet
 
 ** A MongoDB client.
 ** 
@@ -9,129 +7,127 @@ using inet
 ** 
 **   syntax: fantom
 ** 
-**   mongo := MongoClient(ActorPool(), `mongodb://localhost:27017`)
-**   data  := mongo.db("db").collection("col").findAll
+**   mongo := MongoClient(`mongodb://localhost:27017/`)
+**   data  := mongo.db("db").collection("col").find
 ** 
 ** Or using defaults and shorthand notation:
 ** 
 **   syntax: fantom
 ** 
-**   mongo := MongoClient(ActorPool())
-**   data  := mongo["db"]["col"].findAll
+**   data  := mongo["db"]["col"].find
 ** 
 const class MongoClient {
-	private static const Log 		log	:= MongoClient#.pod.log
-	private const ConnectionManager conMgr
-	
-	@NoDoc	// I give no guarantee how long this field will stick around for!
-	static const AtomicBool logBanner := AtomicBool(true)
+
+	** The connection manager that Mongo connections are leased from.
+	const MongoConnMgr	connMgr
 	
 	** Creates a 'MongoClient' with the given 'ConnectionManager'. 
-	** This is the preferred ctor.
-	new make(ConnectionManager connectionManager, |This|? f := null) {
-		this.conMgr = connectionManager
-		f?.call(this)
+	new make(MongoConnMgr connMgr) {
+		this.connMgr = connMgr
 		startup()
 	}
 	
-	** A convenience ctor - just to get you started!
-	new makeFromUri(ActorPool actorPool, Uri mongoUri := `mongodb://localhost:27017`, |This|? f := null) {
-		this.conMgr = ConnectionManagerPooled(actorPool, mongoUri)
-		f?.call(this)
+	** Creates a 'MongoClient' with a pooled connection to the given Mongo connection URL. 
+	new makeFromUri(Uri mongoUrl) {
+		this.connMgr = MongoConnMgrPool(mongoUrl)
 		startup()
 	}
 	
-	// ---- Diagnostics ---------------------------------------------------------------------------
-
-	** Returns a list of existing databases with some basic statistics. 
-	** 
-	** @see `http://docs.mongodb.org/manual/reference/command/listDatabases/`
-	[Str:Obj?][] listDatabases() {
-		runAdminCmd(["listDatabases": 1])["databases"]
-	}
-
-	** Returns a list of database commands. 
-	** 
-	** @see `http://docs.mongodb.org/manual/reference/command/listCommands/`
-	[Str:Obj?] listCommands() {
-		runAdminCmd(["listCommands": 1])["commands"]
-	}
-
-	** Returns a build summary
-	** 
-	** @see `http://docs.mongodb.org/manual/reference/command/buildInfo/`
-	[Str:Obj?] buildInfo() {
-		runAdminCmd(["buildInfo": 1])
-	}
-
-	** Returns info about the underlying MongoDB system.
-	** 
-	** @see `http://docs.mongodb.org/manual/reference/command/hostInfo/`
-	[Str:Obj?] hostInfo() {
-		runAdminCmd(["hostInfo": 1])
-	}	
-
-	** Returns an overview of the database process’s state.
-	** 
-	** @see `http://docs.mongodb.org/manual/reference/command/serverStatus/`
-	[Str:Obj?] serverStatus() {
-		runAdminCmd(["serverStatus": 1])
-	}
-	
-	// ---- Database ------------------------------------------------------------------------------
-
-	** Returns all the database names on the MongoDB instance. 
-	Str[] databaseNames() {
-		listDatabases.map |db->Str| { db["name"] }.sort
-	}
-
 	** Returns a 'Database' with the given name.
 	** 
+	** If 'dbName' is 'null', the default database from 'MongoConnMgr' is used. 
+	** 
 	** Note this just instantiates the Fantom object, it does not create anything in the database. 
-	Database db(Str dbName) {
-		Database(conMgr, dbName)
+	MongoDb db(Str? dbName := null) {
+		MongoDb(connMgr, dbName ?: connMgr.database)
 	}
 
 	** Convenience / shorthand notation for 'db(name)'
 	@Operator
-	Database get(Str dbName) {
+	MongoDb get(Str dbName) {
 		db(dbName)
 	}
 
-	// ---- Other ---------------------------------------------------------------------------------
-	
-	** Runs a command against the admin database. Convenience for:
+	** **For Power Users!**
 	** 
-	**   db("admin").runCmd(cmd)
-	[Str:Obj?] runAdminCmd(Str:Obj? cmd) {
-		db("admin").runCmd(cmd)
+	** Runs an arbitrary command against the 'admin' database.
+	** 
+	** Don't forget to call 'run()'!
+	MongoCmd adminCmd(Str cmdName, Obj? cmdVal := 1) {
+		MongoCmd(connMgr, "admin", cmdName, cmdVal)
 	}
 
-	** Convenience for 'connectionManager.shutdown'.
+	** Convenience for 'MongoConnMgr.shutdown()'.
 	Void shutdown() {
-		conMgr.shutdown
+		connMgr.shutdown
 	}
+	
+	
+	
+	// ---- Commands ----------------------------
+	
+	** Returns a build information of the connected MongoDB server.
+	** Use to obtain the version of the MongoDB server.
+	** 
+	** @see `https://www.mongodb.com/docs/manual/reference/command/buildInfo/`
+	Str:Obj? buildInfo() {
+		adminCmd("buildInfo").run
+	}
+	
+	** Sends a 'hello' command - if 'hello' is not available, a legacy 'isMaster' command is sent 
+	** instead.
+	Str:Obj? hello() {
+		doc := adminCmd("hello").run(false)
+		if (doc["ok"] != 1f)
+			doc = adminCmd("isMaster").run(true)
+		return doc
+	}
+	
+	** Returns a list of existing databases, 
+	** along with some basic info. 
+	** 
+	** @see `https://www.mongodb.com/docs/manual/reference/command/listDatabases/`
+	[Str:Obj?][] listDatabases([Str:Obj?]? filter := null) {
+		adminCmd("listDatabases")
+			.add("filter", filter)
+			.run
+			.get("databases")
+	}
+	
+	** Returns all the database names on the MongoDB instance. 
+	** 
+	** This is more optimised than just calling 'listDatabases()'.
+	Str[] listDatabaseNames() {
+		((adminCmd("listDatabases")
+			.add("nameOnly", true)
+			.run
+			.get("databases")) as [Str:Obj?][])
+			.map |i->Str| { i["name"] }.sort
+	}
+	
+	** Sends a 'ping' command to the server. 
+	** 'pings' should return straight away, even if the server is write-locked. 
+	** 
+	** @see `https://www.mongodb.com/docs/manual/reference/command/ping/`
+	Str:Obj? ping() {
+		adminCmd("ping").run
+	}
+	
+	
+	
+	// ---- Helpers -----------------------------
 	
 	private Void startup() {
-		conMgr.startup
+		connMgr.startup
 		
-		minVersion	 := Version("2.6.0")
 		buildVersion := buildInfo["version"]
-		mongoVersion := Version.fromStr(buildVersion, false)
-		banner		 := logBanner.val ? "\n${logo}" : "" 
-		log.info("${banner}\nConnected to MongoDB v${buildVersion} (at ${conMgr.mongoUrl})\n")
-
-		if (mongoVersion < minVersion) {
-			msg := "** WARNING: This driver is ONLY compatible with MongoDB v${minVersion} or greater **"
-			log.warn(Str.defVal.padl(msg.size, '*'))
-			log.warn(msg)
-			log.warn(Str.defVal.padl(msg.size, '*'))
-		}
+		banner		 := "\n${logo}\nConnected to MongoDB v${buildVersion} (at ${connMgr.mongoUrl})\n"
+		connMgr.log.info(banner)
 	}
 	
 	private Str logo() {
 		"
-		      Alien-Factory     
+		      Fantom-Factory     
 		  _____ ___ ___ ___ ___ 
 		 |     | . |   | . | . |
 		 |_|_|_|___|_|_|_  |___|

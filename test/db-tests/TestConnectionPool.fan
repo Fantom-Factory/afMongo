@@ -8,16 +8,15 @@ internal class TestConnectionPool : MongoDbTest {
 			const Unsafe handlerRef		:= Unsafe(|LogRec rec| { logs.add(rec) })
 				  |LogRec rec| handler() { handlerRef.val }
 
-	ConnectionManagerPooled? conMgr
+	MongoConnMgrPool? connMgr
 	
 	override Void setup() {
-		Pod.of(this).log.level = LogLevel.warn
-		conMgr = ConnectionManagerPooled(ActorPool(), `mongodb://localhost:27017?minPoolSize=5`)
-		mc = MongoClient(conMgr)
+		connMgr = MongoConnMgrPool(`mongodb://localhost:27017?minPoolSize=5`)
+		mc = MongoClient(connMgr)
 
 		logs.clear
 		Log.addHandler(handler)
-		Pod.of(this).log.level = LogLevel.info
+		connMgr.log.level = LogLevel.info
 	}
 
 	override Void teardown() {
@@ -26,10 +25,10 @@ internal class TestConnectionPool : MongoDbTest {
 	}
 	
 	Void testReHuntThePrimary() {
-		conMgr := conMgr
+		connMgr := connMgr
 		f := Synchronized(ActorPool()).async |->| {
-			con := null as TcpConnection
-			conMgr.leaseConnection |TcpConnection c| {
+			con := null as MongoTcpConn
+			connMgr.leaseConn |MongoTcpConn c| {
 				con = c
 				Actor.sleep(200ms)
 			}
@@ -39,24 +38,24 @@ internal class TestConnectionPool : MongoDbTest {
 		
 		Actor.sleep(10ms)
 		
-		verifyMongoErrMsg("==< MongoDB says: not master >==") |->| {
-			conMgr.leaseConnection {
-				throw MongoErr("==< MongoDB says: not master >==")
+		// IOErrs should force a new Safari
+		verifyErrMsg(IOErr#, "==< MongoDB says: not master >==") |->| {
+			connMgr.leaseConn {
+				throw IOErr("==< MongoDB says: not master >==")
 			}
 		}
 
 		// give the async failOver() time to complete
 		Actor.sleep(10ms)
 		
-		verifyEq((logs.first as LogRec).msg, "Found a new Master at mongodb://localhost:27017")
-		verifyEq(conMgr.minPoolSize, 5)
-		verifyEq(conMgr.noOfConnectionsInUse, 1)
-		verifyEq(conMgr.noOfConnectionsInPool, 6)
+		verifyEq((logs.first as LogRec)?.msg, "Found a new Master at mongodb://localhost:27017")
+		verifyEq(connMgr.mongoConnUrl.minPoolSize, 5)
+		verifyEq(connMgr.noOfConnectionsInUse, 1)
+		verifyEq(connMgr.noOfConnectionsInPool, 6)
 		
 		f.get
 		
-		verifyEq(conMgr.noOfConnectionsInUse, 0)
-		verifyEq(conMgr.noOfConnectionsInPool, 5)
+		verifyEq(connMgr.noOfConnectionsInUse, 0)
+		verifyEq(connMgr.noOfConnectionsInPool, 5)
 	}
-	
 }
