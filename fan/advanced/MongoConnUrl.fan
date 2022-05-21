@@ -17,6 +17,8 @@
 **  - 'authMechanism'
 **  - 'authMechanismProperties'
 **  - 'appname'
+**  - 'compressors'
+**  - 'zlibCompressionLevel'
 ** 
 ** URL examples:
 **  - 'mongodb://username:password@example1.com/database?maxPoolSize=50'
@@ -104,6 +106,27 @@ const class MongoConnUrl {
 	**   mongodb://example.com/puppies?appname=WattsApp
 	const Str? appName
 	
+	** A list of compressors, as understood by this driver and presented to the MongoDB server.
+	** Any options supplied to the MongoURL and not understood by this driver will **not** be present in this list.
+	** 
+	**   mongodb://example.com/puppies?compressors=snappy,zlib
+	** 
+	** Mongo understands 'snappy, 'zlib', 'zstd', but currently this driver ONLY understands 'zlib'.
+	** 
+	** This option may be used to disable wire compression, by suppling an empty list.
+	** 
+	**   mongodb://example.com/puppies?compressors=
+	** 
+	** If not defined, this defaults to '["zlib"]'.
+	const Str[] compressors
+	
+	** The compression level (0 - 9) to use with zlib (0 = No compression, 1 = Best speed, 9 = Best compression). 
+	** 
+	** 'null' indicates a default value will be used. 
+	** 
+	**   mongodb://example.com/puppies?zlibCompressionLevel=8
+	const Int? zlibCompressionLevel
+
 	** Parses a Mongo Connection URL.
 	new fromUrl(Uri connectionUrl) {
 		if (connectionUrl.scheme != "mongodb")
@@ -124,21 +147,27 @@ const class MongoConnUrl {
 		authMech				:= mongoUrl.query["authMechanism"]?.trimToNull
 		authMechProps			:= mongoUrl.query["authMechanismProperties"]?.trimToNull
 		appName					:= mongoUrl.query["appname"]?.trimToNull
+		compressors				:= mongoUrl.query["compressors"]?.split(',')?.exclude { it.isEmpty || it.size > 64 } as Str[]
+		zlibCompressionLevel	:= mongoUrl.query["zlibCompressionLevel"]?.toInt(10, false)
 
 		if (minPoolSize < 0)
-			throw ArgErr(errMsg_badInt("minPoolSize", "zero", minPoolSize, mongoUrl))
+			throw ArgErr(errMsg_intTooSmall("minPoolSize", "0", minPoolSize, mongoUrl))
 		if (maxPoolSize < 1)
-			throw ArgErr(errMsg_badInt("maxPoolSize", "one", maxPoolSize, mongoUrl))
+			throw ArgErr(errMsg_intTooSmall("maxPoolSize", "1", maxPoolSize, mongoUrl))
 		if (minPoolSize > maxPoolSize)
 			throw ArgErr(errMsg_badMinMaxConnectionSize(minPoolSize, maxPoolSize, mongoUrl))		
 		if (waitQueueTimeoutMs != null && waitQueueTimeoutMs < 0)
-			throw ArgErr(errMsg_badInt("waitQueueTimeoutMS", "zero", waitQueueTimeoutMs, mongoUrl))
+			throw ArgErr(errMsg_intTooSmall("waitQueueTimeoutMS", "0", waitQueueTimeoutMs, mongoUrl))
 		if (connectTimeoutMs != null && connectTimeoutMs < 0)
-			throw ArgErr(errMsg_badInt("connectTimeoutMS", "zero", connectTimeoutMs, mongoUrl))
+			throw ArgErr(errMsg_intTooSmall("connectTimeoutMS", "0", connectTimeoutMs, mongoUrl))
 		if (socketTimeoutMs != null && socketTimeoutMs < 0)
-			throw ArgErr(errMsg_badInt("socketTimeoutMS", "zero", socketTimeoutMs, mongoUrl))
+			throw ArgErr(errMsg_intTooSmall("socketTimeoutMS", "0", socketTimeoutMs, mongoUrl))
 		if (wtimeoutMs != null && wtimeoutMs < 0)
-			throw ArgErr(errMsg_badInt("wtimeoutMS", "zero", wtimeoutMs, mongoUrl))
+			throw ArgErr(errMsg_intTooSmall("wtimeoutMS", "0", wtimeoutMs, mongoUrl))
+		if (zlibCompressionLevel != null && zlibCompressionLevel < -1)
+			throw ArgErr(errMsg_intTooSmall("zlibCompressionLevel", "-1", zlibCompressionLevel, mongoUrl))
+		if (zlibCompressionLevel != null && zlibCompressionLevel > 9)
+			throw ArgErr(errMsg_intTooLarge("zlibCompressionLevel", "9", zlibCompressionLevel, mongoUrl))
 
 		if (waitQueueTimeoutMs != null)
 			waitQueueTimeout = (waitQueueTimeoutMs * 1_000_000).toDuration
@@ -215,6 +244,12 @@ const class MongoConnUrl {
 			this.appName	= appName
 		}
 		
+		validCompressors := Str["zlib"]
+		this.compressors = compressors?.findAll { validCompressors.contains(it) } ?: validCompressors
+		if (zlibCompressionLevel == -1)
+			zlibCompressionLevel = null
+		this.zlibCompressionLevel	= zlibCompressionLevel
+		
 		query := mongoUrl.query.rw
 		query.remove("minPoolSize")
 		query.remove("maxPoolSize")
@@ -235,8 +270,12 @@ const class MongoConnUrl {
 		}
 	}
 
-	private static Str errMsg_badInt(Str what, Str min, Int val, Uri mongoUrl) {
-		"$what must be greater than $min! val=$val, uri=$mongoUrl"
+	private static Str errMsg_intTooSmall(Str what, Str min, Int val, Uri mongoUrl) {
+		"$what must be >= $min, val=$val, uri=$mongoUrl"
+	}
+
+	private static Str errMsg_intTooLarge(Str what, Str min, Int val, Uri mongoUrl) {
+		"$what must be <= $min, val=$val, uri=$mongoUrl"
 	}
 	
 	private static Str errMsg_badMinMaxConnectionSize(Int min, Int max, Uri mongoUrl) {

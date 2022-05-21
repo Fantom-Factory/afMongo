@@ -4,14 +4,16 @@ internal class MongoSafari {
 	private const Uri	connectionUrl
 	private const Bool	ssl
 	private const Str?	appName
+	private const Str[]	compressors
 	
 	new make(MongoConnUrl mongoConnUrl, Log log) {
 		this.connectionUrl	= mongoConnUrl.connectionUrl
 		this.ssl			= mongoConnUrl.tls
 		this.appName		= mongoConnUrl.appName
+		this.compressors	= mongoConnUrl.compressors
 		this.log			= log
 	}
-	
+
 	** (Advanced)
 	** Searches the replica set for the Master node and instructs all new connections to connect to it.
 	** Throws an 'Err' if a primary can not be found. 
@@ -19,7 +21,7 @@ internal class MongoSafari {
 	** This method should be followed with a call to 'emptyPool()'.  
 	MongoHostDetails huntThePrimary() {
 		hg		:= connectionUrl.host.split(',')
-		hostList := (Mongo4x4[]) hg.map { Mongo4x4(it, ssl, appName, log) }
+		hostList := (Mongo4x4[]) hg.map { Mongo4x4(it, ssl, appName, compressors, log) }
 		hostList.last.port = connectionUrl.port ?: 27017
 		hosts	:= Str:Mongo4x4[:] { it.ordered=true }.addList(hostList) { it.host }
 		
@@ -38,7 +40,7 @@ internal class MongoSafari {
 			// assume if it's been contacted, it's not the primary - cos we would have returned it already
 			if (hd.primary != null && hosts[hd.primary]?.contacted != true) {
 				if (hosts[hd.primary] == null) 
-					hosts[hd.primary] = Mongo4x4(hd.primary, ssl, appName, log)
+					hosts[hd.primary] = Mongo4x4(hd.primary, ssl, appName, compressors, log)
 				if (hosts[hd.primary].populate.isPrimary)
 					return hosts[hd.primary]
 			}
@@ -53,7 +55,7 @@ internal class MongoSafari {
 			hostList.each |hd| {
 				hd.hosts.each {
 					if (hosts[it] == null)
-						hosts[it] = Mongo4x4(it, ssl, appName, log)
+						hosts[it] = Mongo4x4(it, ssl, appName, compressors, log)
 				}
 			}
 
@@ -76,18 +78,19 @@ internal class Mongo4x4 {
 	Int		port
 	Bool	ssl
 	Str?	appName
-//	Str[]	compression
+	Str[]	compressors
 	Log		log
 
 	MongoHostDetails?	hostDetails
 	
-	new make(Str addr, Bool ssl, Str? appName, Log log) {
+	new make(Str addr, Bool ssl, Str? appName, Str[] compressors, Log log) {
 		uri	:= `//${addr}`
-		this.address	= uri.host ?: "127.0.0.1"
-		this.port		= uri.port ?: 27017
-		this.ssl		= ssl
-		this.appName	= appName
-		this.log		= log
+		this.address		= uri.host ?: "127.0.0.1"
+		this.port			= uri.port ?: 27017
+		this.ssl			= ssl
+		this.appName		= appName
+		this.compressors	= compressors
+		this.log			= log
 	}
 	
 	This populate() {
@@ -107,14 +110,14 @@ internal class Mongo4x4 {
 			client["application"]	= Str:Obj?["name" : appName]
 
 		try {
-//			connection.log.level = LogLevel.debug
+			connection.log.level = LogLevel.debug
 			connection.connect(address, port)
 			
 			// I have a feeling, the "hello" cmd only works via OP_MSG on Mongo v4.4 or later
 			// so lets keep it running the legacy "isMaster" until I migrate my prod databases
-			details	:= MongoOp(connection).runCommand("admin", map.add("isMaster", 1).add("client", client), false)
+			details	:= MongoOp(connection).runCommand("admin", map.add("isMaster", 1).add("client", client).add("compression", compressors), false)
 			if (details["ok"] != 1f)
-				details		= MongoOp(connection).runCommand("admin", map.add("hello", 1).add("client", client), false)
+				details		= MongoOp(connection).runCommand("admin", map.add("hello", 1).add("client", client).add("compression", compressors), false)
 		
 			this.hostDetails = MongoHostDetails(mongoUrl, details)
 			

@@ -50,11 +50,11 @@ internal class TestMongoConnUrl : Test {
 	}
 	
 	Void testMongoUriPoolOptions() {
-		verifyErrMsg(ArgErr#, "minPoolSize must be greater than zero! val=-1, uri=mongodb://wotever?minPoolSize=-1") {
+		verifyErrMsg(ArgErr#, "minPoolSize must be >= 0, val=-1, uri=mongodb://wotever?minPoolSize=-1") {
 			conMgr := MongoConnUrl(`mongodb://wotever?minPoolSize=-1`)
 		}
 		
-		verifyErrMsg(ArgErr#, "maxPoolSize must be greater than one! val=0, uri=mongodb://wotever?maxPoolSize=0") {
+		verifyErrMsg(ArgErr#, "maxPoolSize must be >= 1, val=0, uri=mongodb://wotever?maxPoolSize=0") {
 			conMgr := MongoConnUrl(`mongodb://wotever?maxPoolSize=0`)
 		}
 		
@@ -62,7 +62,7 @@ internal class TestMongoConnUrl : Test {
 			conMgr := MongoConnUrl(`mongodb://wotever?minPoolSize=2&maxPoolSize=1`)
 		}
 		
-		verifyErrMsg(ArgErr#, "waitQueueTimeoutMS must be greater than zero! val=-1, uri=mongodb://wotever?waitQueueTimeoutMS=-1") {
+		verifyErrMsg(ArgErr#, "waitQueueTimeoutMS must be >= 0, val=-1, uri=mongodb://wotever?waitQueueTimeoutMS=-1") {
 			conMgr := MongoConnUrl(`mongodb://wotever?waitQueueTimeoutMS=-1`)
 		}
 
@@ -74,11 +74,11 @@ internal class TestMongoConnUrl : Test {
 	}
 
 	Void testMongoUriConnectionOptions() {
-		verifyErrMsg(ArgErr#, "connectTimeoutMS must be greater than zero! val=-1, uri=mongodb://wotever?connectTimeoutMS=-1") {
+		verifyErrMsg(ArgErr#, "connectTimeoutMS must be >= 0, val=-1, uri=mongodb://wotever?connectTimeoutMS=-1") {
 			conMgr := MongoConnUrl(`mongodb://wotever?connectTimeoutMS=-1`)
 		}
 		
-		verifyErrMsg(ArgErr#, "socketTimeoutMS must be greater than zero! val=-1, uri=mongodb://wotever?socketTimeoutMS=-1") {
+		verifyErrMsg(ArgErr#, "socketTimeoutMS must be >= 0, val=-1, uri=mongodb://wotever?socketTimeoutMS=-1") {
 			conMgr := MongoConnUrl(`mongodb://wotever?socketTimeoutMS=-1`)
 		}
 		
@@ -103,7 +103,7 @@ internal class TestMongoConnUrl : Test {
 		verifyEq(conMgr.connectionUrl.port,		44444)
 
 		hg := conMgr.connectionUrl.host.split(',')
-		hostList := (Mongo4x4[]) hg.map { Mongo4x4(it, false, null, this.typeof.pod.log) }
+		hostList := (Mongo4x4[]) hg.map { Mongo4x4(it, false, null, [,], this.typeof.pod.log) }
 		hostList.last.port = conMgr.connectionUrl.port ?: 27017
 		verifyEq(hostList[0].address,	"ds999999-a0.mlab.com")
 		verifyEq(hostList[0].port, 		55555)
@@ -150,5 +150,43 @@ internal class TestMongoConnUrl : Test {
 
 		conMgr	= MongoConnUrl(`mongodb://wotever?appname=someVeryLongApplicationNameThatShouldExceedOneHundredAndTwentyEightBytesBecauseThatWouldCauseItToBeTruncatedTherebyCreatingAValidTest`)
 		verifyEq(conMgr.appName, "someVeryLongApplicationNameThatShouldExceedOneHundredAndTwentyEightBytesBecauseThatWouldCauseItToBeTruncatedTherebyCreatingAVali")
-	}	
+	}
+	
+	Void testCompressors() {
+		conMgr	:= MongoConnUrl(`mongodb://wotever`)
+		verifyEq(conMgr.compressors, ["zlib"])
+	
+		conMgr	= MongoConnUrl(`mongodb://wotever?compressors=`)
+		verifyEq(conMgr.compressors, Str[,])
+		
+		conMgr	= MongoConnUrl(`mongodb://wotever?compressors=snappy, zlib`)
+		verifyEq(conMgr.compressors, ["zlib"])
+		
+		conMgr	= MongoConnUrl(`mongodb://wotever`)
+		verifyEq(conMgr.zlibCompressionLevel, null)
+	
+		conMgr	= MongoConnUrl(`mongodb://wotever?zlibCompressionLevel`)
+		verifyEq(conMgr.zlibCompressionLevel, null)
+	
+		conMgr	= MongoConnUrl(`mongodb://wotever?zlibCompressionLevel=-1`)
+		verifyEq(conMgr.zlibCompressionLevel, null)
+	
+		conMgr	= MongoConnUrl(`mongodb://wotever?zlibCompressionLevel=0`)
+		verifyEq(conMgr.zlibCompressionLevel, 0)
+	
+		conMgr	= MongoConnUrl(`mongodb://wotever?zlibCompressionLevel=6`)
+		verifyEq(conMgr.zlibCompressionLevel, 6)
+	
+		conMgr	= MongoConnUrl(`mongodb://wotever?zlibCompressionLevel=9`)
+		verifyEq(conMgr.zlibCompressionLevel, 9)
+		
+		verifyErrMsg(ArgErr#, "zlibCompressionLevel must be >= -1, val=-2, uri=mongodb://wotever?zlibCompressionLevel=-2") {
+			conMgr = MongoConnUrl(`mongodb://wotever?zlibCompressionLevel=-2`)
+		}
+	
+		verifyErrMsg(ArgErr#, "zlibCompressionLevel must be <= 9, val=10, uri=mongodb://wotever?zlibCompressionLevel=10") {
+			conMgr = MongoConnUrl(`mongodb://wotever?zlibCompressionLevel=10`)
+		}
+	
+	}
 }

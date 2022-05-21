@@ -35,6 +35,8 @@ using concurrent::ActorPool
 **  - 'authMechanism'
 **  - 'authMechanismProperties'
 **  - 'appname'
+**  - 'compressors'
+**  - 'zlibCompressionLevel'
 ** 
 ** URL examples:
 **  - 'mongodb://username:password@example1.com/database?maxPoolSize=50'
