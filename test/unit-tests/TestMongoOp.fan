@@ -141,7 +141,7 @@ internal class MongoConnStub : MongoConn {
 	override Int?		zlibCompressionLevel
 	
 	Buf	inBuf	:= Buf() { it.endian = Endian.little }
-	Buf outBuf	:= Buf()
+	Buf outBuf	:= Buf() { it.endian = Endian.little }
 	
 	new make() {
 		MongoOp.resetReqIdSeq
@@ -149,6 +149,7 @@ internal class MongoConnStub : MongoConn {
 	
 	This writeI1(Int i1)		{ inBuf.write(i1);					return this }
 	This writeI4(Int i4)		{ inBuf.writeI4(i4);				return this }
+	This writeBuf(Buf buf)		{ inBuf.writeBuf(buf);				return this }
 	This writeDoc(Str:Obj? doc)	{ BsonIO().writeDoc(doc, inBuf);	return this }
 	This flip()					{ inBuf.flip;						return this }
 	This writePreamble()		{

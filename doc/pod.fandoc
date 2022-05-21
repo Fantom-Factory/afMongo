@@ -9,6 +9,7 @@ Mongo driver features:
  - Support for Replica Set connection URLs
  - Pooled Connection Manager for multi-threaded use and automatic connection fail over
  - Pluggable authentication with a default [SCRAM-SHA-1 over SASL]`http://www.alienfactory.co.uk/articles/mongodb-scramsha1-over-sasl` implementation
+ - 'zlib' message compression
 
 Mongo API features:
 

@@ -7,6 +7,8 @@ using afBson::BsonIO
 ** @see `https://github.com/mongodb/specifications/blob/master/source/compression/OP_COMPRESSED.rst`
 @NoDoc	// advanced use only
 class MongoOp {
+	private static const Int		OP_COMPRESSED		:= 2012
+	private static const Int		OP_MSG				:= 2013
 	private static const AtomicInt	reqIdSeq			:= AtomicInt(0)
 	private static const Str[]		uncompressibleCmds	:= "hello isMaster saslStart saslContinue getnonce authenticate createUser updateUser copydbSaslStart copydbgetnonce copydb".split
 	private static const Str:Int	compressorIds		:= Str:Int[
@@ -85,10 +87,10 @@ class MongoOp {
 			// write std MsgHeader
 			conOut.writeI4(16 + 9 + zipBuf.size)
 			conOut.writeI4(reqId)
-			conOut.writeI4(0)			// resId
-			conOut.writeI4(2012)		// OP_COMPRESSED opCode
+			conOut.writeI4(0)				// resId
+			conOut.writeI4(OP_COMPRESSED)	// OP_COMPRESSED opCode
 			
-			conOut.writeI4(2013)		// OP_MSG opCode
+			conOut.writeI4(OP_MSG)		// OP_MSG opCode
 			conOut.writeI4(msgBuf.size)	// uncompresses size
 			conOut.write(compId)		// Compressor ID
 			conOut.writeBuf(zipBuf)
@@ -100,7 +102,7 @@ class MongoOp {
 			conOut.writeI4(16 + msgBuf.size)
 			conOut.writeI4(reqId)
 			conOut.writeI4(0)			// resId
-			conOut.writeI4(2013)		// OP_MSG opCode
+			conOut.writeI4(OP_MSG)		// OP_MSG opCode
 
 			conOut.writeBuf(msgBuf)
 		}
@@ -121,7 +123,7 @@ class MongoOp {
 		if (reqId2 != reqId)
 			throw Err("Bad Mongo response, returned RequestID (${reqId2}) does NOT match sent RequestID (${reqId})")
 		
-		if (opCode == 2012) {
+		if (opCode == OP_COMPRESSED) {
 			opCode	 = in.readU4	// original opCode
 			unSize	:= in.readU4	// uncompressed size
 			compId	:= in.read		// compressor ID
@@ -141,8 +143,8 @@ class MongoOp {
 			}
 		}
 		
-		if (opCode != 2013)
-			throw Err("Bad Mongo response, expected OP_MSG (2013), not: ${opCode}")
+		if (opCode != OP_MSG)
+			throw Err("Bad Mongo response, expected OP_MSG (${OP_MSG}), not: ${opCode}")
 		
 		
 		// read OP_MSG

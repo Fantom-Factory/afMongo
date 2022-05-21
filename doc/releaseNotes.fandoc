@@ -4,7 +4,8 @@ A complete re-write from the ground up. Optimised to work with Mongo's stable AP
 
 v2.0.2
 ======
- - New: 'appname' is now supported in Mongo connection URLs and passed to MongoDB during handshakes.
+ - New: 'zlib' msg compression is now supported via the 'OP_COMPRESSION' cmd.
+ - New: 'appname' is now supported in Mongo connection URLs and passed to MongoDB handshakes.
 
 v2.0.0
 ======
