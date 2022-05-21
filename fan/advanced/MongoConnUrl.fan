@@ -16,6 +16,7 @@
 **  - 'authSource'
 **  - 'authMechanism'
 **  - 'authMechanismProperties'
+**  - 'appname'
 ** 
 ** URL examples:
 **  - 'mongodb://username:password@example1.com/database?maxPoolSize=50'
@@ -97,6 +98,12 @@ const class MongoConnUrl {
 		"SCRAM-SHA-1"	: MongoAuthScramSha1(),
 	]
 	
+	** The application name this client identifies itself to the MongoDB server as.
+	** Used by MongoDB when logging.
+	** 
+	**   mongodb://example.com/puppies?appname=WattsApp
+	const Str? appName
+	
 	** Parses a Mongo Connection URL.
 	new fromUrl(Uri connectionUrl) {
 		if (connectionUrl.scheme != "mongodb")
@@ -116,6 +123,7 @@ const class MongoConnUrl {
 		authSource				:= mongoUrl.query["authSource"]?.trimToNull
 		authMech				:= mongoUrl.query["authMechanism"]?.trimToNull
 		authMechProps			:= mongoUrl.query["authMechanismProperties"]?.trimToNull
+		appName					:= mongoUrl.query["appname"]?.trimToNull
 
 		if (minPoolSize < 0)
 			throw ArgErr(errMsg_badInt("minPoolSize", "zero", minPoolSize, mongoUrl))
@@ -198,6 +206,15 @@ const class MongoConnUrl {
 		if (writeConcern.size > 0)
 			this.writeConcern = writeConcern
 
+		if (appName != null) {
+			// appName cannot exceed 128 bytes
+			// https://github.com/mongodb/specifications/blob/master/source/mongodb-handshake/handshake.rst#limitations
+			// I know this check is for chars but I'm guessing the reasoning is to just prevent inappropriate hacking attempts
+			if (appName.size > 128)
+				appName 	= appName[0..<128]
+			this.appName	= appName
+		}
+		
 		query := mongoUrl.query.rw
 		query.remove("minPoolSize")
 		query.remove("maxPoolSize")
@@ -212,6 +229,7 @@ const class MongoConnUrl {
 		query.remove("authSource")
 		query.remove("authMechanism")
 		query.remove("authMechanismProperties")
+		query.remove("appname")
 		query.each |val, key| {
 			log.warn("Unknown option in Mongo connection URL: ${key}=${val}")
 		}

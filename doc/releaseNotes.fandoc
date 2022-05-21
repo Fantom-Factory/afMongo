@@ -2,6 +2,10 @@ v2.0
 ****
 A complete re-write from the ground up. Optimised to work with Mongo's stable API v1, as introduced in Mongo 5.2.
 
+v2.0.2
+======
+ - New: 'appname' is now supported in Mongo connection URLs and passed to MongoDB during handshakes.
+
 v2.0.0
 ======
  - New: Everything!

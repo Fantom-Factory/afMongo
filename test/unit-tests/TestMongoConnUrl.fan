@@ -103,13 +103,13 @@ internal class TestMongoConnUrl : Test {
 		verifyEq(conMgr.connectionUrl.port,		44444)
 
 		hg := conMgr.connectionUrl.host.split(',')
-		hostList := (HostDetails[]) hg.map { HostDetails(it, false, this.typeof.pod.log) }
+		hostList := (HostDetails[]) hg.map { HostDetails(it, false, null, this.typeof.pod.log) }
 		hostList.last.port = conMgr.connectionUrl.port ?: 27017
 		verifyEq(hostList[0].address,	"ds999999-a0.mlab.com")
 		verifyEq(hostList[0].port, 		55555)
 		verifyEq(hostList[1].address,	"ds999999-a1.mlab.com")
 		verifyEq(hostList[1].port, 		44444)
-	}	
+	}
 	
 	Void testWriteConcern() {
 		// test default
@@ -140,4 +140,15 @@ internal class TestMongoConnUrl : Test {
 
 		verify(logs.isEmpty)
 	}
+	
+	Void testAppName() {
+		conMgr	:= MongoConnUrl(`mongodb://wotever?appname=`)
+		verifyEq(conMgr.appName, null)
+
+		conMgr	= MongoConnUrl(`mongodb://wotever?appname=WattsApp`)
+		verifyEq(conMgr.appName, "WattsApp")
+
+		conMgr	= MongoConnUrl(`mongodb://wotever?appname=someVeryLongApplicationNameThatShouldExceedOneHundredAndTwentyEightBytesBecauseThatWouldCauseItToBeTruncatedTherebyCreatingAValidTest`)
+		verifyEq(conMgr.appName, "someVeryLongApplicationNameThatShouldExceedOneHundredAndTwentyEightBytesBecauseThatWouldCauseItToBeTruncatedTherebyCreatingAVali")
+	}	
 }

@@ -102,7 +102,7 @@ const class MongoConnMgrPool : MongoConnMgr {
 		connection := checkOut
 		try {
 			return c(connection)
-			
+	
 		} catch (IOErr e) {
 			err := e as Err
 			connection.close
@@ -202,7 +202,7 @@ const class MongoConnMgrPool : MongoConnMgr {
 	** 
 	** This method should be followed with a call to 'emptyPool()'.  
 	Void huntThePrimary() {
-		mongoUrl := MongoSafari(mongoConnUrl.connectionUrl, mongoConnUrl.tls, log).huntThePrimary
+		mongoUrl := MongoSafari(mongoConnUrl, log).huntThePrimary
 
 		mongoUrlRef.val = mongoUrl
 		isConnectedToMasterRef.val = true
