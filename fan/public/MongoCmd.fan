@@ -89,7 +89,7 @@ class MongoCmd {
 	** Executes this cmd on the MongoDB server, and returns the response as a BSON document.
 	Str:Obj? run(Bool checked := true) {
 		doc := (Str:Obj?) connMgr.leaseConn |con->Str:Obj?| {
-			MongoOp(con).runCommand(dbName, cmd, checked)
+			MongoOp(con, cmd).runCommand(dbName, checked)
 		}
 		return doc
 	}

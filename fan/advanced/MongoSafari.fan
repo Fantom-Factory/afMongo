@@ -1,4 +1,6 @@
 
+** MongoDB Handshake:
+** https://github.com/mongodb/specifications/blob/master/source/mongodb-handshake/handshake.rst
 internal class MongoSafari {
 	private const Log	log
 	private const Uri	connectionUrl
@@ -67,9 +69,12 @@ internal class MongoSafari {
 		if (primary == null)
 			throw Err("Could not find the primary node with RelicaSet connection URL ${connectionUrl}")
 
+		hostDetails := primary.hostDetails
+		compressors	:= hostDetails.compression.isEmpty ? ["NONE"] : hostDetails.compression
 		log.info("Found a new Master at ${primary.mongoUrl}")
+		log.info("Negotiated compressor = " + compressors.join(","))
 		
-		return primary.hostDetails
+		return hostDetails
 	}
 }
 
@@ -115,9 +120,12 @@ internal class Mongo4x4 {
 			
 			// I have a feeling, the "hello" cmd only works via OP_MSG on Mongo v4.4 or later
 			// so lets keep it running the legacy "isMaster" until I migrate my prod databases
-			details	:= MongoOp(connection).runCommand("admin", map.add("isMaster", 1).add("client", client).add("compression", compressors), false)
-			if (details["ok"] != 1f)
-				details		= MongoOp(connection).runCommand("admin", map.add("hello", 1).add("client", client).add("compression", compressors), false)
+			cmd		:= map.add("isMaster", 1).add("client", client).add("compression", compressors)
+			details	:= MongoOp(connection, cmd).runCommand("admin", false)
+			if (details["ok"] != 1f) {
+				cmd		= map.add("hello", 1).add("client", client).add("compression", compressors)
+				details	= MongoOp(connection, cmd).runCommand("admin", false)
+			}
 		
 			this.hostDetails = MongoHostDetails(mongoUrl, details)
 			

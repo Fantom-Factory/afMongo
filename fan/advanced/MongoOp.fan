@@ -4,33 +4,37 @@ using afBson::BsonIO
 ** Sends an 'OP_MSG' to the Mongo server.
 ** 
 ** @see `https://github.com/mongodb/specifications/blob/master/source/message/OP_MSG.rst`
+** @see `https://github.com/mongodb/specifications/blob/master/source/compression/OP_COMPRESSED.rst`
 @NoDoc	// advanced use only
 class MongoOp {
-	private static const AtomicInt	reqIdSeq	:= AtomicInt(0)
+	private static const AtomicInt	reqIdSeq			:= AtomicInt(0)
+	private static const Str[]		uncompressibleCmds	:= "hello isMaster saslStart saslContinue getnonce authenticate createUser updateUser copydbSaslStart copydbgetnonce copydb".split
+	private static const Str:Int	compressorIds		:= Str:Int[
+		"noop"		: 0,
+		"snappy"	: 1,
+		"zlib"		: 2,
+		"zstd"		: 3,
+	]
 
 	private Log			log
 	private MongoConn	conn
+	private Str:Obj?	cmd
+	private Str			cmdName
 
-	new make(MongoConn conn) {
-		this.conn	= conn
-		this.log	= conn.log
+	new make(MongoConn conn, Str:Obj? cmd) {
+		if (cmd.ordered == false)
+			throw ArgErr("Command Map is NOT ordered - this WILL (probably) result in a MongoDB error:\n${BsonIO().print(cmd)}")
+
+		this.conn		= conn
+		this.log		= conn.log
+		this.cmd		= cmd
+		this.cmdName	= cmd.keys.first
 	}
 
-	Str:Obj? runCommand(Str dbName, Str:Obj? cmd, Bool checked := true) {
-		if (cmd.ordered == false)
-			throw ArgErr("Command Map is NOT ordered - this WILL (probably) result in a MongoDB error: ${dbName} -> ${cmd}")
-		
-		cmdName	:= cmd.keys.first
-
+	Str:Obj? runCommand(Str dbName, Bool checked := true) {
 		// this guy can NOT come first! Else, ERR, "Unknown Cmd $db"
 		cmd["\$db"]	= dbName
 
-		reqId	:= reqIdSeq.incrementAndGet
-		out		:= conn.out
-		out.endian	= Endian.little
-		
-		// TODO support compression
-		// https://github.com/mongodb/specifications/blob/master/source/compression/OP_COMPRESSED.rst
 		
 		// TODO retryable writes
 		// https://github.com/mongodb/specifications/blob/master/source/retryable-writes/retryable-writes.rst
@@ -45,6 +49,13 @@ class MongoOp {
 		
 		// TODO retryable reads
 		// https://github.com/mongodb/specifications/blob/master/source/retryable-reads/retryable-reads.rst
+
+		reqId	:= reqIdSeq.incrementAndGet
+				writeRequest(reqId)
+		return	readResponse(reqId, checked)
+	}
+
+	private Void writeRequest(Int reqId) {
 		
 		if (log.isDebug) {
 			msg := "Mongo Req ($reqId):\n"
@@ -52,39 +63,89 @@ class MongoOp {
 			log.debug(msg)
 		}
 		
-		cmdBuf	:= BsonIO().writeDoc(cmd)	
-		msgSize	:= cmdBuf.size
-		
-		// write std header
-		out.writeI4(msgSize + 16 + 5)
-		out.writeI4(reqId)
-		out.writeI4(0)		// resId
-		out.writeI4(2013)	// OP_MSG opCode
+		msgBuf := Buf()
+		msgOut := msgBuf.out;	msgOut.endian = Endian.little
+		conOut := conn.out;		conOut.endian = Endian.little
 
 		// write OP_MSG
-		out.writeI4(0)		// flagBits - why would I set *any* of these!?
-		out.write(0)		// section payloadType == 0
-		out.writeBuf(cmdBuf.flip)
+		msgOut.writeI4(0)	// flagBits - why would I set *any* of these!?
+		msgOut.write(0)		// section payloadType == 0
+		BsonIO().writeDoc(cmd, msgBuf)
+		msgBuf.flip
+	
+		// compress the msg if we're able
+		if (conn.compressor == "zlib" && uncompressibleCmds.contains(cmdName) == false) {
+
+			compId := compressorIds[conn.compressor]
+			zipBuf := Buf(msgBuf.size /2) ; zipBuf.endian	= Endian.little
+			zipOpt := conn.zlibCompressionLevel == null ? null : Str:Obj?["level": conn.zlibCompressionLevel]
+			Zip.deflateOutStream(zipBuf.out, zipOpt).writeBuf(msgBuf).flush.close
+			zipBuf.flip
+
+			// write std MsgHeader
+			conOut.writeI4(16 + 9 + zipBuf.size)
+			conOut.writeI4(reqId)
+			conOut.writeI4(0)			// resId
+			conOut.writeI4(2012)		// OP_COMPRESSED opCode
+			
+			conOut.writeI4(2013)		// OP_MSG opCode
+			conOut.writeI4(msgBuf.size)	// uncompresses size
+			conOut.write(compId)		// Compressor ID
+			conOut.writeBuf(zipBuf)
+		}
 		
-		out.flush
+		else {
+			
+			// write std MsgHeader
+			conOut.writeI4(16 + msgBuf.size)
+			conOut.writeI4(reqId)
+			conOut.writeI4(0)			// resId
+			conOut.writeI4(2013)		// OP_MSG opCode
+
+			conOut.writeBuf(msgBuf)
+		}
 		
-		
+		conOut.flush
+	}
+	
+	private Str:Obj? readResponse(Int reqId, Bool checked) {
 		in			:= conn.in
 		in.endian	= Endian.little
 		
-		// read std header
-		msgSize	 = in.readU4
-		resId	:= in.readU4	// keep for logs
-
+		// read std MsgHeader
+		msgSize	:= in.readU4
+		resId	:= in.readU4		// keep for logs
 		reqId2	:= in.readU4
+		opCode	:= in.readU4
+	
 		if (reqId2 != reqId)
 			throw Err("Bad Mongo response, returned RequestID (${reqId2}) does NOT match sent RequestID (${reqId})")
 		
+		if (opCode == 2012) {
+			opCode	 = in.readU4	// original opCode
+			unSize	:= in.readU4	// uncompressed size
+			compId	:= in.read		// compressor ID
+			
+			if (compId == compressorIds["zlib"])
+				in = Zip.deflateInStream(in)
+			
+			else
+			if (compId == compressorIds["noop"])
+				{ /* noop */ }
+			
+			else {
+				algo := compressorIds.eachWhile |id, algo| { id == compId ? algo : null }
+				// we don't throw UnsupportedErr because we *should* have negotiated a valid compressor
+				// so this is an actual error
+				throw Err("Unsupported compression algorithm: ${compId}" + (algo == null ? "" : " (${algo})"))
+			}
+		}
 		
-		opCode	:= in.readU4
 		if (opCode != 2013)
 			throw Err("Bad Mongo response, expected OP_MSG (2013), not: ${opCode}")
 		
+		
+		// read OP_MSG
 		flagBits	:= in.readU4
 		if (flagBits != 0)
 			throw Err("Bad Mongo response, expected NO flags, but got: 0x${flagBits.toHex}")

@@ -58,12 +58,12 @@ internal const class MongoAuthScramSha1 : MongoAuthMech {
 		random			:= Random.makeSecure
 		clientNonce		:= Buf().writeI8(random.next).writeI8(random.next).toBase64
 		clientFirstMsg	:= "n=${creds.username},r=${clientNonce}"
-		serverFirstRes	:= MongoOp(conn).runCommand(creds.source, map
+		serverFirstRes	:= MongoOp(conn, map
 			.add("saslStart", 1)
 			.add("mechanism", "SCRAM-SHA-1")
 			.add("payload", Buf().print(gs2Header).print(clientFirstMsg))
 			.add("autoAuthorize", 1)
-		)
+		).runCommand(creds.source)
 		
 		conversationId	:=  (Int) serverFirstRes["conversationId"]
 		serverFirstMsg	:= ((Buf) serverFirstRes["payload"]).readAllStr
@@ -85,11 +85,11 @@ internal const class MongoAuthScramSha1 : MongoAuthMech {
 		clientFinal		:= "${clientFinalNoPf},p=${clientProof.toBase64}"
 		serverKey		:= "Server Key".toBuf.hmac("SHA-1", saltedPassword)
 		serverSignature	:= authMessage.toBuf.hmac("SHA-1", serverKey).toBase64
-		serverSecondRes := MongoOp(conn).runCommand(creds.source, map
+		serverSecondRes := MongoOp(conn, map
 			.add("saslContinue", 1)
 			.add("conversationId", conversationId)
 			.add("payload", Buf().print(clientFinal))
-		)
+		).runCommand(creds.source)
 		serverSecondMsg	:= ((Buf) serverSecondRes["payload"]).readAllStr
 		payloadValues	= Str:Str[:].addList(serverSecondMsg.split(',')) { it[0..<1] }.map { it[2..-1] }
 		serverProof		:= payloadValues["v"]
@@ -99,11 +99,11 @@ internal const class MongoAuthScramSha1 : MongoAuthMech {
 			throw Err("Mongo Server sent invalid SCRAM signature '${serverSignature}' - was expecting '${serverProof}'")
 
 		// ---- 3rd message ----
-		serverThirdRes := MongoOp(conn).runCommand(creds.source, map
+		serverThirdRes := MongoOp(conn, map
 			.add("saslContinue", 1)
 			.add("conversationId", conversationId)
 			.add("payload", Buf())
-		)
+		).runCommand(creds.source)
 		if (serverThirdRes["done"] != true)
 			throw Err("Mongo SCRAM authentication did not complete - ${serverThirdRes}")
 	}

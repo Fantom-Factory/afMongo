@@ -21,7 +21,15 @@ mixin MongoConn {
 	** Return 'true' if this socket is closed. 
 	abstract Bool		isClosed()
 	
+	** Has this connection been authenticated?
 	abstract Bool		isAuthenticated()
+	
+	** The preferred negotiated compressor supported by both the server and the driver.
+	** May be one of 'snappy, 'zlib', or 'zstd'.
+	abstract Str?		compressor
+	
+	** The compression level (0 - 9) to use with zlib.
+	abstract Int?		zlibCompressionLevel
 }
 
 ** Connects to MongoDB via an 'inet::TcpSocket'.
@@ -31,6 +39,8 @@ internal class MongoTcpConn : MongoConn {
 			 Uri?		mongoUrl			// used by MongoConnMgrPool
 			 Bool		forceCloseOnCheckIn	// used by MongoConnMgrPool
 	override Bool		isAuthenticated
+	override Str?		compressor
+	override Int?		zlibCompressionLevel
 	
 	** Allows you to pass in a TcpSocket with options already set.
 	new fromSocket(TcpSocket socket, Log log) {

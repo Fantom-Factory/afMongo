@@ -212,7 +212,9 @@ const class MongoConnMgrPool : MongoConnMgr {
 			state.connFactory = |->MongoConn| {
 				socket := newSocket
 				return MongoTcpConn(socket, log).connect(mongoUrl.host, mongoUrl.port) {
-					it.mongoUrl = mongoUrl
+					it.mongoUrl				= mongoUrl
+					it.compressor			= hostDetails.compression.first
+					it.zlibCompressionLevel	= this.mongoConnUrl.zlibCompressionLevel
 				}
 			} 
 		}
