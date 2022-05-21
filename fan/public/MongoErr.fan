@@ -27,7 +27,7 @@ const class MongoErr : Err {
 	}
 	
 	private Obj? errObj(Str name) {
-		errDoc[name] ?: errDoc["writeErrors"]?->first?->get(name)
+		errDoc[name] ?: (errDoc["writeErrors"] as [Str:Obj?][])?.first?.get(name)
 	}
 	
 	** Pretty print the err doc.

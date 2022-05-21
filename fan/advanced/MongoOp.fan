@@ -20,6 +20,8 @@ class MongoOp {
 		if (cmd.ordered == false)
 			throw ArgErr("Command Map is NOT ordered - this WILL (probably) result in a MongoDB error: ${dbName} -> ${cmd}")
 		
+		cmdName	:= cmd.keys.first
+
 		// this guy can NOT come first! Else, ERR, "Unknown Cmd $db"
 		cmd["\$db"]	= dbName
 
@@ -32,6 +34,17 @@ class MongoOp {
 		
 		// TODO retryable writes
 		// https://github.com/mongodb/specifications/blob/master/source/retryable-writes/retryable-writes.rst
+		// Write commands specifying an unacknowledged write concern (e.g. {w: 0})) do not support retryable behavior.
+		
+		// For server versions 4.4 and newer, the server will add a RetryableWriteError label to errors or server responses that it considers retryable 
+		
+		
+		// Generate session IDs ourselves! NO SERVER CALL NEEDED! good - 'cos it's not part of stable API
+		// https://github.com/mongodb/specifications/blob/master/source/sessions/driver-sessions.rst#generating-a-session-id-locally
+		// https://www.rfc-editor.org/rfc/rfc4122#page-14
+		
+		// TODO retryable reads
+		// https://github.com/mongodb/specifications/blob/master/source/retryable-reads/retryable-reads.rst
 		
 		if (log.isDebug) {
 			msg := "Mongo Req ($reqId):\n"
@@ -49,7 +62,7 @@ class MongoOp {
 		out.writeI4(2013)	// OP_MSG opCode
 
 		// write OP_MSG
-		out.writeI4(0)		// flagBits - why would I set *any* of them!?
+		out.writeI4(0)		// flagBits - why would I set *any* of these!?
 		out.write(0)		// section payloadType == 0
 		out.writeBuf(cmdBuf.flip)
 		
@@ -61,20 +74,24 @@ class MongoOp {
 		
 		// read std header
 		msgSize	 = in.readU4
-		reqId	 = in.readU4	// should be the same
 		resId	:= in.readU4	// keep for logs
-		opCode	:= in.readU4	// should be OP_MSG
+
+		reqId2	:= in.readU4
+		if (reqId2 != reqId)
+			throw Err("Bad Mongo response, returned RequestID (${reqId2}) does NOT match sent RequestID (${reqId})")
 		
+		
+		opCode	:= in.readU4
 		if (opCode != 2013)
-			throw Err("Bad Mongo response, expected OP_MSG (2013), not: $opCode")
+			throw Err("Bad Mongo response, expected OP_MSG (2013), not: ${opCode}")
 		
 		flagBits	:= in.readU4
 		if (flagBits != 0)
-			throw Err("Bad Mongo response, expected NO flags, but got: ${flagBits.toHex}")
+			throw Err("Bad Mongo response, expected NO flags, but got: 0x${flagBits.toHex}")
 		
 		payloadType	:= in.read
 		if (payloadType != 0)
-			throw Err("Bad Mongo response, expected payload type 0, not: $payloadType")
+			throw Err("Bad Mongo response, expected payload type 0, not: ${payloadType}")
 
 		resDoc	:= BsonIO().readDoc(in)
 		
@@ -86,7 +103,6 @@ class MongoOp {
 		
 		mongoErr	:= null as MongoErr
 		if (checked && resDoc["ok"] != 1f && resDoc["ok"] != 1) {
-			cmdName	:= cmd.keys.first
 			errMsg  := resDoc["errmsg"] as Str
 			msg		:= errMsg == null ? "Command '${cmdName}' failed" : "Command '${cmdName}' failed. MongoDB says: ${errMsg}"
 			
@@ -94,9 +110,8 @@ class MongoOp {
 		}
 		
 		if (checked && resDoc.containsKey("writeErrors")) {
-			cmdName	:= cmd.keys.first
 			wErrs	:= resDoc["writeErrors"] as [Str:Obj?][]	// yep - there can be many!
-			errMsg  := wErrs.first.get("errmsg") as Str
+			errMsg  := wErrs?.first?.get("errmsg") as Str
 			msg		:= errMsg == null ? "Command '${cmdName}' failed" : "Command '${cmdName}' failed. MongoDB says: ${errMsg}"
 			mongoErr = MongoErr(msg, resDoc)
 		}
@@ -105,14 +120,14 @@ class MongoOp {
 			// make a better err msg for duplicate index errors
 			errMsg	:= mongoErr.errMsg
 			if (errMsg != null && mongoErr.code == 11000) {
-				matcher1	:= ".+_([a-zA-Z0-9]+)_.+".toRegex.matcher(errMsg)
-				indexName	:= matcher1.find ? matcher1.group(1) : null
-				matcher2	:= "\\{ : (.+?\\\")".toRegex.matcher(errMsg)
-				keyValue	:= matcher2.find ? " ${matcher2.group(1)}" : null
+				// E11000 duplicate key error collection: afMongoTest.indexTest index: _data_ dup key: { data: 10 }
+				matcher1	:= "\\.([a-zA-Z0-9]+) index".toRegex.matcher(errMsg)
+				collName	:= matcher1.find ? matcher1.group(1) : null
+				matcher2	:= ": (\\{[^\\}]+\\})".toRegex.matcher(errMsg)
+				keyValue	:= matcher2.find ? matcher2.group(1) : null
 
-				if (indexName != null && keyValue != null) {
-					cmdName	:= cmd.keys.first
-					msg		:= "Command '${cmdName}' failed, ${indexName}${keyValue} is already in use"
+				if (collName != null && keyValue != null) {
+					msg		:= "Command '${cmdName}' failed, IndexKey ${collName} ${keyValue} is already in use"
 					mongoErr = MongoErr(msg, resDoc)
 				}
 			}
@@ -120,6 +135,11 @@ class MongoOp {
 		}
 
 		return resDoc
+	}
+	
+	** For testing.
+	static internal Void resetReqIdSeq() {
+		reqIdSeq.val = 0
 	}
 }
 
