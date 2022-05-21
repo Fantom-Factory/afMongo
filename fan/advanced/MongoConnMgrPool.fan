@@ -202,8 +202,8 @@ const class MongoConnMgrPool : MongoConnMgr {
 	** 
 	** This method should be followed with a call to 'emptyPool()'.  
 	Void huntThePrimary() {
-		mongoUrl := MongoSafari(mongoConnUrl, log).huntThePrimary
-
+		hostDetails := MongoSafari(mongoConnUrl, log).huntThePrimary
+		mongoUrl	:= database == null ? hostDetails.mongoUrl : hostDetails.mongoUrl.plusSlash.plusName(database) 
 		mongoUrlRef.val = mongoUrl
 		isConnectedToMasterRef.val = true
 
