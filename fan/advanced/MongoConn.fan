@@ -1,6 +1,5 @@
 using inet::IpAddr
 using inet::TcpSocket
-using util::Random
 
 ** Represents a connection to a MongoDB instance.
 @NoDoc	// advanced use only
@@ -26,32 +25,47 @@ mixin MongoConn {
 	
 	** The preferred negotiated compressor supported by both the server and the driver.
 	** May be one of 'snappy, 'zlib', or 'zstd'.
-	abstract Str?		compressor
+	abstract Str?		compressor()
 	
 	** The compression level (0 - 9) to use with zlib.
-	abstract Int?		zlibCompressionLevel
+	abstract Int?		zlibCompressionLevel()
+	
+	** Returns the Session associated with this connection.
+	** Sessions are checked out lazily.
+	internal
+	abstract MongoSess	getSession()
+
+	** Jailbreaks the attached MongoSession from this connection.
+	** Returns 'null' if the session has already been detached, or was never created.
+	internal
+	abstract MongoSess?	detachSession()
 }
 
 ** Connects to MongoDB via an 'inet::TcpSocket'.
 internal class MongoTcpConn : MongoConn {
-	override Log		log
-			 TcpSocket	socket
-			 Uri?		mongoUrl			// used by MongoConnMgrPool
-			 Bool		forceCloseOnCheckIn	// used by MongoConnMgrPool
-	override Bool		isAuthenticated
-	override Str?		compressor
-	override Int?		zlibCompressionLevel
+	override Log			log
+			 TcpSocket		socket
+			 Uri?			mongoUrl			// used by MongoConnMgrPool
+			 Bool			forceCloseOnCheckIn	// used by MongoConnMgrPool
+	override Bool			isAuthenticated
+	override Str?			compressor
+	override Int?			zlibCompressionLevel
+	private	 MongoSessPool?	sessPool
+	private	 MongoSess?		sess
 	
+	** Used by ConnPool
 	** Allows you to pass in a TcpSocket with options already set.
-	new fromSocket(TcpSocket socket, Log log) {
-		this.socket = socket
-		this.log	= log
+	new fromSocket(TcpSocket socket, Log log, MongoSessPool sessPool) {
+		this.socket 	= socket
+		this.log		= log
+		this.sessPool	= sessPool
 	}
 
+	** Used by MongoSafari
 	** Creates a new TCP Socket
 	new make(Bool ssl, Log log) {
-		this.socket = newSocket(ssl)
-		this.log	= log
+		this.socket 	= newSocket(ssl)
+		this.log		= log
 	}
 	
 	This connect(Str address, Int port) {
@@ -61,6 +75,22 @@ internal class MongoTcpConn : MongoConn {
 		}
 		catch (Err err)
 			throw IOErr("Could not connect to MongoDB at `${address}:${port}` - ${err.msg}", err)
+	}
+	
+	override MongoSess getSession() {
+		if (sess != null)
+			return sess
+		
+		if (sessPool == null)
+			throw Err("Wot no SessPool???")
+
+		return sess = sessPool.checkout
+	}
+
+	override MongoSess? detachSession() {
+		sess := this.sess
+		this.sess = null
+		return sess
 	}
 	
 	override InStream	in()		{ socket.in			}

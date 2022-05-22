@@ -16,7 +16,7 @@ class Build : BuildPod {
 		depends = [
 			"sys          1.0.71 - 1.0", 
 			"inet         1.0.71 - 1.0",
-			"util         1.0.71 - 1.0",	// for Random()
+			"util         1.0.71 - 1.0",	// for Random() in MongoAuthScramSha1
 			"concurrent   1.0.71 - 1.0",
 
 			// ---- Core ------------------------

@@ -139,7 +139,7 @@ internal class MongoConnStub : MongoConn {
 	override Bool		isAuthenticated	:= false	
 	override Str?		compressor
 	override Int?		zlibCompressionLevel
-	
+
 	Buf	inBuf	:= Buf() { it.endian = Endian.little }
 	Buf outBuf	:= Buf() { it.endian = Endian.little }
 	
@@ -160,6 +160,14 @@ internal class MongoConnStub : MongoConn {
 		writeI4(0)		// flagBits
 		writeI1(0)		// payloadType
 		return this
+	}
+
+	override MongoSess getSession() {
+		throw UnsupportedErr()
+	}
+
+	override MongoSess? detachSession() {
+		throw UnsupportedErr()
 	}
 
 	override InStream 	in()	{ inBuf.in }

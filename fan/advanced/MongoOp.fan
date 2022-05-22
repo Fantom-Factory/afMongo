@@ -17,6 +17,7 @@ class MongoOp {
 		"zlib"		: 2,
 		"zstd"		: 3,
 	]
+	private static const Str[]		nonSessionCmds		:= "hello isMaster saslStart saslContinue getnonce authenticate".split
 
 	private Log			log
 	private MongoConn	conn
@@ -29,7 +30,7 @@ class MongoOp {
 
 		this.conn		= conn
 		this.log		= conn.log
-		this.cmd		= cmd
+		this.cmd		= cmd.dup	// don't pollute the original cmd supplied by the user (this is a Mongo spec MUST)
 		this.cmdName	= cmd.keys.first
 	}
 
@@ -37,7 +38,12 @@ class MongoOp {
 		// this guy can NOT come first! Else, ERR, "Unknown Cmd $db"
 		cmd["\$db"]	= dbName
 
-		
+		// append session info
+		// FIXME check for unacknowledged writes
+		if (nonSessionCmds.contains(cmdName) == false)
+			cmd["lsid"]	= conn.getSession.sessionId
+
+
 		// TODO retryable writes
 		// https://github.com/mongodb/specifications/blob/master/source/retryable-writes/retryable-writes.rst
 		// Write commands specifying an unacknowledged write concern (e.g. {w: 0})) do not support retryable behavior.

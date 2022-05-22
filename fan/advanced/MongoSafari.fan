@@ -1,6 +1,9 @@
 
 ** MongoDB Handshake:
 ** https://github.com/mongodb/specifications/blob/master/source/mongodb-handshake/handshake.rst
+** 
+** Server Discovery And Monitoring:
+** https://github.com/mongodb/specifications/blob/master/source/server-discovery-and-monitoring/server-discovery-and-monitoring.rst
 internal class MongoSafari {
 	private const Log	log
 	private const Uri	connectionUrl
@@ -127,11 +130,13 @@ internal class Mongo4x4 {
 				details	= MongoOp(connection, cmd).runCommand("admin", false)
 			}
 		
-			this.hostDetails = MongoHostDetails(mongoUrl, details)
+			this.hostDetails = MongoHostDetails(mongoUrl, details, log)
 			
 		} catch (Err err)
 			// if a replica is down, simply log it and move onto the next one!
 			log.warn("Could not connect to Host ${address}:${port} :: ${err.typeof.name} - ${err.msg}", err)
+
+		finally	connection.close
 
 		return this
 	}
@@ -150,15 +155,16 @@ internal class Mongo4x4 {
 
 internal const class MongoHostDetails {
 
-	const Uri	mongoUrl
-	const Int	maxWireVer
-	const Str?	primary
-	const Bool	isPrimary
-	const Bool	isSecondary
-	const Str[]	hosts
-	const Str[]	compression
+	const Uri		mongoUrl
+	const Int		maxWireVer
+	const Str?		primary
+	const Bool		isPrimary
+	const Bool		isSecondary
+	const Str[]		hosts
+	const Str[]		compression
+	const Duration?	sessionTimeout
 	
-	new make(Uri mongoUrl, Str:Obj? details) {
+	new make(Uri mongoUrl, Str:Obj? details, Log log) {
 		this.mongoUrl		= mongoUrl
 		this.maxWireVer		= details["maxWireVersion"]
 		// "ismaster" for "isMaster" cmds, and "isWritablePrimary" for "hello" cmds.
@@ -166,12 +172,21 @@ internal const class MongoHostDetails {
 		this.isSecondary	= details["secondary"] == true
 		this.primary		= details["primary"]					// standalone instances don't have primary information
 		this.hosts			= details["hosts"] 			?: Str#.emptyList	// standalone instances don't have hosts information
-		this.compression	= details["compression"]	?: Str#.emptyList	
+		this.compression	= details["compression"]	?: Str#.emptyList
+		sessionTimeout		:= details["logicalSessionTimeoutMinutes"] as Int
+		if (sessionTimeout != null)
+			this.sessionTimeout	= 1min * sessionTimeout
+		
+		if (maxWireVer < 6)
+			log.warn("Host ${mongoUrl} does NOT support Wire Version 6 (maxWireVersion : ${maxWireVer}), ignoring host")
+		else
+		if (sessionTimeout == null)
+			log.warn("Host ${mongoUrl} does NOT support Logical Sessions, ignoring host")
 	}
 	
 	Bool isValid() {
-		// 6 supports OP_MSGs == MongoDB 3.6
+		// WireVer 6 supports OP_MSGs == MongoDB 3.6
 		// https://github.com/mongodb/specifications/blob/master/source/wireversion-featurelist.rst
-		maxWireVer >= 6
+		maxWireVer >= 6 && sessionTimeout != null && sessionTimeout > 0min
 	}
 }

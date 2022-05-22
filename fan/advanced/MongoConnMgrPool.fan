@@ -16,6 +16,7 @@ const class MongoConnMgrPool : MongoConnMgr {
 	private const AtomicBool 		isConnectedToMasterRef	:= AtomicBool(false)
 	private const Synchronized		failOverThread
 	private const SynchronizedState connectionState
+	private const MongoSessPool		sessPool	
 
 	** The host name of the MongoDB server this 'ConnectionManager' connects to.
 	** When connecting to replica sets, this will indicate the primary.
@@ -50,6 +51,7 @@ const class MongoConnMgrPool : MongoConnMgr {
 		this.connectionState	= SynchronizedState(actorPool, MongoConnMgrPoolState#)
 		this.mongoConnUrl		= MongoConnUrl(connectionUrl)
 		this.failOverThread		= connectionState.lock
+		this.sessPool			= MongoSessPool()
 		this.log				= log ?: MongoConnMgrPool#.pod.log
 
 		// allow the it-block to override the default settings
@@ -105,6 +107,8 @@ const class MongoConnMgrPool : MongoConnMgr {
 	
 		} catch (IOErr e) {
 			err := e as Err
+			
+			connection.getSession.markDirty
 			connection.close
 
 			// that shitty MongoDB Atlas doesn't tell us when the master has changed 
@@ -122,6 +126,8 @@ const class MongoConnMgrPool : MongoConnMgr {
 			throw err
 			
 		} catch (Err err) {
+			connection.getSession.markDirty
+
 			// if something dies, kill the connection.
 			// we may have died part way through talking with the server meaning our communication 
 			// protocols are out of sync - rendering any future use of the connection useless.
@@ -172,6 +178,11 @@ const class MongoConnMgrPool : MongoConnMgr {
 			}.get
 		}
 		
+		// one last call to the server to end all sessions
+		conn := MongoTcpConn(newSocket, log, sessPool).connect(mongoUrl.host, mongoUrl.port)
+		try		sessPool.shutdown(conn)
+		finally	conn.close
+
 		return this
 	}
 	
@@ -205,19 +216,22 @@ const class MongoConnMgrPool : MongoConnMgr {
 		hostDetails := MongoSafari(mongoConnUrl, log).huntThePrimary
 		mongoUrl	:= database == null ? hostDetails.mongoUrl : hostDetails.mongoUrl.plusSlash.plusName(database) 
 		mongoUrlRef.val = mongoUrl
-		isConnectedToMasterRef.val = true
 
+		// keep track of the new logical session timeout
+		sessPool.sessionTimeout = hostDetails.sessionTimeout
+		
 		// set our connection factory
 		connectionState.sync |MongoConnMgrPoolState state| {
 			state.connFactory = |->MongoConn| {
-				socket := newSocket
-				return MongoTcpConn(socket, log).connect(mongoUrl.host, mongoUrl.port) {
+				return MongoTcpConn(newSocket, log, sessPool).connect(mongoUrl.host, mongoUrl.port) {
 					it.mongoUrl				= mongoUrl
 					it.compressor			= hostDetails.compression.first
 					it.zlibCompressionLevel	= this.mongoConnUrl.zlibCompressionLevel
 				}
 			} 
 		}
+
+		isConnectedToMasterRef.val = true
 	}
 	
 	** Retain backwards compatibility with all recent versions of Fantom.
@@ -338,6 +352,7 @@ const class MongoConnMgrPool : MongoConnMgr {
 		// ensure all connections are authenticated
 		mongoCreds := mongoConnUrl.mongoCreds
 		if (mongoCreds != null && connection.isAuthenticated == false) {
+			// Note - Sessions CAN NOT be used if a conn has multiple authentications
 			mongoConnUrl.authMechs[mongoCreds.mechanism].authenticate(connection, mongoCreds)
 			connection.isAuthenticated = true
 		}
@@ -352,6 +367,9 @@ const class MongoConnMgrPool : MongoConnMgr {
 			conn := (MongoTcpConn) unsafeConnection.val
 			state.checkedOut.removeSame(conn)
 
+			// check the session back into the pool for future reuse 
+			sessPool.checkin(conn.detachSession)
+			
 			// make sure we don't save stale connections
 			if (!conn.isClosed) {
 				

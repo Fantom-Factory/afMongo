@@ -25,10 +25,6 @@ internal class TestScram : Test {
 	
 	Void testScramSha1() {
 		echo(Buf.fromBase64("dj1VTVdlSTI1SkQxeU5ZWlJNcFo0Vkh2aFo5ZTA9").readAllStr)
-		random			:= util::Random.makeSecure
-		clientNonce		:= Buf().writeI8(random.next).writeI8(random.next).toBase64
-		echo(clientNonce)
-		
 		
 		md:=Buf().print("n,,n=user,r=fyko+d2lbbFgONRv9qkxdawL")	//.toDigest("SHA-1")
 		echo(md.toBase64)
