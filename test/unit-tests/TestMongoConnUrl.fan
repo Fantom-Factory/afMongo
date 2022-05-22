@@ -201,5 +201,19 @@ internal class TestMongoConnUrl : Test {
 	
 		conUrl	= MongoConnUrl(`mongodb://wotever?retryWrites=false`)
 		verifyEq(conUrl.retryWrites, false)
+	}	
+
+	Void testRetryReads() {
+		conUrl	:= MongoConnUrl(`mongodb://wotever`)
+		verifyEq(conUrl.retryReads, true)
+	
+		conUrl	= MongoConnUrl(`mongodb://wotever?retryReads=true`)
+		verifyEq(conUrl.retryReads, true)
+	
+		conUrl	= MongoConnUrl(`mongodb://wotever?retryReads=1`)
+		verifyEq(conUrl.retryReads, true)
+	
+		conUrl	= MongoConnUrl(`mongodb://wotever?retryReads=false`)
+		verifyEq(conUrl.retryReads, false)
 	}
 }

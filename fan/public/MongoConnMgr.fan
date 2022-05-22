@@ -39,6 +39,7 @@ using concurrent::Future
 **  - 'compressors'
 **  - 'zlibCompressionLevel'
 **  - 'retryWrites'
+**  - 'retryReads'
 ** 
 ** URL examples:
 **  - 'mongodb://username:password@example1.com/database?maxPoolSize=50'
@@ -72,9 +73,13 @@ const mixin MongoConnMgr {
 	** The default write concern that all write operations should use.
 	abstract [Str:Obj?]? writeConcern()
 	
+	** Returns 'true' if retryable reads are enabled (the default).
+	** Use the connection URL query '?retryReads=false' to disable. 
+	abstract Bool retryReads()	
+
 	** Returns 'true' if retryable writes are enabled (the default).
 	** Use the connection URL query '?retryWrites=false' to disable. 
-	abstract Bool retryableWritesEnabled()
+	abstract Bool retryWrites()
 
 	** Does what ever the 'ConnectionManager' needs to do to initialise itself.
 	** 
@@ -128,6 +133,7 @@ const mixin MongoConnMgr {
 	**  - 'compressors'
 	**  - 'zlibCompressionLevel'
 	**  - 'retryWrites'
+	**  - 'retryReads'
 	** 
 	** URL examples:
 	**  - 'mongodb://username:password@example1.com/database?maxPoolSize=50'

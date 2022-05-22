@@ -131,7 +131,12 @@ const class MongoConnUrl {
 	** An option to **turn off** retryable writes.
 	** 
 	**   mongodb://example.com/puppies?retryWrites=false
-	const Bool retryWrites
+	const Bool retryWrites	
+
+	** An option to **turn off** retryable reads.
+	** 
+	**   mongodb://example.com/puppies?retryReads=false
+	const Bool retryReads
 
 	** Parses a Mongo Connection URL.
 	new fromUrl(Uri connectionUrl) {
@@ -156,6 +161,7 @@ const class MongoConnUrl {
 		compressors				:= mongoUrl.query["compressors"]?.split(',')?.exclude { it.isEmpty || it.size > 64 } as Str[]
 		zlibCompressionLevel	:= mongoUrl.query["zlibCompressionLevel"]?.toInt(10, false)
 		this.retryWrites		 = mongoUrl.query["retryWrites"] != "false"
+		this.retryReads			 = mongoUrl.query["retryReads"] != "false"
 
 		if (minPoolSize < 0)
 			throw ArgErr(errMsg_intTooSmall("minPoolSize", "0", minPoolSize, mongoUrl))

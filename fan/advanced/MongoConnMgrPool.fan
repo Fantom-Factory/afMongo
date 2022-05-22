@@ -68,7 +68,11 @@ const class MongoConnMgrPool : MongoConnMgr {
 		mongoConnUrl.tls
 	}
 	
-	override Bool retryableWritesEnabled() {
+	override Bool retryReads() {
+		mongoConnUrl.retryReads
+	}
+
+	override Bool retryWrites() {
 		mongoConnUrl.retryWrites
 	}
 

@@ -137,7 +137,7 @@ class MongoOp {
 	}
 	
 	private Bool isRetryableWrite() {
-		if (connMgr == null || connMgr.retryableWritesEnabled == false)
+		if (connMgr == null || connMgr.retryWrites == false)
 			return false
 		
 		if (isUnacknowledgedWrite)
@@ -166,10 +166,22 @@ class MongoOp {
 	}	
 
 	private Bool isRetryableRead() {
-//		if (connMgr == null || connMgr.retryableReadsEnabled == false)
-//			return false
+		if (connMgr == null || connMgr.retryReads == false)
+			return false
 		
 		// https://github.com/mongodb/specifications/blob/master/source/retryable-reads/retryable-reads.rst#id13
+		
+		// "getMore" is NOT allowed
+		if (cmdName == "getMore")
+			return false
+		
+		if ("find distinct count listDatabases listCollections listIndexes".split.contains(cmdName))
+			return true
+		
+		if (cmdName == "aggregate") {
+			pipeline := cmd["pipeline"] as [Str:Obj?][]
+			return pipeline != null && pipeline.all { it.keys.first != "\$out" && it.keys.first != "\$merge" }
+		}
 		
 		return false
 	}
