@@ -13,7 +13,7 @@ internal class TestMongoOp : Test {
 		con.writeDoc(["foo":"bar", "ok":1])
 		con.flip
 		
-		res := MongoOp(con, cmd("wotever")).runCommand("wotever")
+		res := MongoOp(null, con, cmd("wotever")).runCommand("wotever")
 		
 		verifyEq(res["foo"], "bar")
 	}
@@ -30,7 +30,7 @@ internal class TestMongoOp : Test {
 		con.flip
 		
 		verifyErrMsg(Err#, "Bad Mongo response, returned RequestID (2) does NOT match sent RequestID (1)") {
-			MongoOp(con, cmd("wotever")).runCommand("wotever")
+			MongoOp(null, con, cmd("wotever")).runCommand("wotever")
 		}
 	}	
 
@@ -46,7 +46,7 @@ internal class TestMongoOp : Test {
 		con.flip
 		
 		verifyErrMsg(Err#, "Bad Mongo response, expected OP_MSG (2013), not: 69") {
-			MongoOp(con, cmd("wotever")).runCommand("wotever")
+			MongoOp(null, con, cmd("wotever")).runCommand("wotever")
 		}
 	}
 
@@ -62,7 +62,7 @@ internal class TestMongoOp : Test {
 		con.flip
 		
 		verifyErrMsg(Err#, "Bad Mongo response, expected NO flags, but got: 0x10") {
-			MongoOp(con, cmd("wotever")).runCommand("wotever")
+			MongoOp(null, con, cmd("wotever")).runCommand("wotever")
 		}
 	}
 	
@@ -78,7 +78,7 @@ internal class TestMongoOp : Test {
 		con.flip
 		
 		verifyErrMsg(Err#, "Bad Mongo response, expected payload type 0, not: 1") {
-			MongoOp(con, cmd("wotever")).runCommand("wotever")
+			MongoOp(null, con, cmd("wotever")).runCommand("wotever")
 		}
 	}	
 
@@ -88,7 +88,7 @@ internal class TestMongoOp : Test {
 		con.flip
 		
 		verifyErrMsg(MongoErr#, "Command 'wotever' failed") {
-			MongoOp(con, cmd("wotever")).runCommand("wotever")
+			MongoOp(null, con, cmd("wotever")).runCommand("wotever")
 		}
 	}
 	
@@ -99,7 +99,7 @@ internal class TestMongoOp : Test {
 		con.flip
 		
 		verifyErrMsg(MongoErr#, "Command 'wotever' failed") {
-			MongoOp(con, cmd("wotever")).runCommand("wotever")
+			MongoOp(null, con, cmd("wotever")).runCommand("wotever")
 		}
 		
 		con	= MongoConnStub().writePreamble
@@ -107,7 +107,7 @@ internal class TestMongoOp : Test {
 		con.flip
 		
 		verifyErrMsg(MongoErr#, "Command 'wotever' failed. MongoDB says: Booya!") {
-			MongoOp(con, cmd("wotever")).runCommand("wotever")
+			MongoOp(null, con, cmd("wotever")).runCommand("wotever")
 		}
 	}
 	
@@ -126,7 +126,7 @@ internal class TestMongoOp : Test {
 		]).flip
 		
 		verifyErrMsg(MongoErr#, "Command 'wotever' failed, IndexKey indexTest { data: 10 } is already in use") {
-			MongoOp(con, cmd("wotever")).runCommand("wotever")
+			MongoOp(null, con, cmd("wotever")).runCommand("wotever")
 		}	
 	}
 	

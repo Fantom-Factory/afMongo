@@ -1,4 +1,5 @@
 using concurrent::ActorPool
+using concurrent::Future
 
 ** (Service) - 
 ** Manages a pool of connections to a MongoDB instance.
@@ -37,6 +38,7 @@ using concurrent::ActorPool
 **  - 'appname'
 **  - 'compressors'
 **  - 'zlibCompressionLevel'
+**  - 'retryWrites'
 ** 
 ** URL examples:
 **  - 'mongodb://username:password@example1.com/database?maxPoolSize=50'
@@ -61,12 +63,40 @@ const mixin MongoConnMgr {
 	** It *should not* contain any user credentials and *should* be safe to log. 
 	abstract Uri? mongoUrl()
 	
+	** Should connections to MongoDB use TLS?
+	abstract Bool tls()
+	
 	** The default database name, taken from the the Connection URL auth source.
 	abstract Str? database()
 	
 	** The default write concern that all write operations should use.
 	abstract [Str:Obj?]? writeConcern()
+	
+	** Returns 'true' if retryable writes are enabled (the default).
+	** Use the connection URL query '?retryWrites=false' to disable. 
+	abstract Bool retryableWritesEnabled()
 
+	** Does what ever the 'ConnectionManager' needs to do to initialise itself.
+	** 
+	** Often this would be create database connections or other network related activity that it 
+	** may not wish to do inside a ctor.
+	abstract This startup()
+
+	** (Advanced)
+	** To be called on a network 'IOErr'.
+	** 
+	** Searches the replica set for the Master node - throws 'MongoErr' if the primary can not be found. 
+	** 
+	** The connection pool is then cleared down and all existing connections closed.
+	** All new connections will then re-connect to their new Master.
+	@NoDoc	// advanced
+	abstract Future failOver() 
+
+	** (Advanced)
+	** Authenticates the given connection against the Master.
+	@NoDoc	// advanced
+	abstract Void authenticateConn(MongoConn conn)
+	
 	** Makes a connection available to the given function.
 	** 
 	** What ever is returned from the func is returned from the method.
@@ -74,13 +104,7 @@ const mixin MongoConnMgr {
 	** Any 'IOErrs' thrown in the fn are assumed to be networking errors, and invoke a topology 
 	** recan and a Master failover.
 	abstract Obj? leaseConn(|MongoConn->Obj?| c)
-	
-	** Does what ever the 'ConnectionManager' needs to do to initialise itself.
-	** 
-	** Often this would be create database connections or other network related activity that it 
-	** may not wish to do inside a ctor.
-	abstract This startup()
-	
+
 	** Closes all MongoDB connections.
 	abstract This shutdown()
 
@@ -103,6 +127,7 @@ const mixin MongoConnMgr {
 	**  - 'appname'
 	**  - 'compressors'
 	**  - 'zlibCompressionLevel'
+	**  - 'retryWrites'
 	** 
 	** URL examples:
 	**  - 'mongodb://username:password@example1.com/database?maxPoolSize=50'

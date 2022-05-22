@@ -102,8 +102,8 @@ internal class Mongo4x4 {
 	}
 	
 	This populate() {
-		connection	:= MongoTcpConn(ssl, log)
-		client		:= Str:Obj?[
+		conn	:= MongoTcpConn(ssl, log)
+		client	:= Str:Obj?[
 			"driver"			: Str:Obj?[
 				"name"			: typeof.pod.name,
 				"version"		: typeof.pod.version.toStr,
@@ -118,16 +118,16 @@ internal class Mongo4x4 {
 			client["application"]	= Str:Obj?["name" : appName]
 
 		try {
-			connection.log.level = LogLevel.debug
-			connection.connect(address, port)
+			conn.log.level = LogLevel.debug
+			conn.connect(address, port)
 			
 			// I have a feeling, the "hello" cmd only works via OP_MSG on Mongo v4.4 or later
 			// so lets keep it running the legacy "isMaster" until I migrate my prod databases
 			cmd		:= map.add("isMaster", 1).add("client", client).add("compression", compressors)
-			details	:= MongoOp(connection, cmd).runCommand("admin", false)
+			details	:= MongoOp(null, conn, cmd).runCommand("admin", false)
 			if (details["ok"] != 1f) {
 				cmd		= map.add("hello", 1).add("client", client).add("compression", compressors)
-				details	= MongoOp(connection, cmd).runCommand("admin", false)
+				details	= MongoOp(null, conn, cmd).runCommand("admin", false)
 			}
 		
 			this.hostDetails = MongoHostDetails(mongoUrl, details, log)
@@ -136,7 +136,7 @@ internal class Mongo4x4 {
 			// if a replica is down, simply log it and move onto the next one!
 			log.warn("Could not connect to Host ${address}:${port} :: ${err.typeof.name} - ${err.msg}", err)
 
-		finally	connection.close
+		finally	conn.close
 
 		return this
 	}

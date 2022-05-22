@@ -58,7 +58,7 @@ internal const class MongoAuthScramSha1 : MongoAuthMech {
 		random			:= Random.makeSecure
 		clientNonce		:= Buf().writeI8(random.next).writeI8(random.next).toBase64
 		clientFirstMsg	:= "n=${creds.username},r=${clientNonce}"
-		serverFirstRes	:= MongoOp(conn, map
+		serverFirstRes	:= MongoOp(null, conn, map
 			.add("saslStart", 1)
 			.add("mechanism", "SCRAM-SHA-1")
 			.add("payload", Buf().print(gs2Header).print(clientFirstMsg))
@@ -85,7 +85,7 @@ internal const class MongoAuthScramSha1 : MongoAuthMech {
 		clientFinal		:= "${clientFinalNoPf},p=${clientProof.toBase64}"
 		serverKey		:= "Server Key".toBuf.hmac("SHA-1", saltedPassword)
 		serverSignature	:= authMessage.toBuf.hmac("SHA-1", serverKey).toBase64
-		serverSecondRes := MongoOp(conn, map
+		serverSecondRes := MongoOp(null, conn, map
 			.add("saslContinue", 1)
 			.add("conversationId", conversationId)
 			.add("payload", Buf().print(clientFinal))
@@ -99,7 +99,7 @@ internal const class MongoAuthScramSha1 : MongoAuthMech {
 			throw Err("Mongo Server sent invalid SCRAM signature '${serverSignature}' - was expecting '${serverProof}'")
 
 		// ---- 3rd message ----
-		serverThirdRes := MongoOp(conn, map
+		serverThirdRes := MongoOp(null, conn, map
 			.add("saslContinue", 1)
 			.add("conversationId", conversationId)
 			.add("payload", Buf())

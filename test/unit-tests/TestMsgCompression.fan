@@ -12,7 +12,7 @@ internal class TestMsgCompression : Test {
 		con.flip
 		
 		// WHEN
-		res := MongoOp(con, cmd("wotever").add("judge", "dredd")).runCommand("db")
+		res := MongoOp(null, con, cmd("wotever").add("judge", "dredd")).runCommand("db")
 		
 		// THEN - req IS compressed
 		in := con.outBuf.flip
@@ -64,7 +64,7 @@ internal class TestMsgCompression : Test {
 		con.flip
 		
 		// WHEN
-		res := MongoOp(con, cmd("wotever").add("judge", "dredd")).runCommand("db")
+		res := MongoOp(null, con, cmd("wotever").add("judge", "dredd")).runCommand("db")
 		
 		// THEN - req is NOT compressed
 		in := con.outBuf.flip
@@ -97,7 +97,7 @@ internal class TestMsgCompression : Test {
 		con.writeDoc(["foo":"bar", "ok":1])
 		con.flip
 		
-		res := MongoOp(con, cmd("isMaster")).runCommand("db")
+		res := MongoOp(null, con, cmd("isMaster")).runCommand("db")
 		
 		verifyEq(res["foo"], "bar")	
 	}

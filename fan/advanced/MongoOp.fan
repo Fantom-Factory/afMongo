@@ -5,6 +5,7 @@ using afBson::BsonIO
 ** 
 ** @see `https://github.com/mongodb/specifications/blob/master/source/message/OP_MSG.rst`
 ** @see `https://github.com/mongodb/specifications/blob/master/source/compression/OP_COMPRESSED.rst`
+** @see `https://github.com/mongodb/specifications/blob/master/source/retryable-writes/retryable-writes.rst`
 @NoDoc	// advanced use only
 class MongoOp {
 	private static const Int		OP_COMPRESSED		:= 2012
@@ -18,13 +19,30 @@ class MongoOp {
 		"zstd"		: 3,
 	]
 	private static const Str[]		nonSessionCmds		:= "hello isMaster saslStart saslContinue getnonce authenticate".split
+//	private static const Str[]		retryableWriteCmds	:= "hello isMaster saslStart saslContinue getnonce authenticate".split
+	private static const Int[]		retryableErrCodes	:= [
+		11600,	// InterruptedAtShutdown
+		11602,	// InterruptedDueToReplStateChange
+		10107,	// NotWritablePrimary
+		13435,	// NotPrimaryNoSecondaryOk
+		13436,	// NotPrimaryOrSecondary
+		  189,	// PrimarySteppedDown
+		   91,	// ShutdownInProgress
+		    7,	// HostNotFound
+		    6,	// HostUnreachable
+		   89,	// NetworkTimeout
+		 9001,	// SocketException
+		  262,	// ExceededTimeLimit
+	]
 
-	private Log			log
-	private MongoConn	conn
-	private Str:Obj?	cmd
-	private Str			cmdName
+	private Log				log
+	private MongoConn		conn
+	private Str:Obj?		cmd
+	private Str				cmdName
+	private MongoConnMgr?	connMgr
+	private Bool			oneShotLock
 
-	new make(MongoConn conn, Str:Obj? cmd) {
+	new make(MongoConnMgr? connMgr, MongoConn conn, Str:Obj? cmd) {
 		if (cmd.ordered == false)
 			throw ArgErr("Command Map is NOT ordered - this WILL (probably) result in a MongoDB error:\n${BsonIO().print(cmd)}")
 
@@ -32,41 +50,97 @@ class MongoOp {
 		this.log		= conn.log
 		this.cmd		= cmd.dup	// don't pollute the original cmd supplied by the user (this is a Mongo spec MUST)
 		this.cmdName	= cmd.keys.first
+		this.connMgr	= connMgr
 	}
 
+		
+	// TODO retryable reads
+	// https://github.com/mongodb/specifications/blob/master/source/retryable-reads/retryable-reads.rst
+
+	// TODO Transactions!
+	// https://github.com/mongodb/specifications/blob/master/source/transactions/transactions.rst
+		
 	Str:Obj? runCommand(Str dbName, Bool checked := true) {
+		if (oneShotLock)
+			throw Err("MongoOps can only be run once")
+		oneShotLock = true
+		
+		sess := null as MongoSess
+
 		// this guy can NOT come first! Else, ERR, "Unknown Cmd $db"
 		cmd["\$db"]	= dbName
 		
-		isUnacknowledgedWrite := (cmd["writeConcern"] as Str:Obj?)?.get("w") == 0	// { w: 0 }
-
 		// append session info where we should
-		if (nonSessionCmds.contains(cmdName) == false && isUnacknowledgedWrite == false)
-			cmd["lsid"]	= conn.getSession(true).sessionId
+		if (nonSessionCmds.contains(cmdName) == false && isUnacknowledgedWrite == false) {
+			sess = conn.getSession(true)
+			
+			cmd["lsid"]	= sess.sessionId
 
+			// keep the same txNumber between retries
+			if (isRetryableWrite)
+				cmd["txnNumber"] = sess.newTxNum
+		}
+		
+		try		return doRunCommand(sess, checked)
+		catch	(IOErr ioe) {
+			// mark ALL sessions as dirty regardless if the retry succeeds or not (as per spec)
+			conn.getSession(false)?.markDirty
+			
+			if (isRetryableWrite)
+				return retryCommand(ioe, true, sess, checked)
+			throw ioe
+		}
+		
+		catch	(MongoErr me) {
+			if (isRetryableWrite && (retryableErrCodes.contains(me.code ?: -1) || me.errLabels.contains("RetryableWriteError")))
+				return retryCommand(me, true, sess, checked)
+			throw me
+		}
+	}
+	
+	private Str:Obj? retryCommand(Err err, Bool failOver, MongoSess? sess, Bool checked) {
+		// TODO log.warn
+		try {
+			if (failOver) {
+				connMgr.failOver.waitFor(30sec)
 
+				// grab a fresh conn, 'cos the existing Conn just got closed!
+				conn = MongoTcpConn(connMgr.tls, log)
+				connMgr.authenticateConn(conn)
+			}
 
-		// TODO retryable writes
-		// https://github.com/mongodb/specifications/blob/master/source/retryable-writes/retryable-writes.rst
-		// Write commands specifying an unacknowledged write concern (e.g. {w: 0})) do not support retryable behavior.
+			return doRunCommand(sess, checked)
+		} catch	{
+			connMgr.failOver
+			throw err
+		}
+	}
+	
+	private Str:Obj? doRunCommand(MongoSess? sess, Bool checked) {
+		// the spec keep harping on about not re-sending the same clusterTime when re-trying Ops
+		// so lets keep it fresh
+		sess?.appendClusterTime(cmd)
 		
-		// For server versions 4.4 and newer, the server will add a RetryableWriteError label to errors or server responses that it considers retryable 
-		
-		
-		// Generate session IDs ourselves! NO SERVER CALL NEEDED! good - 'cos it's not part of stable API
-		// https://github.com/mongodb/specifications/blob/master/source/sessions/driver-sessions.rst#generating-a-session-id-locally
-		// https://www.rfc-editor.org/rfc/rfc4122#page-14
-		
-		// TODO retryable reads
-		// https://github.com/mongodb/specifications/blob/master/source/retryable-reads/retryable-reads.rst
-
-		
-		
-		conn.getSession(false)?.appendClusterTime(cmd)
-
 		reqId	:= reqIdSeq.incrementAndGet
 				writeRequest(reqId)
 		return	readResponse(reqId, checked)
+	}
+	
+	private Bool isRetryableWrite() {
+		if (connMgr == null || connMgr.retryableWritesEnabled == false)
+			return false
+		
+		if (isUnacknowledgedWrite)
+			return false
+
+		// https://github.com/mongodb/specifications/blob/master/source/retryable-writes/retryable-writes.rst#supported-write-operations
+		// Supported single-statement write operations include insertOne(), updateOne(), replaceOne(), deleteOne(), findOneAndDelete(), findOneAndReplace(), and findOneAndUpdate().
+		
+		return false
+	}
+	
+	private Bool isUnacknowledgedWrite() {
+		(cmd["writeConcern"] as Str:Obj?)?.get("w") == 0	// { w: 0 }
 	}
 
 	private Void writeRequest(Int reqId) {

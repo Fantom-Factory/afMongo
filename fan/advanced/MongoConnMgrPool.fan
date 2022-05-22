@@ -2,6 +2,7 @@ using concurrent::AtomicBool
 using concurrent::AtomicRef
 using concurrent::Actor
 using concurrent::ActorPool
+using concurrent::Future
 using afConcurrent::Synchronized
 using afConcurrent::SynchronizedState
 using inet::IpAddr
@@ -12,7 +13,7 @@ const class MongoConnMgrPool : MongoConnMgr {
 	override const Log				log
 	private const AtomicBool		hasStarted				:= AtomicBool()//("Connection Pool has been started")
 	private const AtomicBool		hasShutdown				:= AtomicBool()//("Connection Pool has been shutdown")
-	private const AtomicBool 		failingOverRef			:= AtomicBool(false)
+	private const AtomicRef 		failingOverRef			:= AtomicRef(null)
 	private const AtomicBool 		isConnectedToMasterRef	:= AtomicBool(false)
 	private const Synchronized		failOverThread
 	private const SynchronizedState connectionState
@@ -59,11 +60,18 @@ const class MongoConnMgrPool : MongoConnMgr {
 		f?.call(this)
 	}
 	
-	** The default write concern that all write operations should use.
 	override [Str:Obj?]? writeConcern() {
 		mongoConnUrl.writeConcern
 	}
 	
+	override Bool tls() {
+		mongoConnUrl.tls
+	}
+	
+	override Bool retryableWritesEnabled() {
+		mongoConnUrl.retryWrites
+	}
+
 	** Creates the initial pool and establishes 'minPoolSize' connections with the server.
 	** 
 	** If a connection URL to a replica set is given (a connection URL with multiple hosts) then 
@@ -77,7 +85,6 @@ const class MongoConnMgrPool : MongoConnMgr {
 			return this
 		
 		huntThePrimary
-		isConnectedToMasterRef.val = true
 
 		// connect x times
 		pool := MongoTcpConn[,]
@@ -105,6 +112,7 @@ const class MongoConnMgrPool : MongoConnMgr {
 		try {
 			return c(connection)
 	
+		// all this error handling is because there's no guarantee that this is called from MongoOp
 		} catch (IOErr e) {
 			err := e as Err
 			
@@ -119,10 +127,12 @@ const class MongoConnMgrPool : MongoConnMgr {
 				throw err
 
 			// if we're still connected to the same master, lets play huntThePrimary!
+			// it doesn't matter if the MongoOp retry already kicked it off
 			failOver
 
 			// even though Hunt the Primary succeeded, we still need to report the original error!
 			// it would be cool to just call the "c" func again, but we can't be sure it's idempotent
+			// and retryable writes take care of most of the chaff
 			throw err
 			
 		} catch (Err err) {
@@ -136,6 +146,34 @@ const class MongoConnMgrPool : MongoConnMgr {
 
 		} finally
 			checkIn(connection)
+	}
+	
+	override Future failOver() {
+		// no need to have 3 threads huntingThePrimary at the same time!
+		future := failingOverRef.val
+		if (future != null)
+			return future
+
+		// it doesn't matter if a race condition means we play huntThePrimary twice in succession
+		return failingOverRef.val = failOverThread.async |->| {
+			isConnectedToMasterRef.val = false
+			try	{
+				oldUrl := this.mongoUrl
+				huntThePrimary
+				emptyPool
+				newUrl := this.mongoUrl
+				
+				log.warn("MongoDB Master failed over from $oldUrl to $newUrl")
+				
+				// we're an unsung hero - we've established a new master connection and nobody knows! 
+				isConnectedToMasterRef.val = true
+				
+			} catch (Err err)
+				log.warn("Could not find new Master", err)
+
+			finally
+				failingOverRef.val = null
+		}
 	}
 	
 	** Closes all connections. 
@@ -212,7 +250,7 @@ const class MongoConnMgrPool : MongoConnMgr {
 	** Throws 'MongoErr' if a primary can not be found. 
 	** 
 	** This method should be followed with a call to 'emptyPool()'.  
-	Void huntThePrimary() {
+	private Void huntThePrimary() {
 		hostDetails := MongoSafari(mongoConnUrl, log).huntThePrimary
 		mongoUrl	:= database == null ? hostDetails.mongoUrl : hostDetails.mongoUrl.plusSlash.plusName(database) 
 		mongoUrlRef.val = mongoUrl
@@ -270,35 +308,6 @@ const class MongoConnMgrPool : MongoConnMgr {
 		mongoConnUrl.minPoolSize.times { pool.push(checkOut) }
 		mongoConnUrl.minPoolSize.times { checkIn(pool.pop) }
 	}
-	
-	private Void failOver() {
-		// no need to have 3 threads huntingThePrimary at the same time!
-		if (failingOverRef.val == true)
-			return
-
-		// it doesn't matter if a race condition means we play huntThePrimary twice in succession
-		failOverThread.async |->| {
-			isConnectedToMasterRef.val = false
-			failingOverRef.val = true
-			try	{
-				oldUrl := this.mongoUrl
-				huntThePrimary
-				emptyPool
-				newUrl := this.mongoUrl
-				
-				log.warn("MongoDB Master failed over from $oldUrl to $newUrl")
-				
-				// we're an unsung hero - we've established a new master connection and nobody knows! 
-				isConnectedToMasterRef.val = true
-				
-			} catch (Err err) {
-				log.warn("Could not find new Master", err)
-
-			} finally {
-				failingOverRef.val = false
-			}
-		}
-	}
 
 	private MongoTcpConn checkOut() {
 		connectionFunc := |Duration totalNapTime->MongoTcpConn?| {
@@ -350,14 +359,18 @@ const class MongoConnMgrPool : MongoConnMgr {
 		}
 		
 		// ensure all connections are authenticated
-		mongoCreds := mongoConnUrl.mongoCreds
-		if (mongoCreds != null && connection.isAuthenticated == false) {
-			// Note - Sessions CAN NOT be used if a conn has multiple authentications
-			mongoConnUrl.authMechs[mongoCreds.mechanism].authenticate(connection, mongoCreds)
-			connection.isAuthenticated = true
-		}
+		authenticateConn(connection)
 	
 		return connection
+	}
+	
+	override Void authenticateConn(MongoConn conn) {
+		mongoCreds := mongoConnUrl.mongoCreds
+		if (mongoCreds != null && conn.isAuthenticated == false) {
+			// Note - Sessions CAN NOT be used if a conn has multiple authentications
+			mongoConnUrl.authMechs[mongoCreds.mechanism].authenticate(conn, mongoCreds)
+			((MongoTcpConn) conn).isAuthenticated = true
+		}
 	}
 	
 	private Void checkIn(MongoTcpConn connection) {

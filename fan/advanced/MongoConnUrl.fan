@@ -19,6 +19,7 @@
 **  - 'appname'
 **  - 'compressors'
 **  - 'zlibCompressionLevel'
+**  - 'retryWrites'
 ** 
 ** URL examples:
 **  - 'mongodb://username:password@example1.com/database?maxPoolSize=50'
@@ -126,6 +127,11 @@ const class MongoConnUrl {
 	** 
 	**   mongodb://example.com/puppies?zlibCompressionLevel=8
 	const Int? zlibCompressionLevel
+	
+	** An option to **turn off** retryable writes.
+	** 
+	**   mongodb://example.com/puppies?retryWrites=false
+	const Bool retryWrites
 
 	** Parses a Mongo Connection URL.
 	new fromUrl(Uri connectionUrl) {
@@ -149,6 +155,7 @@ const class MongoConnUrl {
 		appName					:= mongoUrl.query["appname"]?.trimToNull
 		compressors				:= mongoUrl.query["compressors"]?.split(',')?.exclude { it.isEmpty || it.size > 64 } as Str[]
 		zlibCompressionLevel	:= mongoUrl.query["zlibCompressionLevel"]?.toInt(10, false)
+		this.retryWrites		 = mongoUrl.query["retryWrites"] != "false"
 
 		if (minPoolSize < 0)
 			throw ArgErr(errMsg_intTooSmall("minPoolSize", "0", minPoolSize, mongoUrl))

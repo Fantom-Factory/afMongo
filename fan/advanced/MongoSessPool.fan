@@ -1,4 +1,5 @@
 using concurrent::AtomicRef
+using concurrent::AtomicInt
 using concurrent::ActorPool
 using afBson::Timestamp
 using afConcurrent::SynchronizedList
@@ -10,8 +11,9 @@ internal const class MongoSessPool {
 	
 	const private AtomicRef			sessionTimeoutRef
 	const private AtomicRef			clusterTimeRef
+	const private AtomicInt			transactionNumRef
 	const private SynchronizedList?	sessionPool
-	
+
 	[Str:Obj?]? clusterTime {
 		get { clusterTimeRef.val }
 		set { clusterTimeRef.val = it.toImmutable }
@@ -25,6 +27,7 @@ internal const class MongoSessPool {
 	new make(ActorPool actorPool) {
 		this.sessionTimeoutRef	= AtomicRef(null)
 		this.clusterTimeRef		= AtomicRef(null)
+		this.transactionNumRef	= AtomicInt(0)
 		this.sessionPool		= SynchronizedList(actorPool)
 	}
 	
@@ -62,7 +65,7 @@ internal const class MongoSessPool {
 		cmd		:= map.add("endSessions", sessIds)
 		
 		// ignore the response, I don't care if it failed - this op call is just a courtesy
-		MongoOp(conn, cmd).runCommand("admin", false)
+		MongoOp(null, conn, cmd).runCommand("admin", false)
 		
 		sessionPool.clear
 	}
@@ -89,6 +92,10 @@ internal const class MongoSessPool {
 	Void appendClusterTime(Str:Obj? cmd) {
 		if (clusterTime != null)
 			cmd["\$clusterTime"] = clusterTime
+	}
+	
+	Int newTxNum() {
+		transactionNumRef.incrementAndGet
 	}
 	
 	private Timestamp? clusterTs() {

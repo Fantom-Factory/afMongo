@@ -58,6 +58,10 @@ internal class MongoSess {
 	Void appendClusterTime(Str:Obj? cmd) {
 		_sessPool.appendClusterTime(cmd)
 	}
+	
+	Int newTxNum() {
+		_sessPool.newTxNum
+	}
 
 	private Str:Obj? generateSessionUuid() {
 		uuid := Uuid()

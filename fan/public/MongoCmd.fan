@@ -90,20 +90,20 @@ class MongoCmd {
 
 	** Executes this cmd on the MongoDB server, and returns the response as a BSON document.
 	Str:Obj? run(Bool checked := true) {
-		doc := (Str:Obj?) connMgr.leaseConn |con->Str:Obj?| {
-			con.setSession(session)
-			return MongoOp(con, cmd).runCommand(dbName, checked)
+		doc := (Str:Obj?) connMgr.leaseConn |conn->Str:Obj?| {
+			conn.setSession(session)
+			return MongoOp(connMgr, conn, cmd).runCommand(dbName, checked)
 		}
 		return doc
 	}
 	
 	** Executes this cmd on the MongoDB server, and preemptively interprets the response as a cursor.
 	MongoCur cursor() {
-		connMgr.leaseConn |con->MongoCur| {
-			doc		:= MongoOp(con, cmd).runCommand(dbName)
+		connMgr.leaseConn |conn->MongoCur| {
+			doc		:= MongoOp(connMgr, conn, cmd).runCommand(dbName)
 			cur		:= doc["cursor"] as Str:Obj?
 			curId	:= cur["id"]
-			sess	:= curId == 0 ? null : con.detachSession
+			sess	:= curId == 0 ? null : conn.detachSession
 			return MongoCur(connMgr, dbName, cmdVal.toStr, curId, cur["firstBatch"], sess)
 		}
 	}

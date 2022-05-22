@@ -25,6 +25,11 @@ const class MongoErr : Err {
 	Str? errMsg() {
 		errObj("errmsg")
 	}
+
+	** Returns the 'errorLabels' list. 
+	Str[] errLabels() {
+		errObj("errorLabels") ?: Str#.emptyList
+	}
 	
 	private Obj? errObj(Str name) {
 		errDoc[name] ?: (errDoc["writeErrors"] as [Str:Obj?][])?.first?.get(name)
