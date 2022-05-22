@@ -21,7 +21,7 @@ class Build : BuildPod {
 
 			// ---- Core ------------------------
 			"afConcurrent 1.0.26 - 1.0",
-			"afBson       2.0.0  - 2.0"
+			"afBson       2.0.1  - 2.0",	// *****
 		]
 
 		srcDirs = [`fan/`, `fan/advanced/`, `fan/public/`, `test/`, `test/db-tests/`, `test/unit-tests/`]

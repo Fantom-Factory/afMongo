@@ -47,7 +47,7 @@ const class MongoConnMgrPool : MongoConnMgr {
 	** 
 	**   connMgr := MongoConnMgrPool(ActorPool(), `mongodb://localhost:27017`)
 	new make(Uri connectionUrl, Log? log := null, ActorPool? actorPool := null, |This|? f := null) {
-			 actorPool			= actorPool ?: ActorPool() { it.name="afMongo.connMgrPool"; it.maxThreads=1 }
+			 actorPool			= actorPool ?: ActorPool() { it.name="afMongo.connMgrPool"; it.maxThreads=2 }
 		this.connectionState	= SynchronizedState(actorPool, MongoConnMgrPoolState#)
 		this.mongoConnUrl		= MongoConnUrl(connectionUrl)
 		this.failOverThread		= connectionState.lock
@@ -108,7 +108,7 @@ const class MongoConnMgrPool : MongoConnMgr {
 		} catch (IOErr e) {
 			err := e as Err
 			
-			connection.getSession.markDirty
+			connection.getSession(false)?.markDirty
 			connection.close
 
 			// that shitty MongoDB Atlas doesn't tell us when the master has changed 
@@ -126,7 +126,7 @@ const class MongoConnMgrPool : MongoConnMgr {
 			throw err
 			
 		} catch (Err err) {
-			connection.getSession.markDirty
+			connection.getSession(false)?.markDirty
 
 			// if something dies, kill the connection.
 			// we may have died part way through talking with the server meaning our communication 

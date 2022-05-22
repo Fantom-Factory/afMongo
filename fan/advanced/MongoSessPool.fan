@@ -1,4 +1,5 @@
 using concurrent::AtomicRef
+using afBson::Timestamp
 
 ** Sessions are painful overhead, but a necessary feature that underpins retryable writes and transactions.
 ** 
@@ -6,17 +7,17 @@ using concurrent::AtomicRef
 internal const class MongoSessPool {
 	
 	const private AtomicRef	sessionTimeoutRef
+	const private AtomicRef	clusterTimeRef
 	
 	MongoSess[] sessPool() {
 		MongoSess[,]
 	}
-//interface ClusterTime {
-//  clusterTime: Timestamp;
-//  signature: {
-//    hash: Binary;
-//    keyId: Int64;
-//  };
-//}	
+
+	[Str:Obj?]? clusterTime {
+		get { clusterTimeRef.val }
+		set { clusterTimeRef.val = it.toImmutable }
+	}
+
 	Duration sessionTimeout {
 		get { sessionTimeoutRef.val }
 		set { sessionTimeoutRef.val = it }
@@ -24,6 +25,7 @@ internal const class MongoSessPool {
 
 	new make() {
 		this.sessionTimeoutRef	= AtomicRef(null)
+		this.clusterTimeRef		= AtomicRef(null)
 	}
 	
 	MongoSess checkout() {
@@ -63,6 +65,34 @@ internal const class MongoSessPool {
 		MongoOp(conn, cmd).runCommand("admin", false)
 		
 		sessPool.clear
+	}
+	
+	Void updateClusterTime([Str:Obj?]? serverTime) {
+		// I'm not concerned about concurrent race conditions here,
+		// as we're only gossiping an approx timestamp
+		if (serverTime == null)
+			return
+		
+		if (clusterTime == null) {
+			clusterTime = serverTime
+			return
+		}
+
+		serverTs := serverTime["clusterTime"] as Timestamp
+		if (serverTs == null)
+			return
+		
+		if (serverTs > clusterTs)
+			clusterTime = serverTime
+	}
+	
+	Void appendClusterTime(Str:Obj? cmd) {
+		if (clusterTime != null)
+			cmd["\$clusterTime"] = clusterTime
+	}
+	
+	private Timestamp? clusterTs() {
+		clusterTime?.get("clusterTime")
 	}
 
 	private [Str:Obj?] map() { Str:Obj?[:] { ordered = true } }

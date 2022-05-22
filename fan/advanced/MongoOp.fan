@@ -42,9 +42,8 @@ class MongoOp {
 
 		// append session info where we should
 		if (nonSessionCmds.contains(cmdName) == false && isUnacknowledgedWrite == false)
-			cmd["lsid"]	= conn.getSession.sessionId
-		
-		// TODO gossip clustertime
+			cmd["lsid"]	= conn.getSession(true).sessionId
+
 
 
 		// TODO retryable writes
@@ -60,6 +59,10 @@ class MongoOp {
 		
 		// TODO retryable reads
 		// https://github.com/mongodb/specifications/blob/master/source/retryable-reads/retryable-reads.rst
+
+		
+		
+		conn.getSession(false)?.appendClusterTime(cmd)
 
 		reqId	:= reqIdSeq.incrementAndGet
 				writeRequest(reqId)
@@ -172,6 +175,8 @@ class MongoOp {
 			msg += BsonIO().print(resDoc)
 			log.debug(msg)
 		}
+		
+		conn.getSession(false)?.updateClusterTime(resDoc["\$clusterTime"])
 		
 		mongoErr	:= null as MongoErr
 		if (checked && resDoc["ok"] != 1f && resDoc["ok"] != 1) {

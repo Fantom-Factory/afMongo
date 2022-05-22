@@ -50,6 +50,14 @@ internal class MongoSess {
 		timeToLive := _lastUse + _sessPool.sessionTimeout - Duration.now
 		return timeToLive < 1min
 	}
+	
+	Void updateClusterTime([Str:Obj?]? serverTime) {
+		_sessPool.updateClusterTime(serverTime)
+	}
+	
+	Void appendClusterTime(Str:Obj? cmd) {
+		_sessPool.appendClusterTime(cmd)
+	}
 
 	private Str:Obj? generateSessionUuid() {
 		uuid := Uuid()

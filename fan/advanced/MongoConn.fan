@@ -33,7 +33,7 @@ mixin MongoConn {
 	** Returns the Session associated with this connection.
 	** Sessions are checked out lazily.
 	internal
-	abstract MongoSess	getSession()
+	abstract MongoSess?	getSession(Bool createNew)
 
 	** Jailbreaks the attached MongoSession from this connection.
 	** Returns 'null' if the session has already been detached, or was never created.
@@ -81,10 +81,13 @@ internal class MongoTcpConn : MongoConn {
 			throw IOErr("Could not connect to MongoDB at ${address}:${port} - ${err.msg}", err)
 	}
 	
-	override MongoSess getSession() {
+	override MongoSess? getSession(Bool createNew) {
 		if (sess != null)
 			return sess
 		
+		if (createNew == false)
+			return null
+
 		if (sessPool == null)
 			throw Err("Wot no SessPool???")
 
@@ -94,7 +97,8 @@ internal class MongoTcpConn : MongoConn {
 	override MongoSess? detachSession() {
 		sess := this.sess
 		this.sess = null
-		sess.isDetached = true
+		if (sess != null)
+			sess.isDetached = true
 		return sess
 	}
 	
