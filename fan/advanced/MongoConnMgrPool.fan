@@ -47,11 +47,11 @@ const class MongoConnMgrPool : MongoConnMgr {
 	** 
 	**   connMgr := MongoConnMgrPool(ActorPool(), `mongodb://localhost:27017`)
 	new make(Uri connectionUrl, Log? log := null, ActorPool? actorPool := null, |This|? f := null) {
-			 actorPool			= actorPool ?: ActorPool() { it.name="afMongo.connMgrPool"; it.maxThreads=2 }
+			 actorPool			= actorPool ?: ActorPool() { it.name="afMongo.connMgrPool"; it.maxThreads=5 }
 		this.connectionState	= SynchronizedState(actorPool, MongoConnMgrPoolState#)
 		this.mongoConnUrl		= MongoConnUrl(connectionUrl)
 		this.failOverThread		= connectionState.lock
-		this.sessPool			= MongoSessPool()
+		this.sessPool			= MongoSessPool(actorPool)
 		this.log				= log ?: MongoConnMgrPool#.pod.log
 
 		// allow the it-block to override the default settings

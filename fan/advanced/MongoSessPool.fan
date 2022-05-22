@@ -1,18 +1,17 @@
 using concurrent::AtomicRef
+using concurrent::ActorPool
 using afBson::Timestamp
+using afConcurrent::SynchronizedList
 
 ** Sessions are painful overhead, but a necessary feature that underpins retryable writes and transactions.
 ** 
 ** https://github.com/mongodb/specifications/blob/master/source/sessions/driver-sessions.rst
 internal const class MongoSessPool {
 	
-	const private AtomicRef	sessionTimeoutRef
-	const private AtomicRef	clusterTimeRef
+	const private AtomicRef			sessionTimeoutRef
+	const private AtomicRef			clusterTimeRef
+	const private SynchronizedList?	sessionPool
 	
-	MongoSess[] sessPool() {
-		MongoSess[,]
-	}
-
 	[Str:Obj?]? clusterTime {
 		get { clusterTimeRef.val }
 		set { clusterTimeRef.val = it.toImmutable }
@@ -23,15 +22,16 @@ internal const class MongoSessPool {
 		set { sessionTimeoutRef.val = it }
 	}
 
-	new make() {
+	new make(ActorPool actorPool) {
 		this.sessionTimeoutRef	= AtomicRef(null)
 		this.clusterTimeRef		= AtomicRef(null)
+		this.sessionPool		= SynchronizedList(actorPool)
 	}
 	
 	MongoSess checkout() {
 		// this algo avoids concurrent race conditions
 		sess := null as MongoSess
-		while ((sess = sessPool.pop) != null && sess.isStale)
+		while ((sess = sessionPool.pop) != null && sess.isStale)
 			null?.toStr
 		
 		if (sess == null)
@@ -44,27 +44,27 @@ internal const class MongoSessPool {
 		// MongoDB specs say we don't need to check the entire stack
 		// this algo avoids concurrent race conditions
 		stale := null as MongoSess
-		while ((stale = sessPool.first) != null && stale.isStale)
-			sessPool.removeSame(stale)
-		
+		while ((stale = sessionPool.first) != null && stale.isStale)
+			sessionPool.remove(stale)
+
 		if (sess == null)	return
 		if (sess.isDirty)	return
 		if (sess.isStale)	return
 		if (sess.isDetached && force == false)
 							return
 		
-		sessPool.push(sess)
+		sessionPool.push(sess)
 	}
 
 	** Uses the given Conn to end all sessions and empty the pool.
 	Void shutdown(MongoConn conn) {
-		sessIds := sessPool.map |MongoSess sess->Obj?| { sess.sessionId }
+		sessIds := sessionPool.val.map |MongoSess sess->Obj?| { sess.sessionId }
 		cmd		:= map.add("endSessions", sessIds)
 		
 		// ignore the response, I don't care if it failed - this op call is just a courtesy
 		MongoOp(conn, cmd).runCommand("admin", false)
 		
-		sessPool.clear
+		sessionPool.clear
 	}
 	
 	Void updateClusterTime([Str:Obj?]? serverTime) {
