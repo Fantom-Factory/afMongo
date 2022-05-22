@@ -262,7 +262,7 @@ const class MongoColl {
 		updateCmd := cmd("q",	filter)
 			.withFn(			optsFn)
 			.add("u",			replacement)
-			.add("multi",		false)	// default to multi-doc updates
+			.add("multi",		false)
 		opts := updateCmd.extract("ordered writeConcern bypassDocumentValidation comment let".split)
 		return cmd("update",	 name)
 			.add("updates",		[updateCmd.cmd])

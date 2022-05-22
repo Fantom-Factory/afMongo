@@ -98,8 +98,9 @@ class MongoOp {
 			if (isRetryableRead && retryableErrCodes.contains(me.code ?: -1))
 				return retryCommand(me, true, sess, checked)
 			
-			if (isRetryableWrite && (retryableErrCodes.contains(me.code ?: -1) || me.errLabels.contains("RetryableWriteError")))
+			if ((isRetryableWrite && retryableErrCodes.contains(me.code ?: -1)) || me.errLabels.contains("RetryableWriteError"))
 				return retryCommand(me, true, sess, checked)
+
 			throw me
 		}
 	}
@@ -142,8 +143,24 @@ class MongoOp {
 		if (isUnacknowledgedWrite)
 			return false
 
+		// write commands that affect multiple documents are not supported
 		// https://github.com/mongodb/specifications/blob/master/source/retryable-writes/retryable-writes.rst#supported-write-operations
-		// Supported single-statement write operations include insertOne(), updateOne(), replaceOne(), deleteOne(), findOneAndDelete(), findOneAndReplace(), and findOneAndUpdate().
+		
+		if (cmdName == "insert")
+			return true
+		
+		if (cmdName == "update") {
+			updates := cmd["updates"] as [Str:Obj?][]
+			return updates != null && updates.all { it["multi"] == null || it["multi"] == false }
+		}
+		
+		if (cmdName == "delete") {
+			deletes := cmd["deletes"] as [Str:Obj?][]
+			return deletes != null && deletes.all { it["limit"] == 1 }
+		}
+		
+		if (cmdName == "findAndModify")
+			return true
 		
 		return false
 	}	
