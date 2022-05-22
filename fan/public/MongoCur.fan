@@ -11,10 +11,10 @@ class MongoCur {
 	** The underlying connection manager.
 	const MongoConnMgr	connMgr
 	
-	** The database this cursors iterates in.
+	** The database this cursor iterates in.
 	const Str			dbName
 	
-	** The collection this cursors iterates over.
+	** The collection this cursor iterates over.
 	const Str			colName
 	
 	** The cursor ID.
@@ -47,14 +47,16 @@ class MongoCur {
 	private [Str:Obj?][]?	_batch
 	private Int 			_batchIndex
 	private Int 			_totalIndex
+	private MongoSess?		_session
 
 	** Creates a new Mongo Cursor with a first batch
-	new make(MongoConnMgr connMgr, Str dbName, Str colName, Int cursorId, [Str:Obj?][]? firstBatch := null) {
+	new make(MongoConnMgr connMgr, Str dbName, Str colName, Int cursorId, [Str:Obj?][]? firstBatch := null, Obj? session := null) {
 		this.connMgr		= connMgr
 		this.dbName			= dbName
 		this.colName		= colName
 		this.cursorId		= cursorId
 		this._batch			= firstBatch
+		this._session		= session
 		this._totalIndex	= -1
 	}
 	
@@ -75,7 +77,7 @@ class MongoCur {
 			return null
 		
 		if (_isExhausted) {
-			cur := MongoCmd(connMgr, dbName, "getMore", cursorId)
+			cur := MongoCmd(connMgr, dbName, "getMore", cursorId, _session)
 				.add("collection",	colName)
 				.add("batchSize",	batchSize)
 				.add("maxTimeMS",	maxTime?.toMillis)
@@ -84,6 +86,11 @@ class MongoCur {
 			this.cursorId	= cur["id"]
 			this._batch		= cur["nextBatch"]
 			this._batchIndex= 0
+			
+			if (this.cursorId == 0) {
+				this._session?.endSession
+				this._session = null
+			}
 		}
 		
 		_totalIndex++
@@ -102,7 +109,7 @@ class MongoCur {
 		if (cursorId == 0)
 			return
 		
-		res := MongoCmd(connMgr, dbName, "killCursors", colName)
+		res := MongoCmd(connMgr, dbName, "killCursors", colName, _session)
 			.add("cursors",	[cursorId])
 			.run
 		
@@ -114,6 +121,9 @@ class MongoCur {
 		killed := res["cursorsKilled"] as Int[]
 		if (killed.contains(cursorId) == false)
 			connMgr.log.warn("Cursor (${cursorId}) not killed. Mongo says:\n" + BsonIO().print(res))
+		
+		this._session?.endSession
+		this._session = null
 	}
 
 	** Iterates over all *remaining* and unread documents.

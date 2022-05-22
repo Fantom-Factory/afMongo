@@ -1,4 +1,5 @@
 using afBson::Binary
+using afBson::BsonIO
 
 ** A Mongo Logical Session.
 **  
@@ -11,7 +12,8 @@ internal class MongoSess {
 	private [Str:Obj?]		_sessionId
 	private Duration		_lastUse
 	private Bool			_isDirty
-	
+			Bool			isDetached
+
 	new make(MongoSessPool sessPool) {
 		this._sessPool	= sessPool
 		this._sessionId	= generateSessionUuid
@@ -31,7 +33,7 @@ internal class MongoSess {
 	
 	** Returns the session to the pool to be reused.
 	Void endSession() {
-		_sessPool.checkin(this)
+		_sessPool.checkin(this, true)
 	}
 	
 	** Called when there's a network error to ensure the session is not returned to the pool.
@@ -53,5 +55,10 @@ internal class MongoSess {
 		uuid := Uuid()
 		buf	 := Buf().writeI8(uuid.bitsHi).writeI8(uuid.bitsLo).flip
 		return Str:Obj?["id" : Binary(buf, Binary.BIN_UUID)]
+	}
+	
+	@NoDoc
+	override Str toStr() {
+		BsonIO().print(_sessionId)
 	}
 }

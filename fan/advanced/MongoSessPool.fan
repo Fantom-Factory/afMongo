@@ -38,7 +38,7 @@ internal const class MongoSessPool {
 		return sess
 	}
 	
-	Void checkin(MongoSess? sess) {
+	Void checkin(MongoSess? sess, Bool force := false) {
 		// MongoDB specs say we don't need to check the entire stack
 		// this algo avoids concurrent race conditions
 		stale := null as MongoSess
@@ -48,6 +48,8 @@ internal const class MongoSessPool {
 		if (sess == null)	return
 		if (sess.isDirty)	return
 		if (sess.isStale)	return
+		if (sess.isDetached && force == false)
+							return
 		
 		sessPool.push(sess)
 	}

@@ -37,11 +37,14 @@ class MongoOp {
 	Str:Obj? runCommand(Str dbName, Bool checked := true) {
 		// this guy can NOT come first! Else, ERR, "Unknown Cmd $db"
 		cmd["\$db"]	= dbName
+		
+		isUnacknowledgedWrite := (cmd["writeConcern"] as Str:Obj?)?.get("w") == 0	// { w: 0 }
 
-		// append session info
-		// FIXME check for unacknowledged writes
-		if (nonSessionCmds.contains(cmdName) == false)
+		// append session info where we should
+		if (nonSessionCmds.contains(cmdName) == false && isUnacknowledgedWrite == false)
 			cmd["lsid"]	= conn.getSession.sessionId
+		
+		// TODO gossip clustertime
 
 
 		// TODO retryable writes

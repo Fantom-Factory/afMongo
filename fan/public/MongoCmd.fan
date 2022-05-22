@@ -5,6 +5,7 @@ class MongoCmd {
 	const Str			dbName
 	const Str			cmdName
 	const Obj?			cmdVal
+	private MongoSess?	session
 
 	** The backing cmd document.
 	Str:Obj? cmd {
@@ -12,11 +13,12 @@ class MongoCmd {
 	} 
 	
 	** Creates a new 'MongoCmd'.
-	new make(MongoConnMgr connMgr, Str dbName, Str cmdName, Obj? cmdVal := 1) {
+	new make(MongoConnMgr connMgr, Str dbName, Str cmdName, Obj? cmdVal := 1, Obj? session := null) {
 		this.connMgr	= connMgr
 		this.dbName 	= dbName
 		this.cmdName	= cmdName
 		this.cmdVal		= cmdVal
+		this.session	= session
 		this.cmd		= Str:Obj?[:] { ordered = true } 
 		this.add(cmdName, cmdVal)
 	}
@@ -89,14 +91,20 @@ class MongoCmd {
 	** Executes this cmd on the MongoDB server, and returns the response as a BSON document.
 	Str:Obj? run(Bool checked := true) {
 		doc := (Str:Obj?) connMgr.leaseConn |con->Str:Obj?| {
-			MongoOp(con, cmd).runCommand(dbName, checked)
+			con.setSession(session)
+			return MongoOp(con, cmd).runCommand(dbName, checked)
 		}
 		return doc
 	}
 	
 	** Executes this cmd on the MongoDB server, and preemptively interprets the response as a cursor.
 	MongoCur cursor() {
-		cur := run()["cursor"] as Str:Obj?
-		return MongoCur(connMgr, dbName, cmdVal.toStr, cur["id"], cur["firstBatch"])
+		connMgr.leaseConn |con->MongoCur| {
+			doc		:= MongoOp(con, cmd).runCommand(dbName)
+			cur		:= doc["cursor"] as Str:Obj?
+			curId	:= cur["id"]
+			sess	:= curId == 0 ? null : con.detachSession
+			return MongoCur(connMgr, dbName, cmdVal.toStr, curId, cur["firstBatch"], sess)
+		}
 	}
 }

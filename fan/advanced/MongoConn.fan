@@ -39,6 +39,10 @@ mixin MongoConn {
 	** Returns 'null' if the session has already been detached, or was never created.
 	internal
 	abstract MongoSess?	detachSession()
+	
+	** Associates a jailbroken session with this connection. 
+	internal
+	abstract Void 		setSession(MongoSess? session)
 }
 
 ** Connects to MongoDB via an 'inet::TcpSocket'.
@@ -74,7 +78,7 @@ internal class MongoTcpConn : MongoConn {
 			return this
 		}
 		catch (Err err)
-			throw IOErr("Could not connect to MongoDB at `${address}:${port}` - ${err.msg}", err)
+			throw IOErr("Could not connect to MongoDB at ${address}:${port} - ${err.msg}", err)
 	}
 	
 	override MongoSess getSession() {
@@ -90,9 +94,22 @@ internal class MongoTcpConn : MongoConn {
 	override MongoSess? detachSession() {
 		sess := this.sess
 		this.sess = null
+		sess.isDetached = true
 		return sess
 	}
 	
+	override Void setSession(MongoSess? session) {
+		if (session == null) return
+
+		if (this.sess != null)
+			throw Err("Cannot setSession(), I've already got one - $sess")
+
+		if (session.isDetached == false)
+			throw Err("Cannot setSession(), Session is NOT detached - $sess")
+
+		this.sess = session
+	}
+
 	override InStream	in()		{ socket.in			}
 	override OutStream	out()		{ socket.out		}
 	override Void		close()		{ socket.close		}
@@ -117,4 +134,3 @@ internal class MongoTcpConn : MongoConn {
 		isClosed ? "Closed" : socket.remoteAddr.toStr
 	}
 }
-

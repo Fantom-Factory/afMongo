@@ -162,13 +162,9 @@ internal class MongoConnStub : MongoConn {
 		return this
 	}
 
-	override MongoSess getSession() {
-		throw UnsupportedErr()
-	}
-
-	override MongoSess? detachSession() {
-		throw UnsupportedErr()
-	}
+	override MongoSess	getSession()					{ throw UnsupportedErr() }
+	override MongoSess?	detachSession()					{ throw UnsupportedErr() }
+	override Void		setSession(MongoSess? session)	{ throw UnsupportedErr() }
 
 	override InStream 	in()	{ inBuf.in }
 	override OutStream	out()	{ outBuf.out }
