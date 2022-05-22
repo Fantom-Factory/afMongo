@@ -19,7 +19,6 @@ class MongoOp {
 		"zstd"		: 3,
 	]
 	private static const Str[]		nonSessionCmds		:= "hello isMaster saslStart saslContinue getnonce authenticate".split
-//	private static const Str[]		retryableWriteCmds	:= "hello isMaster saslStart saslContinue getnonce authenticate".split
 	private static const Int[]		retryableErrCodes	:= [
 		11600,	// InterruptedAtShutdown
 		11602,	// InterruptedDueToReplStateChange
@@ -86,12 +85,19 @@ class MongoOp {
 			// mark ALL sessions as dirty regardless if the retry succeeds or not (as per spec)
 			conn.getSession(false)?.markDirty
 			
+			if (isRetryableRead)
+				return retryCommand(ioe, true, sess, checked)
+
 			if (isRetryableWrite)
 				return retryCommand(ioe, true, sess, checked)
+
 			throw ioe
 		}
 		
 		catch	(MongoErr me) {
+			if (isRetryableRead && retryableErrCodes.contains(me.code ?: -1))
+				return retryCommand(me, true, sess, checked)
+			
 			if (isRetryableWrite && (retryableErrCodes.contains(me.code ?: -1) || me.errLabels.contains("RetryableWriteError")))
 				return retryCommand(me, true, sess, checked)
 			throw me
@@ -99,9 +105,11 @@ class MongoOp {
 	}
 	
 	private Str:Obj? retryCommand(Err err, Bool failOver, MongoSess? sess, Bool checked) {
-		// TODO log.warn
+		log.warn("Re-trying cmd '${cmdName}' - ${err.typeof} - ${err.msg}")
+
 		try {
 			if (failOver) {
+				conn.close
 				connMgr.failOver.waitFor(30sec)
 
 				// grab a fresh conn, 'cos the existing Conn just got closed!
@@ -111,6 +119,7 @@ class MongoOp {
 
 			return doRunCommand(sess, checked)
 		} catch	{
+			// "If the retry attempt also fails, drivers MUST update their topology."
 			connMgr.failOver
 			throw err
 		}
@@ -135,6 +144,15 @@ class MongoOp {
 
 		// https://github.com/mongodb/specifications/blob/master/source/retryable-writes/retryable-writes.rst#supported-write-operations
 		// Supported single-statement write operations include insertOne(), updateOne(), replaceOne(), deleteOne(), findOneAndDelete(), findOneAndReplace(), and findOneAndUpdate().
+		
+		return false
+	}	
+
+	private Bool isRetryableRead() {
+//		if (connMgr == null || connMgr.retryableReadsEnabled == false)
+//			return false
+		
+		// https://github.com/mongodb/specifications/blob/master/source/retryable-reads/retryable-reads.rst#id13
 		
 		return false
 	}
