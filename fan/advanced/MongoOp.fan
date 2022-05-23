@@ -3,9 +3,11 @@ using afBson::BsonIO
 
 ** Sends an 'OP_MSG' to the Mongo server.
 ** 
-** @see `https://github.com/mongodb/specifications/blob/master/source/message/OP_MSG.rst`
-** @see `https://github.com/mongodb/specifications/blob/master/source/compression/OP_COMPRESSED.rst`
-** @see `https://github.com/mongodb/specifications/blob/master/source/retryable-writes/retryable-writes.rst`
+** @see 
+**  - `https://github.com/mongodb/specifications/blob/master/source/message/OP_MSG.rst`
+**  - `https://github.com/mongodb/specifications/blob/master/source/compression/OP_COMPRESSED.rst`
+**  - `https://github.com/mongodb/specifications/blob/master/source/retryable-reads/retryable-reads.rst`
+**  - `https://github.com/mongodb/specifications/blob/master/source/retryable-writes/retryable-writes.rst`
 @NoDoc	// advanced use only
 class MongoOp {
 	private static const Int		OP_COMPRESSED		:= 2012
@@ -53,9 +55,6 @@ class MongoOp {
 	}
 
 		
-	// TODO retryable reads
-	// https://github.com/mongodb/specifications/blob/master/source/retryable-reads/retryable-reads.rst
-
 	// TODO Transactions!
 	// https://github.com/mongodb/specifications/blob/master/source/transactions/transactions.rst
 		
@@ -72,10 +71,10 @@ class MongoOp {
 		// append session info where we should
 		if (nonSessionCmds.contains(cmdName) == false && isUnacknowledgedWrite == false) {
 			sess = conn.getSession(true)
-			
 			cmd["lsid"]	= sess.sessionId
 
-			// keep the same txNumber between retries
+			// txNumber is only applicable if in a session
+			// add it now so we keep the same txNumber between retries
 			if (isRetryableWrite)
 				cmd["txnNumber"] = sess.newTxNum
 		}
@@ -258,12 +257,12 @@ class MongoOp {
 		
 		// read std MsgHeader
 		msgSize	:= in.readU4
-		resId	:= in.readU4		// keep for logs
-		reqId2	:= in.readU4
+		msgId	:= in.readU4
+		resTo	:= in.readU4
 		opCode	:= in.readU4
 	
-		if (reqId2 != reqId)
-			throw Err("Bad Mongo response, returned RequestID (${reqId2}) does NOT match sent RequestID (${reqId})")
+		if (resTo != reqId)
+			throw Err("Bad Mongo response, returned RequestID (${resTo}) does NOT match sent RequestID (${reqId})")
 		
 		if (opCode == OP_COMPRESSED) {
 			opCode	 = in.readU4	// original opCode
@@ -286,7 +285,7 @@ class MongoOp {
 		}
 		
 		if (opCode != OP_MSG)
-			throw Err("Bad Mongo response, expected OP_MSG (${OP_MSG}), not: ${opCode}")
+			throw Err("Bad Mongo response, expected OP_MSG (${OP_MSG}) not: ${opCode}")
 		
 		
 		// read OP_MSG
@@ -301,7 +300,7 @@ class MongoOp {
 		resDoc	:= BsonIO().readDoc(in)
 		
 		if (log.isDebug) {
-			msg := "Mongo Res ($resId):\n"
+			msg := "Mongo Res ($msgId):\n"
 			msg += BsonIO().print(resDoc)
 			log.debug(msg)
 		}
@@ -349,4 +348,3 @@ class MongoOp {
 		reqIdSeq.val = 0
 	}
 }
-

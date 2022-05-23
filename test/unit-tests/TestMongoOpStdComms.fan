@@ -51,7 +51,7 @@ internal class TestMongoOpStdComms : Test {
 		con.writeDoc(["foo":"bar", "ok":1])
 		con.flip
 		
-		verifyErrMsg(Err#, "Bad Mongo response, expected OP_MSG (2013), not: 69") {
+		verifyErrMsg(Err#, "Bad Mongo response, expected OP_MSG (2013) not: 69") {
 			MongoOp(null, con, cmd("wotever")).runCommand("wotever")
 		}
 	}

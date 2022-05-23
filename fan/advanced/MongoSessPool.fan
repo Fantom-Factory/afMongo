@@ -6,6 +6,11 @@ using afConcurrent::SynchronizedList
 
 ** Sessions are painful overhead, but a necessary feature that underpins retryable writes and transactions.
 ** 
+** Sessions are stored on a FILO stack (as per Mongo spec) - (I guess) so fewer sessions are active at any one time.
+** 
+** Session stack, clusterTime, and txNums are all separate features, but given they're all related it made sense to 
+** bung them together in the one class. 
+** 
 ** https://github.com/mongodb/specifications/blob/master/source/sessions/driver-sessions.rst
 internal const class MongoSessPool {
 	
@@ -23,29 +28,37 @@ internal const class MongoSessPool {
 		get { sessionTimeoutRef.val }
 		set { sessionTimeoutRef.val = it }
 	}
+	
+	// for testing
+	MongoSess[] sessions {
+		get { sessionPool.val }
+		set { sessionPool.val = it }
+	}
 
 	new make(ActorPool actorPool) {
-		this.sessionTimeoutRef	= AtomicRef(null)
+		this.sessionTimeoutRef	= AtomicRef(0min)
 		this.clusterTimeRef		= AtomicRef(null)
 		this.transactionNumRef	= AtomicInt(0)
 		this.sessionPool		= SynchronizedList(actorPool)
 	}
 	
 	MongoSess checkout() {
-		// this algo avoids concurrent race conditions
+		// discard any stored stale sessions (from the top of the stack)
+		// this algorithm avoids concurrent race conditions
 		sess := null as MongoSess
 		while ((sess = sessionPool.pop) != null && sess.isStale)
 			null?.toStr
 		
 		if (sess == null)
 			sess = MongoSess(this)
-		
+
 		return sess
 	}
 	
 	Void checkin(MongoSess? sess, Bool force := false) {
+		// discard any stored stale sessions (from the bottom of the stack)
 		// MongoDB specs say we don't need to check the entire stack
-		// this algo avoids concurrent race conditions
+		// this algorothm avoids concurrent race conditions
 		stale := null as MongoSess
 		while ((stale = sessionPool.first) != null && stale.isStale)
 			sessionPool.remove(stale)
@@ -55,7 +68,7 @@ internal const class MongoSessPool {
 		if (sess.isStale)	return
 		if (sess.isDetached && force == false)
 							return
-		
+	
 		sessionPool.push(sess)
 	}
 

@@ -397,8 +397,9 @@ const class MongoConnMgrPool : MongoConnMgr {
 			conn := (MongoTcpConn) unsafeConnection.val
 			state.checkedOut.removeSame(conn)
 
-			// check the session back into the pool for future reuse 
-			sessPool.checkin(conn.detachSession)
+			// check the session back into the pool for future reuse
+			// if the session has already been detached, then conn.detachSess() will return null
+			sessPool.checkin(conn.detachSession, true)
 			
 			// make sure we don't save stale connections
 			if (!conn.isClosed) {
