@@ -117,7 +117,7 @@ internal class Mongo4x4 {
 			client["application"]	= Str:Obj?["name" : appName]
 
 		try {
-			conn.log.level = LogLevel.debug
+//			conn.log.level = LogLevel.debug
 			conn.connect(address, port)
 			
 			// I have a feeling, the "hello" cmd only works via OP_MSG on Mongo v4.4 or later

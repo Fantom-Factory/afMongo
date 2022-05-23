@@ -48,7 +48,8 @@ internal class TestConnectionPool : MongoDbTest {
 		// give the async failOver() time to complete
 		Actor.sleep(10ms)
 		
-		verifyEq((logs.first as LogRec)?.msg, "Found a new Master at mongodb://localhost:27017")
+		verifyEq((logs[0] as LogRec)?.msg, "Failing over. Re-scanning network topology for new master...")
+		verifyEq((logs[1] as LogRec)?.msg, "Found a new Master at mongodb://localhost:27017 (zlib compression)")
 		verifyEq(connMgr.mongoConnUrl.minPoolSize, 5)
 		verifyEq(connMgr.noOfConnectionsInUse, 1)
 		verifyEq(connMgr.noOfConnectionsInPool, 6)

@@ -1,6 +1,5 @@
-using afBson::BsonIO
 
-internal class TestMongoOp : Test {
+internal class TestMongoOpStdComms : Test {
 	
 	Void testStdComms() {
 		con					:= MongoConnStub()
@@ -13,9 +12,16 @@ internal class TestMongoOp : Test {
 		con.writeDoc(["foo":"bar", "ok":1])
 		con.flip
 		
-		res := MongoOp(null, con, cmd("wotever")).runCommand("wotever")
+		res := MongoOp(null, con, cmd("wotever")).runCommand("<dbName>")
 		
 		verifyEq(res["foo"], "bar")
+		
+		// db SHOULD NOT pollute the given cmd
+		verifyEq(res.containsKey("\$db"), false)
+		
+		// but it SHOULD have been sent to the server
+		doc := con.readDoc
+		verifyEq(doc["\$db"], "<dbName>")
 	}
 	
 	Void testBadReqId() {
@@ -131,42 +137,4 @@ internal class TestMongoOp : Test {
 	}
 	
 	private [Str:Obj?] cmd(Str cmd) { Str:Obj?[:] { ordered = true }.add(cmd, 1) }
-}
-
-internal class MongoConnStub : MongoConn {
-	override Log		log				:= typeof.pod.log
-	override Bool		isClosed		:= false
-	override Bool		isAuthenticated	:= false	
-	override Str?		compressor
-	override Int?		zlibCompressionLevel
-
-	Buf	inBuf	:= Buf() { it.endian = Endian.little }
-	Buf outBuf	:= Buf() { it.endian = Endian.little }
-	
-	new make() {
-		MongoOp.resetReqIdSeq
-	}
-	
-	This writeI1(Int i1)		{ inBuf.write(i1);					return this }
-	This writeI4(Int i4)		{ inBuf.writeI4(i4);				return this }
-	This writeBuf(Buf buf)		{ inBuf.writeBuf(buf);				return this }
-	This writeDoc(Str:Obj? doc)	{ BsonIO().writeDoc(doc, inBuf);	return this }
-	This flip()					{ inBuf.flip;						return this }
-	This writePreamble()		{
-		writeI4(0)		// msgSize
-		writeI4(0)		// resId
-		writeI4(1)		// reqId
-		writeI4(2013)	// opCode
-		writeI4(0)		// flagBits
-		writeI1(0)		// payloadType
-		return this
-	}
-
-	override MongoSess?	getSession(Bool createNew)		{ throw UnsupportedErr() }
-	override MongoSess?	detachSession()					{ throw UnsupportedErr() }
-	override Void		setSession(MongoSess? session)	{ throw UnsupportedErr() }
-
-	override InStream 	in()	{ inBuf.in }
-	override OutStream	out()	{ outBuf.out }
-	override Void		close()	{ }
 }
