@@ -80,6 +80,10 @@ const mixin MongoConnMgr {
 	** Returns 'true' if retryable writes are enabled (the default).
 	** Use the connection URL query '?retryWrites=false' to disable. 
 	abstract Bool retryWrites()
+	
+	** Returns 'true' if the server type is standalone and does not declare any hosts.
+	** Required info for transactions and retryable writes.
+	abstract Bool isStandalone()
 
 	** Does what ever the 'ConnectionManager' needs to do to initialise itself.
 	** 

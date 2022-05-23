@@ -20,6 +20,7 @@
 **  - 'compressors'
 **  - 'zlibCompressionLevel'
 **  - 'retryWrites'
+**  - 'retryReads'
 ** 
 ** URL examples:
 **  - 'mongodb://username:password@example1.com/database?maxPoolSize=50'

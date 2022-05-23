@@ -86,42 +86,47 @@ class MongoOp {
 			conn.getSession(false)?.markDirty
 			
 			if (isRetryableRead)
-				return retryCommand(ioe, true, sess, checked)
+				return retryCommand(ioe, sess, checked)
 
 			if (isRetryableWrite)
-				return retryCommand(ioe, true, sess, checked)
+				return retryCommand(ioe, sess, checked)
 
 			throw ioe
 		}
 		
 		catch	(MongoErr me) {
+			// MMAPv1 storage does not support transactions - the spec is *very* strong that we deal with it like this!
+			if (me.code == 20 && me.errMsg != null && me.errMsg.startsWith("Transaction numbers"))
+				throw MongoErr("This MongoDB deployment does not support retryable writes. Please add retryWrites=false to your connection string.", me.errDoc, me.cause)
+			
 			if (isRetryableRead && retryableErrCodes.contains(me.code ?: -1))
-				return retryCommand(me, true, sess, checked)
+				return retryCommand(me, sess, checked)
 			
 			if ((isRetryableWrite && retryableErrCodes.contains(me.code ?: -1)) || me.errLabels.contains("RetryableWriteError"))
-				return retryCommand(me, true, sess, checked)
+				return retryCommand(me, sess, checked)
 
 			throw me
 		}
 	}
 	
-	private Str:Obj? retryCommand(Err err, Bool failOver, MongoSess? sess, Bool checked) {
+	private Str:Obj? retryCommand(Err err, MongoSess? sess, Bool checked) {
 		log.warn("Re-trying cmd '${cmdName}' - ${err.typeof} - ${err.msg}")
 
 		try {
-			if (failOver) {
-				conn.close
-				connMgr.failOver.waitFor(30sec)
+			conn.close
+			connMgr.failOver.waitFor(30sec)
 
-				// grab a fresh conn, 'cos the existing Conn just got closed!
-				conn = MongoTcpConn(connMgr.tls, log)
-				connMgr.authenticateConn(conn)
-			}
+			// grab a fresh conn, 'cos the existing Conn just got closed!
+			conn = MongoTcpConn(connMgr.tls, log)
+			connMgr.authenticateConn(conn)
 
 			return doRunCommand(sess, checked)
+
 		} catch	{
 			// "If the retry attempt also fails, drivers MUST update their topology."
 			connMgr.failOver
+			
+			// throw original error
 			throw err
 		}
 	}
@@ -138,6 +143,10 @@ class MongoOp {
 	
 	private Bool isRetryableWrite() {
 		if (connMgr == null || connMgr.retryWrites == false)
+			return false
+		
+		// "Transaction numbers are only allowed on a replica set member or mongos"
+		if (connMgr.isStandalone)
 			return false
 		
 		if (isUnacknowledgedWrite)
@@ -158,7 +167,7 @@ class MongoOp {
 			deletes := cmd["deletes"] as [Str:Obj?][]
 			return deletes != null && deletes.all { it["limit"] == 1 }
 		}
-		
+
 		if (cmdName == "findAndModify")
 			return true
 		
@@ -174,7 +183,7 @@ class MongoOp {
 		// "getMore" is NOT allowed
 		if (cmdName == "getMore")
 			return false
-		
+
 		if ("find distinct count listDatabases listCollections listIndexes".split.contains(cmdName))
 			return true
 		

@@ -11,10 +11,11 @@ using inet::TcpSocket
 @NoDoc	// advanced use only
 const class MongoConnMgrPool : MongoConnMgr {
 	override const Log				log
-	private const AtomicBool		hasStarted				:= AtomicBool()//("Connection Pool has been started")
-	private const AtomicBool		hasShutdown				:= AtomicBool()//("Connection Pool has been shutdown")
+	private const AtomicBool		hasStarted				:= AtomicBool()
+	private const AtomicBool		hasShutdown				:= AtomicBool()
 	private const AtomicRef 		failingOverRef			:= AtomicRef(null)
 	private const AtomicBool 		isConnectedToMasterRef	:= AtomicBool(false)
+	private const AtomicBool 		isStandaloneRef			:= AtomicBool(true)		// disable transactions until we know they're accepted
 	private const Synchronized		failOverThread
 	private const SynchronizedState connectionState
 	private const MongoSessPool		sessPool	
@@ -74,6 +75,10 @@ const class MongoConnMgrPool : MongoConnMgr {
 
 	override Bool retryWrites() {
 		mongoConnUrl.retryWrites
+	}
+
+	override Bool isStandalone() {
+		isStandaloneRef.val
 	}
 
 	** Creates the initial pool and establishes 'minPoolSize' connections with the server.
@@ -157,6 +162,8 @@ const class MongoConnMgrPool : MongoConnMgr {
 		future := failingOverRef.val
 		if (future != null)
 			return future
+		
+		log.warn("Failing over. Re-scanning network topology for new master...")
 
 		// it doesn't matter if a race condition means we play huntThePrimary twice in succession
 		return failingOverRef.val = failOverThread.async |->| {
@@ -167,7 +174,8 @@ const class MongoConnMgrPool : MongoConnMgr {
 				emptyPool
 				newUrl := this.mongoUrl
 				
-				log.warn("MongoDB Master failed over from $oldUrl to $newUrl")
+				if (oldUrl != newUrl)
+					log.warn("MongoDB Master failed over from $oldUrl to $newUrl")
 				
 				// we're an unsung hero - we've established a new master connection and nobody knows! 
 				isConnectedToMasterRef.val = true
@@ -256,12 +264,17 @@ const class MongoConnMgrPool : MongoConnMgr {
 	** This method should be followed with a call to 'emptyPool()'.  
 	private Void huntThePrimary() {
 		hostDetails := MongoSafari(mongoConnUrl, log).huntThePrimary
+		
+		// save the address of our new Master
 		mongoUrl	:= database == null ? hostDetails.mongoUrl : hostDetails.mongoUrl.plusSlash.plusName(database) 
-		mongoUrlRef.val = mongoUrl
+		mongoUrlRef.val	= mongoUrl
+		
+		// transactions are not allowed on standalone instances
+		isStandaloneRef.val	= hostDetails.isStandalone
 
 		// keep track of the new logical session timeout
 		sessPool.sessionTimeout = hostDetails.sessionTimeout
-		
+
 		// set our connection factory
 		connectionState.sync |MongoConnMgrPoolState state| {
 			state.connFactory = |->MongoConn| {

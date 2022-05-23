@@ -73,9 +73,8 @@ internal class MongoSafari {
 			throw Err("Could not find the primary node with RelicaSet connection URL ${connectionUrl}")
 
 		hostDetails := primary.hostDetails
-		compressors	:= hostDetails.compression.isEmpty ? ["NONE"] : hostDetails.compression
-		log.info("Found a new Master at ${primary.mongoUrl}")
-		log.info("Negotiated compressor = " + compressors.join(","))
+		compressors	:= hostDetails.compression.isEmpty ? "NO" : hostDetails.compression.join(",")
+		log.info("Found a new Master at ${primary.mongoUrl} (${compressors} compression)")
 		
 		return hostDetails
 	}
@@ -170,7 +169,7 @@ internal const class MongoHostDetails {
 		// "ismaster" for "isMaster" cmds, and "isWritablePrimary" for "hello" cmds.
 		this.isPrimary 		= details["ismaster"]  == true || details["isWritablePrimary"] == true
 		this.isSecondary	= details["secondary"] == true
-		this.primary		= details["primary"]					// standalone instances don't have primary information
+		this.primary		= details["primary"]							// standalone instances don't have primary information
 		this.hosts			= details["hosts"] 			?: Str#.emptyList	// standalone instances don't have hosts information
 		this.compression	= details["compression"]	?: Str#.emptyList
 		sessionTimeout		:= details["logicalSessionTimeoutMinutes"] as Int
@@ -188,5 +187,9 @@ internal const class MongoHostDetails {
 		// WireVer 6 supports OP_MSGs == MongoDB 3.6
 		// https://github.com/mongodb/specifications/blob/master/source/wireversion-featurelist.rst
 		maxWireVer >= 6 && sessionTimeout != null && sessionTimeout > 0min
+	}
+	
+	Bool isStandalone() {
+		this.hosts.isEmpty
 	}
 }
