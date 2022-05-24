@@ -1,7 +1,7 @@
 using afBson::BsonIO
 using afBson::Binary
 
-internal class TestMongoOpSessions : Test {
+internal class TestMongoOpSess : Test {
 	
 	Void testSessionSet() {
 		mgr := MongoConnMgrStub().debugOn

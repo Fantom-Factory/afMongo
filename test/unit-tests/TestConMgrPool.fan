@@ -1,6 +1,6 @@
 using afConcurrent::LocalRef
 
-internal class TestConMgrPooled : Test {
+internal class TestConMgrPool : Test {
 
 	Void testBackoffFuncHappyCase() {
 		connMgr := MongoConnMgrPool(`mongodb://wotever`, null, null) {
