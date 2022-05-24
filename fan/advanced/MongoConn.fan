@@ -43,6 +43,14 @@ mixin MongoConn {
 	** Associates a jailbroken session with this connection. 
 	internal
 	abstract Void 		setSession(MongoSess? session)
+	
+	internal
+	abstract Duration?	lingeringSince
+	
+	internal Bool		isStale(Duration maxLinger) {
+		ttl := lingeringSince + maxLinger - Duration.now
+		return ttl < 1ms
+	}
 }
 
 ** Connects to MongoDB via an 'inet::TcpSocket'.
@@ -54,6 +62,7 @@ internal class MongoTcpConn : MongoConn {
 	override Bool			isAuthenticated
 	override Str?			compressor
 	override Int?			zlibCompressionLevel
+	override Duration?		lingeringSince
 	private	 MongoSessPool?	sessPool
 	private	 MongoSess?		sess
 	

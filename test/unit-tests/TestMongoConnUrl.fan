@@ -64,12 +64,17 @@ internal class TestMongoConnUrl : Test {
 		
 		verifyErrMsg(ArgErr#, "waitQueueTimeoutMS must be >= 0, val=-1, uri=mongodb://wotever?waitQueueTimeoutMS=-1") {
 			conUrl := MongoConnUrl(`mongodb://wotever?waitQueueTimeoutMS=-1`)
+		}		
+
+		verifyErrMsg(ArgErr#, "maxIdleTimeMS must be >= 0, val=-3, uri=mongodb://wotever?maxIdleTimeMS=-3") {
+			conUrl := MongoConnUrl(`mongodb://wotever?maxIdleTimeMS=-3`)
 		}
 
-		conUrl := MongoConnUrl(`mongodb://wotever?minPoolSize=2&maxPoolSize=15&waitQueueTimeoutMS=3000`)
+		conUrl := MongoConnUrl(`mongodb://wotever?minPoolSize=2&maxPoolSize=15&waitQueueTimeoutMS=3000&maxIdleTimeMS=1200`)
 		verifyEq(conUrl.minPoolSize,  2)
 		verifyEq(conUrl.maxPoolSize, 15)
 		verifyEq(conUrl.waitQueueTimeout, 3sec)
+		verifyEq(conUrl.maxIdleTime, 1.2sec)
 		verify(logs.isEmpty)
 	}
 

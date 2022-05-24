@@ -6,6 +6,7 @@ v2.0.2
 ======
  - New: Retryable read and retryable write support via logical sessions, for robustness.
  - New: 'zlib' msg compression now supported via the 'OP_COMPRESSION' cmd.
+ - New: Connections now *linger* before being closed (by 'maxIdleTimeMS) to avoid socket throttling during bursts of activity.
  - New: 'db()' and 'coll()' convenience methods on 'MongoColl' and 'MongoIdx'.
  - New: 'appname' is now supported in Mongo connection URLs and passed to MongoDB handshakes.
 

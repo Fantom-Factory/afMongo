@@ -140,8 +140,8 @@ internal class Mongo4x4 {
 		return this
 	}
 
-	Str[]	hosts()			{ hostDetails.hosts }
-	Str?	primary()		{ hostDetails.primary }
+	Str[]	hosts()			{ hostDetails?.hosts ?: Str#.emptyList}
+	Str?	primary()		{ hostDetails?.primary }
 	Bool	isPrimary()		{ contacted && hostDetails.isValid && hostDetails.isPrimary }
 	Bool	contacted()		{ this.hostDetails != null }
 	Str		host()			{ "${address}:${port}" }

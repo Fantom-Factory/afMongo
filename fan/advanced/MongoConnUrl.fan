@@ -8,6 +8,7 @@
 **  - 'waitQueueTimeoutMS'
 **  - 'connectTimeoutMS'
 **  - 'socketTimeoutMS'
+**  - 'maxIdleTimeMS'
 **  - 'w'
 **  - 'wtimeoutMS'
 **  - 'journal'
@@ -73,7 +74,7 @@ const class MongoConnUrl {
 	** The amount of time to attempt a connection before timing out.
 	** If 'null' (the default) then a system timeout is used.
 	** 
-	**   mongodb://example.com/puppies?connectTimeoutMS=2500
+	**   mongodb://example.com/puppies?connectTimeoutMS=25000
 	** 
 	** Equates to `inet::SocketOptions.connectTimeout`.
 	const Duration? connectTimeout
@@ -81,10 +82,20 @@ const class MongoConnUrl {
 	** The amount of time to attempt a send or receive on a socket before timing out.
 	** 'null' (the default) indicates an infinite timeout.
 	** 
-	**   mongodb://example.com/puppies?socketTimeoutMS=2500
+	**   mongodb://example.com/puppies?socketTimeoutMS=25000
 	** 
 	** Equates to `inet::SocketOptions.receiveTimeout`.
-	const Duration? socketTimeout
+	const Duration? socketTimeout	
+
+	** The maximum time a connection can remain idle in the pool before being removed and 
+	** closed. (This does NOT override minPoolSize.)
+	** 
+	** This helps ease connection throttling during bursts of activity.
+	** 
+	** Defaults to 10sec.
+	** 
+	**   mongodb://example.com/puppies?maxIdleTimeMS=15000
+	const Duration maxIdleTime	:= 500ms//10sec
 
 	** Specifies a TLS / SSL connection. Set to 'true' for Atlas databases.
 	** 
@@ -151,6 +162,7 @@ const class MongoConnUrl {
 		waitQueueTimeoutMs		:= mongoUrl.query["waitQueueTimeoutMS"]?.toInt
 		connectTimeoutMs		:= mongoUrl.query["connectTimeoutMS"]?.toInt
 		socketTimeoutMs 		:= mongoUrl.query["socketTimeoutMS"]?.toInt
+		maxIdleTimeMs	 		:= mongoUrl.query["maxIdleTimeMS"]?.toInt
 		w						:= mongoUrl.query["w"]
 		wtimeoutMs		 		:= mongoUrl.query["wtimeoutMS"]?.toInt
 		journal			 		:= mongoUrl.query["journal"]?.toBool
@@ -176,6 +188,8 @@ const class MongoConnUrl {
 			throw ArgErr(errMsg_intTooSmall("connectTimeoutMS", "0", connectTimeoutMs, mongoUrl))
 		if (socketTimeoutMs != null && socketTimeoutMs < 0)
 			throw ArgErr(errMsg_intTooSmall("socketTimeoutMS", "0", socketTimeoutMs, mongoUrl))
+		if (maxIdleTimeMs != null && maxIdleTimeMs < 0)
+			throw ArgErr(errMsg_intTooSmall("maxIdleTimeMS", "0", maxIdleTimeMs, mongoUrl))
 		if (wtimeoutMs != null && wtimeoutMs < 0)
 			throw ArgErr(errMsg_intTooSmall("wtimeoutMS", "0", wtimeoutMs, mongoUrl))
 		if (zlibCompressionLevel != null && zlibCompressionLevel < -1)
@@ -183,12 +197,10 @@ const class MongoConnUrl {
 		if (zlibCompressionLevel != null && zlibCompressionLevel > 9)
 			throw ArgErr(errMsg_intTooLarge("zlibCompressionLevel", "9", zlibCompressionLevel, mongoUrl))
 
-		if (waitQueueTimeoutMs != null)
-			waitQueueTimeout = (waitQueueTimeoutMs * 1_000_000).toDuration
-		if (connectTimeoutMs != null)
-			connectTimeout = (connectTimeoutMs * 1_000_000).toDuration
-		if (socketTimeoutMs != null)
-			socketTimeout = (socketTimeoutMs * 1_000_000).toDuration
+		if (waitQueueTimeoutMs	!= null)	waitQueueTimeout	= 1ms * waitQueueTimeoutMs
+		if (connectTimeoutMs	!= null)	connectTimeout		= 1ms * connectTimeoutMs
+		if (socketTimeoutMs		!= null)	socketTimeout		= 1ms * socketTimeoutMs
+		if (maxIdleTimeMs		!= null)	maxIdleTime			= 1ms * maxIdleTimeMs
 
 		// authSource trumps defaultauthdb 
 		database := authSource ?: mongoUrl.pathStr.trimToNull
@@ -270,6 +282,7 @@ const class MongoConnUrl {
 		query.remove("waitQueueTimeoutMS")
 		query.remove("connectTimeoutMS")
 		query.remove("socketTimeoutMS")
+		query.remove("maxIdleTimeMS")
 		query.remove("w")
 		query.remove("wtimeoutMS")
 		query.remove("journal")
@@ -279,6 +292,10 @@ const class MongoConnUrl {
 		query.remove("authMechanism")
 		query.remove("authMechanismProperties")
 		query.remove("appname")
+		query.remove("compressors")
+		query.remove("zlibCompressionLevel")
+		query.remove("retryWrites")
+		query.remove("retryReads")
 		query.each |val, key| {
 			log.warn("Unknown option in Mongo connection URL: ${key}=${val}")
 		}

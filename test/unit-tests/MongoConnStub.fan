@@ -7,6 +7,7 @@ internal class MongoConnStub : MongoConn {
 	override Bool		isAuthenticated	:= false	
 	override Str?		compressor
 	override Int?		zlibCompressionLevel
+	override Duration?	lingeringSince
 		 	 MongoSessPool	sessPool	:= MongoSessPool(ActorPool())
 		 	 MongoSess?		sess
 

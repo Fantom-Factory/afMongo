@@ -328,17 +328,21 @@ const class MongoConnMgrPool : MongoConnMgr {
 
 	private MongoTcpConn checkOut() {
 		connectionFunc := |Duration totalNapTime->MongoTcpConn?| {
-			con := connectionState.sync |MongoConnMgrPoolState state->Unsafe?| {
-				while (!state.checkedIn.isEmpty) {
-					connection := state.checkedIn.pop
-
+			conn := connectionState.sync |MongoConnMgrPoolState state->Unsafe?| {
+				while (state.checkedIn.size > 0) {
+					conn := state.checkedIn.pop
 					// check the connection is still alive - the server may have closed it during a fail over
-					if (!connection.isClosed) {
-						state.checkedOut.push(connection)
-						return Unsafe(connection)
+					if (conn.isClosed == false && conn.isStale(mongoConnUrl.maxIdleTime) == false) {
+						conn.lingeringSince = null
+						state.checkedOut.push(conn)
+						return Unsafe(conn)
 					}
+	
+					// close and discard any old connections
+					conn.close
 				}
 
+				// create a new connection
 				if (state.checkedOut.size < mongoConnUrl.maxPoolSize) {
 					connection := state.connFactory()
 					state.checkedOut.push(connection)
@@ -349,10 +353,9 @@ const class MongoConnMgrPool : MongoConnMgr {
 			
 			// let's not swamp the logs the first time we can't connect
 			// 1.5 secs gives at least 6 connection attempts
-			if (con == null && totalNapTime > 1.5sec)
+			if (conn == null && totalNapTime > 1.5sec)
 				log.warn("All ${mongoConnUrl.maxPoolSize} are in use, waiting for one to become free on ${mongoUrl}...")
-
-			return con
+			return conn
 		}
 
 		connection	:= null as MongoTcpConn
@@ -364,7 +367,7 @@ const class MongoConnMgrPool : MongoConnMgr {
 			ioErr = ioe
 
 		if (connection == null || ioErr != null) {
-			if (noOfConnectionsInUse == mongoConnUrl.maxPoolSize)
+			if (noOfConnectionsInUse >= mongoConnUrl.maxPoolSize)
 				throw Err("Argh! No more Mongo connections! All ${mongoConnUrl.maxPoolSize} are in use!")
 			
 			// it would appear the database is down ... :(			
@@ -408,22 +411,17 @@ const class MongoConnMgrPool : MongoConnMgr {
 					conn.close
 					return
 				}
-				
-				// only keep the min pool size
-				if (state.checkedIn.size >= mongoConnUrl.minPoolSize) {
-					
-					// if there are msgs still to be processed, don't bother closing as we're likely to just be re-opened again
-					queueSize := connectionState.lock.actor.queueSize
-					if (queueSize == 0) {
-						
-						// keep the socket open for 30 secs to ease open / close throttling
-						
-						conn.close
-						return
-					}
+	
+				// discard any stored stale conns (from the bottom of the stack) but keep minPoolSize
+				// same as MongoSessPool
+				stale := null as MongoConn
+				while (state.checkedIn.size >= mongoConnUrl.minPoolSize && (stale = state.checkedIn.first) != null && stale.isStale(mongoConnUrl.maxIdleTime)) {
+					state.checkedIn.removeSame(stale)
 				}
 
-				// else keep the connection alive for re-use
+				// keep the socket open for 10 secs to ease open / close throttling during bursts of activity.
+				conn.lingeringSince	= Duration.now
+
 				state.checkedIn.push(conn)
 			}
 		}
