@@ -18,7 +18,7 @@ const class MongoIdx {
 	const Str	dbName
 	
 	** The simple name of the collection.
-	const Str	colName
+	const Str	collName
 	
 	** The simple name of this index. 
 	const Str	name
@@ -26,8 +26,18 @@ const class MongoIdx {
 	new make(MongoConnMgr connMgr, Str idxName, Str colName, Str? dbName := null) {
 		this.connMgr	= connMgr
 		this.dbName		= MongoDb.validateName(dbName ?: connMgr.database)
-		this.colName	= MongoColl.validateName(colName)
+		this.collName	= MongoColl.validateName(colName)
 		this.name		= idxName
+	}
+	
+	** Creates an 'MongoDb' instance of the associated DB.
+	MongoDb db() {
+		MongoDb(connMgr, dbName)
+	}
+	
+	** Creates a 'MongoColl' instance of the associated Collection.
+	MongoColl coll() {
+		MongoColl(connMgr, collName, dbName)
 	}
 
 	** Returns index info.
@@ -36,7 +46,7 @@ const class MongoIdx {
 	** 
 	** @see `https://www.mongodb.com/docs/manual/reference/command/listIndexes/`
 	[Str:Obj?]? info() {
-		cmd("listIndexes", colName)
+		cmd("listIndexes", collName)
 			.cursor
 			.toList
 			.find { it["name"] == name }
@@ -95,7 +105,7 @@ const class MongoIdx {
 			.add("key",				key)
 			.add("unique",			unique)
 		opts := createCmd.extract("writeConcern commitQuorum comment".split)
-		return cmd("createIndexes",	colName)
+		return cmd("createIndexes",	collName)
 			.add("indexes",			[createCmd.cmd])
 			.addAll(				opts)
 			.add("writeConcern",	connMgr.writeConcern)
@@ -137,7 +147,7 @@ const class MongoIdx {
 	** 
 	** @see `https://www.mongodb.com/docs/manual/reference/command/dropIndexes/`
 	Void drop(Bool force := false) {
-		if (force || exists) cmd("dropIndexes", colName).add("index", name).run
+		if (force || exists) cmd("dropIndexes", collName).add("index", name).run
 	}
 
 	** **For Power Users!**
@@ -149,6 +159,6 @@ const class MongoIdx {
 	
 	@NoDoc
 	override Str toStr() {
-		"${dbName}.${colName}::${name}"
+		"${dbName}.${collName}::${name}"
 	}
 }

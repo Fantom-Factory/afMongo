@@ -22,6 +22,11 @@ const class MongoColl {
 		this.name 		= validateName(name)
 	}
 	
+	** Creates an 'MongoDb' instance of the associated DB.
+	MongoDb db() {
+		MongoDb(connMgr, dbName)
+	}
+	
 	** Convenience / shorthand notation for 'findOne(["_id" : id], checked)'
 	@Operator
 	[Str:Obj?]? get(Obj? id, Bool checked := true) {
