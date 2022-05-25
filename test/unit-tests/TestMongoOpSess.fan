@@ -5,12 +5,7 @@ internal class TestMongoOpSess : Test {
 	
 	Void testSessionSet() {
 		mgr := MongoConnMgrStub().debugOn
-		
-		con	:= MongoConnStub().writePreamble.writeDoc([
-			"foo"	: "bar",
-			"ok"	: 1
-		]).flip
-		
+		con	:= MongoConnStub().writePreamble.writeDoc([ "foo": "bar", "ok": 1 ]).flip
 		res := MongoOp(mgr, con, cmd("byMy")).runCommand("db")
 		req := con.readDoc
 		
@@ -38,8 +33,7 @@ internal class TestMongoOpSess : Test {
 		
 		
 		// unacknowledged writes should NOT be sent
-		MongoOp.resetReqIdSeq
-		con.inBuf.seek(0)
+		con.reset
 		res = MongoOp(mgr, con, cmd("hello")).runCommand("db")
 		req = con.readDoc
 		

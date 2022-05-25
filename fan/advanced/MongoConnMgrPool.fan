@@ -65,10 +65,6 @@ const class MongoConnMgrPool : MongoConnMgr {
 		mongoConnUrl.writeConcern
 	}
 	
-	override Bool tls() {
-		mongoConnUrl.tls
-	}
-	
 	override Bool retryReads() {
 		mongoConnUrl.retryReads
 	}
@@ -229,7 +225,7 @@ const class MongoConnMgrPool : MongoConnMgr {
 		}
 		
 		// one last call to the server to end all sessions
-		conn := MongoTcpConn(newSocket, log, sessPool).connect(mongoUrl.host, mongoUrl.port)
+		conn := MongoTcpConn(newSocket, mongoConnUrl.tls, log, sessPool).connect(mongoUrl.host, mongoUrl.port)
 		try		sessPool.shutdown(conn)
 		finally	conn.close
 
@@ -278,7 +274,7 @@ const class MongoConnMgrPool : MongoConnMgr {
 		// set our connection factory
 		connectionState.sync |MongoConnMgrPoolState state| {
 			state.connFactory = |->MongoConn| {
-				return MongoTcpConn(newSocket, log, sessPool).connect(mongoUrl.host, mongoUrl.port) {
+				return MongoTcpConn(newSocket, mongoConnUrl.tls, log, sessPool).connect(mongoUrl.host, mongoUrl.port) {
 					it.mongoUrl				= mongoUrl
 					it.compressor			= hostDetails.compression.first
 					it.zlibCompressionLevel	= this.mongoConnUrl.zlibCompressionLevel

@@ -6,8 +6,10 @@ using afBson::BsonIO
 ** @see 
 **  - `https://github.com/mongodb/specifications/blob/master/source/message/OP_MSG.rst`
 **  - `https://github.com/mongodb/specifications/blob/master/source/compression/OP_COMPRESSED.rst`
+**  - `https://github.com/mongodb/specifications/blob/master/source/sessions/driver-sessions.rst`
 **  - `https://github.com/mongodb/specifications/blob/master/source/retryable-reads/retryable-reads.rst`
 **  - `https://github.com/mongodb/specifications/blob/master/source/retryable-writes/retryable-writes.rst`
+**  - `https://github.com/mongodb/specifications/blob/master/source/transactions/transactions.rst`
 @NoDoc	// advanced use only
 class MongoOp {
 	private static const Int		OP_COMPRESSED		:= 2012
@@ -109,19 +111,23 @@ class MongoOp {
 	}
 	
 	private Str:Obj? retryCommand(Err err, MongoSess? sess, Bool checked) {
-		log.warn("Re-trying cmd '${cmdName}' - ${err.typeof} - ${err.msg}")
+		log.warn("Re-trying cmd '${cmdName}' after Err - ${err.typeof} - ${err.msg}")
 
 		try {
 			conn.close
-			connMgr.failOver.waitFor(30sec)
+			
+			// use get, so any failover errors are thrown 
+			connMgr.failOver.get(30sec)
 
 			// grab a fresh conn, 'cos the existing Conn just got closed!
-			conn = MongoTcpConn(connMgr.tls, log)
+			conn = conn.refresh
 			connMgr.authenticateConn(conn)
 
 			return doRunCommand(sess, checked)
 
-		} catch	{
+		} catch	(Err e) {
+			log.warn("Re-try cmd failed with Err - ${e.typeof} - ${e.msg}")
+
 			// "If the retry attempt also fails, drivers MUST update their topology."
 			connMgr.failOver
 			
@@ -215,7 +221,7 @@ class MongoOp {
 		msgOut.write(0)		// section payloadType == 0
 		BsonIO().writeDoc(cmd, msgBuf)
 		msgBuf.flip
-	
+
 		// compress the msg if we're able
 		if (conn.compressor == "zlib" && uncompressibleCmds.contains(cmdName) == false) {
 
@@ -261,8 +267,11 @@ class MongoOp {
 		resTo	:= in.readU4
 		opCode	:= in.readU4
 	
-		if (resTo != reqId)
-			throw Err("Bad Mongo response, returned RequestID (${resTo}) does NOT match sent RequestID (${reqId})")
+		if (resTo != reqId) {
+			// weirdly, in my Mongo 3.6 dev environment, Mongo looses sync and often starts sending out shite!
+			help := conn.compressor != "gzip" ? "" : "  - if this Err persists, try disabling gzip compression"
+			throw IOErr("Bad Mongo response, returned RequestID (${resTo}) does NOT match sent RequestID (${reqId})${help}")
+		}
 		
 		if (opCode == OP_COMPRESSED) {
 			opCode	 = in.readU4	// original opCode
@@ -271,7 +280,6 @@ class MongoOp {
 			
 			if (compId == compressorIds["zlib"])
 				in = Zip.deflateInStream(in)
-			
 			else
 			if (compId == compressorIds["noop"])
 				{ /* noop */ }
@@ -280,22 +288,22 @@ class MongoOp {
 				algo := compressorIds.eachWhile |id, algo| { id == compId ? algo : null }
 				// we don't throw UnsupportedErr because we *should* have negotiated a valid compressor
 				// so this is an actual error
-				throw Err("Unsupported compression algorithm: ${compId}" + (algo == null ? "" : " (${algo})"))
+				throw IOErr("Unsupported compression algorithm: ${compId}" + (algo == null ? "" : " (${algo})"))
 			}
 		}
 		
 		if (opCode != OP_MSG)
-			throw Err("Bad Mongo response, expected OP_MSG (${OP_MSG}) not: ${opCode}")
+			throw IOErr("Bad Mongo response, expected OP_MSG (${OP_MSG}) not: ${opCode}")
 		
-		
+	
 		// read OP_MSG
 		flagBits	:= in.readU4
 		if (flagBits != 0)
-			throw Err("Bad Mongo response, expected NO flags, but got: 0x${flagBits.toHex}")
+			throw IOErr("Bad Mongo response, expected NO flags, but got: 0x${flagBits.toHex}")
 		
 		payloadType	:= in.read
 		if (payloadType != 0)
-			throw Err("Bad Mongo response, expected payload type 0, not: ${payloadType}")
+			throw IOErr("Bad Mongo response, expected payload type 0, not: ${payloadType}")
 
 		resDoc	:= BsonIO().readDoc(in)
 		
@@ -344,7 +352,7 @@ class MongoOp {
 	}
 	
 	** For testing.
-	static internal Void resetReqIdSeq() {
-		reqIdSeq.val = 0
+	static internal Int reqId() {
+		reqIdSeq.val
 	}
 }

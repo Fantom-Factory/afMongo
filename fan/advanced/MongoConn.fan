@@ -29,6 +29,10 @@ mixin MongoConn {
 	
 	** The compression level (0 - 9) to use with zlib.
 	abstract Int?		zlibCompressionLevel()
+
+	** Creates a fresh, detached, socket using the same host, port, and tls settings.
+	internal 
+	abstract MongoConn	refresh()
 	
 	** Returns the Session associated with this connection.
 	** Sessions are checked out lazily.
@@ -65,11 +69,13 @@ internal class MongoTcpConn : MongoConn {
 	override Duration?		lingeringSince
 	private	 MongoSessPool?	sessPool
 	private	 MongoSess?		sess
-	
+	private	 Bool			ssl
+
 	** Used by ConnPool
 	** Allows you to pass in a TcpSocket with options already set.
-	new fromSocket(TcpSocket socket, Log log, MongoSessPool sessPool) {
+	new fromSocket(TcpSocket socket, Bool ssl, Log log, MongoSessPool sessPool) {
 		this.socket 	= socket
+		this.ssl		= ssl
 		this.log		= log
 		this.sessPool	= sessPool
 	}
@@ -77,10 +83,11 @@ internal class MongoTcpConn : MongoConn {
 	** Used by MongoSafari
 	** Creates a new TCP Socket
 	new make(Bool ssl, Log log) {
-		this.socket 	= newSocket(ssl)
+		this.ssl		= ssl
 		this.log		= log
+		this.socket 	= newSocket(ssl)
 	}
-	
+
 	This connect(Str address, Int port) {
 		try {
 			socket.connect(IpAddr(address), port)
@@ -89,7 +96,7 @@ internal class MongoTcpConn : MongoConn {
 		catch (Err err)
 			throw IOErr("Could not connect to MongoDB at ${address}:${port} - ${err.msg}", err)
 	}
-	
+
 	override MongoSess? getSession(Bool createNew) {
 		if (sess != null)
 			return sess
@@ -127,6 +134,10 @@ internal class MongoTcpConn : MongoConn {
 	override OutStream	out()		{ socket.out		}
 	override Void		close()		{ socket.close		}
 	override Bool		isClosed()	{ socket.isClosed	}
+	
+	override MongoConn	refresh() {
+		MongoTcpConn(ssl, log).connect(socket.remoteAddr.numeric, socket.remotePort)
+	}
 	
 	** Retain backwards compatibility with all recent versions of Fantom.
 	private static TcpSocket newSocket(Bool ssl) {

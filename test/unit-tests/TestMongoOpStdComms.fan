@@ -28,14 +28,15 @@ internal class TestMongoOpStdComms : Test {
 		con					:= MongoConnStub()
 		con.writeI4(0)		// msgSize
 		con.writeI4(0)		// resId
-		con.writeI4(2)		// reqId		- ###
+		con.writeI4(666666)	// reqId		- ###
 		con.writeI4(2013)	// opCode
 		con.writeI4(0)		// flagBits
 		con.writeI1(0)		// payloadType
 		con.writeDoc(["foo":"bar", "ok":1])
 		con.flip
 		
-		verifyErrMsg(Err#, "Bad Mongo response, returned RequestID (2) does NOT match sent RequestID (1)") {
+		MongoOp#.field("reqIdSeq").get->val = 0	
+		verifyErrMsg(IOErr#, "Bad Mongo response, returned RequestID (666666) does NOT match sent RequestID (1)") {
 			MongoOp(null, con, cmd("wotever")).runCommand("wotever")
 		}
 	}	
@@ -51,7 +52,7 @@ internal class TestMongoOpStdComms : Test {
 		con.writeDoc(["foo":"bar", "ok":1])
 		con.flip
 		
-		verifyErrMsg(Err#, "Bad Mongo response, expected OP_MSG (2013) not: 69") {
+		verifyErrMsg(IOErr#, "Bad Mongo response, expected OP_MSG (2013) not: 69") {
 			MongoOp(null, con, cmd("wotever")).runCommand("wotever")
 		}
 	}
@@ -67,7 +68,7 @@ internal class TestMongoOpStdComms : Test {
 		con.writeDoc(["foo":"bar", "ok":1])
 		con.flip
 		
-		verifyErrMsg(Err#, "Bad Mongo response, expected NO flags, but got: 0x10") {
+		verifyErrMsg(IOErr#, "Bad Mongo response, expected NO flags, but got: 0x10") {
 			MongoOp(null, con, cmd("wotever")).runCommand("wotever")
 		}
 	}
@@ -83,7 +84,7 @@ internal class TestMongoOpStdComms : Test {
 		con.writeDoc(["foo":"bar", "ok":1])
 		con.flip
 		
-		verifyErrMsg(Err#, "Bad Mongo response, expected payload type 0, not: 1") {
+		verifyErrMsg(IOErr#, "Bad Mongo response, expected payload type 0, not: 1") {
 			MongoOp(null, con, cmd("wotever")).runCommand("wotever")
 		}
 	}	

@@ -65,9 +65,6 @@ const mixin MongoConnMgr {
 	** It *should not* contain any user credentials and *should* be safe to log. 
 	abstract Uri? mongoUrl()
 	
-	** Should connections to MongoDB use TLS?
-	abstract Bool tls()
-	
 	** The default database name, taken from the the Connection URL auth source.
 	abstract Str? database()
 	
