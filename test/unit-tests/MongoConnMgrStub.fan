@@ -53,7 +53,7 @@ internal const class MongoConnMgrStub : MongoConnMgr {
 		`mongodb://example.com/wotever`
 	}
 	
-	override Str? database() {
+	override Str? dbName() {
 		"wotever"
 	}
 	

@@ -40,7 +40,7 @@ const class MongoClient {
 	** 
 	** Note this just instantiates the Fantom object, it does not create anything in the database. 
 	MongoDb db(Str? dbName := null) {
-		MongoDb(connMgr, dbName ?: connMgr.database)
+		MongoDb(connMgr, dbName ?: connMgr.dbName)
 	}
 
 	** Convenience / shorthand notation for 'db(name)'

@@ -1,11 +1,19 @@
 
 ** The principle class that communicates with MongoDB.
 class MongoCmd {
-	const MongoConnMgr	connMgr
-	const Str			dbName
-	const Str			cmdName
-	const Obj?			cmdVal
 	private MongoSess?	session
+
+	** The connection manager that Mongo connections are leased from.
+	const MongoConnMgr	connMgr
+
+	** The name of the database.
+	const Str			dbName
+	
+	** The name of this cmd.
+	const Str			cmdName
+	
+	** The value of this cmd.
+	const Obj?			cmdVal
 
 	** The backing cmd document.
 	Str:Obj? cmd {
@@ -46,6 +54,7 @@ class MongoCmd {
 	}	
 	
 	** Like 'with()', but 'fn' may be 'null'.
+	@NoDoc
 	This withFn(|MongoCmd|? fn) {
 		fn?.call(this)
 		return this
@@ -54,8 +63,10 @@ class MongoCmd {
 	** Returns 'true' if this cmd contains the given key.
 	Bool containsKey(Str key) {
 		cmd.containsKey(key)
-	}	
+	}
 
+	** Extracts the given keys into a Map.
+	@NoDoc
 	Str:Obj? extract(Str[] keys) {
 		map := Str:Obj?[:]
 		map.ordered = true
@@ -68,18 +79,20 @@ class MongoCmd {
 		return map
 	}
 	
+	** Returns a value from the cmd.
 	@Operator
 	Obj? get(Str key) {
 		cmd[key]
 	}
 	
+	** Sets a value in the cmd.
 	@Operator
 	This set(Str key, Obj? val) {
 		cmd[key] = val
 		return this
 	}	
 	
-	@NoDoc
+	** Trap operator for 'get()' and 'add()'.
 	override Obj? trap(Str name, Obj?[]? args := null) {
 		if (args == null || args.isEmpty)
 			return get(name)

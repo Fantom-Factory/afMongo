@@ -18,7 +18,7 @@ const class MongoColl {
 	** Note this just instantiates the Fantom object, it does not create anything in the database. 
 	new make(MongoConnMgr connMgr, Str name, Str? dbName := null) {
 		this.connMgr 	= connMgr
-		this.dbName		= MongoDb.validateName(dbName ?: connMgr.database)
+		this.dbName		= MongoDb.validateName(dbName ?: connMgr.dbName)
 		this.name 		= validateName(name)
 	}
 	

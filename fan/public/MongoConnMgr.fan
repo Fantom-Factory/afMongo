@@ -56,6 +56,8 @@ using concurrent::Future
 ** Note this connection manager *is* safe for multi-threaded / web-application use.
 const mixin MongoConnMgr {
 	
+	// TODO Convert MongoConnMgr to a class - maybe merge with MongoConnMgrPool?
+	
 	** The log instance used to report warnings.
 	abstract Log log()
 	
@@ -66,7 +68,7 @@ const mixin MongoConnMgr {
 	abstract Uri? mongoUrl()
 	
 	** The default database name, taken from the the Connection URL auth source.
-	abstract Str? database()
+	abstract Str? dbName()
 	
 	** The default write concern that all write operations should use.
 	abstract [Str:Obj?]? writeConcern()

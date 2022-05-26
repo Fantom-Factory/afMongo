@@ -30,7 +30,7 @@ const class MongoConnMgrPool : MongoConnMgr {
 	** The parsed Mongo Connection URL.	
 	const MongoConnUrl mongoConnUrl
 
-	override Str? database() {
+	override Str? dbName() {
 		mongoConnUrl.database
 	}
 	
@@ -262,7 +262,7 @@ const class MongoConnMgrPool : MongoConnMgr {
 		hostDetails := MongoSafari(mongoConnUrl, log).huntThePrimary
 		
 		// save the address of our new Master
-		mongoUrl	:= database == null ? hostDetails.mongoUrl : hostDetails.mongoUrl.plusSlash.plusName(database) 
+		mongoUrl	:= dbName == null ? hostDetails.mongoUrl : hostDetails.mongoUrl.plusSlash.plusName(dbName) 
 		mongoUrlRef.val	= mongoUrl
 		
 		// transactions are not allowed on standalone instances

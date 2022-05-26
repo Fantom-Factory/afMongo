@@ -25,7 +25,7 @@ const class MongoIdx {
 	
 	new make(MongoConnMgr connMgr, Str idxName, Str colName, Str? dbName := null) {
 		this.connMgr	= connMgr
-		this.dbName		= MongoDb.validateName(dbName ?: connMgr.database)
+		this.dbName		= MongoDb.validateName(dbName ?: connMgr.dbName)
 		this.collName	= MongoColl.validateName(colName)
 		this.name		= idxName
 	}

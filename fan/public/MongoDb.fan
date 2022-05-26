@@ -13,7 +13,7 @@ const class MongoDb {
 	** Note this just instantiates the Fantom object, it does not create anything in MongoDB. 
 	new make(MongoConnMgr connMgr, Str? name := null) {
 		this.connMgr	= connMgr
-		this.name		= validateName(name ?: connMgr.database)
+		this.name		= validateName(name ?: connMgr.dbName)
 	}
 
 	** Returns a 'Collection' with the given name.
