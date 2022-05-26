@@ -127,13 +127,16 @@ const class MongoIdx {
 			return true
 		}
 
+		info	:= this.info
+		oldUni	:= info["unique"] ?: false
 		oldKey	:= info["key"] as Str:Obj?
 		newKey	:= Map.make(oldKey.typeof).addAll(key)
 
-		// some options are just concern the build, others or not returned, 
+		// some options just concern building the index, others are just not returned, 
 		// so they're impossible to compare ... so lets just not try!
-		if (oldKey == newKey)
+		if (optsFn == null && oldUni == unique && oldKey == newKey) {
 			return false
+		}
 
 		drop
 		create(key, unique, optsFn)
@@ -152,7 +155,7 @@ const class MongoIdx {
 
 	** **For Power Users!**
 	** 
-	** Don't forget to call 'run()'!
+	** Don't forget to call 'run()' on the returned command!
 	private MongoCmd cmd(Str cmdName, Obj? cmdVal := 1) {
 		MongoCmd(connMgr, dbName, cmdName, cmdVal)
 	}

@@ -186,7 +186,7 @@ internal class TestMongoOpRetries : Test {
 	Void testRetryReads() {
 		doc := MongoConnStub().writePreamble.writeDoc(["ok":1, "cursor":["id":0]]).flip.inBuf
 		con	:= MongoConnStub()
-		mgr := MongoConnMgrStub(con).debugOn
+		mgr := MongoConnMgrStub(con)
 		col := MongoColl(mgr, "wotever")
 		
 		// assert Errs pass through 

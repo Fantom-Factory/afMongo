@@ -4,7 +4,7 @@ using afBson::Binary
 internal class TestMongoOpSess : Test {
 	
 	Void testSessionSet() {
-		mgr := MongoConnMgrStub().debugOn
+		mgr := MongoConnMgrStub()
 		con	:= MongoConnStub().writePreamble.writeDoc([ "foo": "bar", "ok": 1 ]).flip
 		res := MongoOp(mgr, con, cmd("byMy")).runCommand("db")
 		req := con.readDoc
@@ -19,7 +19,7 @@ internal class TestMongoOpSess : Test {
 	}
 	
 	Void testSessionNoSet() {
-		mgr := MongoConnMgrStub().debugOn
+		mgr := MongoConnMgrStub()
 		con	:= MongoConnStub().writePreamble.writeDoc([ "foo": "bar", "ok": 1 ]).flip
 
 
