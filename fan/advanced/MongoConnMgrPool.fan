@@ -18,6 +18,9 @@ const class MongoConnMgrPool : MongoConnMgr {
 	private const AtomicBool 		isStandaloneRef			:= AtomicBool(true)		// disable transactions until we know they're accepted
 	private const Synchronized		failOverThread
 	private const SynchronizedState connectionState
+	
+	// todo this should (probably) live in the MongoClient
+	// having it here overloads the responsibility of a ConnMgr
 	private const MongoSessPool		sessPool	
 
 	** The host name of the MongoDB server this 'ConnectionManager' connects to.
@@ -151,6 +154,10 @@ const class MongoConnMgrPool : MongoConnMgr {
 
 		} finally
 			checkIn(connection)
+	}
+	
+	override Void runInTxn([Str:Obj?]? txnOpts, |MongoTxn| fn) {
+		sessPool.checkout.runInTxn(txnOpts, fn)
 	}
 	
 	override Future failOver() {

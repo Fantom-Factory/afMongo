@@ -119,4 +119,8 @@ internal class MongoConnStub : MongoConn {
 		sess = null
 		return this
 	}
+	
+	Int curTxnNum() {
+		sessPool->transactionNumRef->val
+	}
 }

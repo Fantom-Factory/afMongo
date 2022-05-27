@@ -92,17 +92,7 @@ const mixin MongoConnMgr {
 	abstract This startup()
 
 	** (Advanced)
-	** To be called on a network 'IOErr'.
-	** 
-	** Searches the replica set for the Master node - throws 'MongoErr' if the primary can not be found. 
-	** 
-	** The connection pool is then cleared down and all existing connections closed.
-	** All new connections will then re-connect to their new Master.
-	@NoDoc	// advanced
-	abstract Future failOver() 
-
-	** (Advanced)
-	** Authenticates the given connection against the Master.
+	** Authenticates the given connection against the Master, with credentials given via the Mongo connection URL.
 	@NoDoc	// advanced
 	abstract Void authenticateConn(MongoConn conn)
 	
@@ -113,6 +103,18 @@ const mixin MongoConnMgr {
 	** Any 'IOErrs' thrown in the fn are assumed to be networking errors, and invoke a topology 
 	** recan and a Master failover.
 	abstract Obj? leaseConn(|MongoConn->Obj?| c)
+
+	abstract Void runInTxn([Str:Obj?]? txnOpts, |MongoTxn| fn)
+	
+	** (Advanced)
+	** To be called on a network 'IOErr'.
+	** 
+	** Searches the replica set for the Master node - throws 'MongoErr' if the primary can not be found. 
+	** 
+	** The connection pool is then cleared down and all existing connections closed.
+	** All new connections will then re-connect to their new Master.
+	@NoDoc	// advanced
+	abstract Future failOver() 
 
 	** Closes all MongoDB connections.
 	abstract This shutdown()

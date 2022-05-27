@@ -58,7 +58,7 @@ internal const class MongoSessPool {
 	Void checkin(MongoSess? sess, Bool force := false) {
 		// discard any stored stale sessions (from the bottom of the stack)
 		// MongoDB specs say we don't need to check the entire stack
-		// this algorothm avoids concurrent race conditions
+		// this algorithm avoids concurrent race conditions
 		stale := null as MongoSess
 		while ((stale = sessionPool.first) != null && stale.isStale)
 			sessionPool.remove(stale)

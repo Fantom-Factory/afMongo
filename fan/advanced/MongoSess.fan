@@ -15,18 +15,25 @@ internal const class MongoSess {
 	private const AtomicRef		_lastUseRef
 	private const AtomicBool	_isDirtyRef
 			const AtomicBool	_isDetachedRef
+			const AtomicRef		_txnRef
 
 	Bool isDetached {
 		get { _isDetachedRef.val }
 		set { _isDetachedRef.val = it }
 	}
 	
+	MongoTxn txn {
+		get { _txnRef.val }
+		set { _txnRef.val = it }
+	}
+
 	new make(MongoSessPool sessPool) {
 		this._sessPool		= sessPool
 		this._sessionId		= generateSessionUuid
 		this._lastUseRef	= AtomicRef(Duration.now)
 		this._isDirtyRef	= AtomicBool(false)
 		this._isDetachedRef	= AtomicBool(false)
+		this._txnRef		= AtomicRef(null)
 	}
 
 	Uuid uuid() {
@@ -40,11 +47,7 @@ internal const class MongoSess {
 		this._lastUseRef.val = Duration.now
 		return _sessionId
 	}
-
-	Void advanceClusterTime(Str:Obj? clusterTime) {
-		throw UnsupportedErr()
-	}
-
+	
 	** Returns the session to the pool to be reused.
 	Void endSession() {
 		_sessPool.checkin(this, true)
@@ -75,6 +78,47 @@ internal const class MongoSess {
 	
 	Int newTxNum() {
 		_sessPool.newTxNum
+	}
+	
+	**
+	** pre>
+	** syntax: fantom
+	** runInTxn([
+	**   "readConcern"    : [...],
+	**   "writeConcern"   : [...],
+	**   "readPreference" : [...],
+	**   "timeoutMS"      : 2000,
+	** ]) {
+	**   ...
+	** }
+	** <pre
+	Void runInTxn([Str:Obj?]? txnOpts, |MongoTxn| fn) {
+		
+		// TransactionOptions MUST be designed such that future options can be added without breaking backward compatibility.
+		
+		if (Actor.locals.containsKey("afMongo.txnSession")) {
+			txnSess := Actor.locals["afMongo.txnSession"] as MongoSess
+			throw Err("Transaction already in progress (txnNum:${txnSess?.txn?.txnNum})")
+		}
+		
+		txn := MongoTxnImpl(this, _sessPool.newTxNum)
+		try {
+			Actor.locals["afMongo.txnSession"] = this
+		
+			// we *could* retry the whole fn on "TransientTransactionError" label error - but... indempotent?
+			fn(txn)
+			
+			// doCommit
+			
+		} finally
+			Actor.locals.remove("afMongo.txnSession")
+		
+		// commitTransaction() cmd
+//		the only supported retryable write commands within a transaction are commitTransaction and abortTransaction
+		
+		// recoveryToken 
+		
+		// "TransientTransactionError" error label
 	}
 	
 	private Duration lastUse() {
