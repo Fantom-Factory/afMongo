@@ -9,7 +9,7 @@ using inet::IpAddr
 using inet::TcpSocket
 
 @NoDoc	// advanced use only
-const class MongoConnMgrPool : MongoConnMgr {
+internal const class MongoConnMgrPool : MongoConnMgr {
 	override const Log				log
 	private const AtomicBool		hasStarted				:= AtomicBool()
 	private const AtomicBool		hasShutdown				:= AtomicBool()
@@ -156,7 +156,7 @@ const class MongoConnMgrPool : MongoConnMgr {
 			checkIn(connection)
 	}
 	
-	override Void runInTxn([Str:Obj?]? txnOpts, |MongoTxn| fn) {
+	override Void runInTxn([Str:Obj?]? txnOpts, |Obj| fn) {
 		sessPool.checkout.runInTxn(txnOpts, fn)
 	}
 	

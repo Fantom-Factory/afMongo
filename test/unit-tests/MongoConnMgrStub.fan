@@ -59,7 +59,7 @@ internal const class MongoConnMgrStub : MongoConnMgr {
 	
 	override This startup()	{ this }
 	
-	override Void runInTxn([Str:Obj?]? txnOpts, |MongoTxn| fn) {
+	override Void runInTxn([Str:Obj?]? txnOpts, |Obj| fn) {
 		conn := Actor.locals["afMongo.connStub"] as MongoConnStub
 		return conn.getSession(true).runInTxn(txnOpts, fn)
 	}

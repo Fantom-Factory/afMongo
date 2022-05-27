@@ -104,7 +104,12 @@ const mixin MongoConnMgr {
 	** recan and a Master failover.
 	abstract Obj? leaseConn(|MongoConn->Obj?| c)
 
-	abstract Void runInTxn([Str:Obj?]? txnOpts, |MongoTxn| fn)
+	** Runs the given 'fn' in a Mongo multi-cmd, multi-collection, transaction. 
+	** Should the 'fn' complete normally, the transaction is committed.
+	** If the 'fn' throws an Err, the transaction is rolled back.
+	** 
+	** The obj passed to 'fn' is undefined and should not be used.
+	abstract Void runInTxn([Str:Obj?]? txnOpts, |Obj| fn)
 	
 	** (Advanced)
 	** To be called on a network 'IOErr'.

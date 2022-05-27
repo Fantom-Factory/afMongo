@@ -1,6 +1,6 @@
 
 ** The context a Mongo transaction runs in.
-mixin MongoTxn {
+internal mixin MongoTxn {
 	
 	static const Int statusNone			:= 0
 	static const Int statusStarting		:= 1
