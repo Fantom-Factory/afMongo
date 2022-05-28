@@ -32,7 +32,7 @@ internal class TestConnectionPool : MongoDbTest {
 				con = c
 				Actor.sleep(200ms)
 			}
-			if (!con.forceCloseOnCheckIn)
+			if (!con._forceCloseOnCheckIn)
 				throw Err("Connection not force closed")
 		}
 		

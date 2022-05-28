@@ -2,16 +2,11 @@ using afBson::BsonIO
 using concurrent::ActorPool
 
 internal class MongoConnStub : MongoConn {
-	override Log		log				:= typeof.pod.log
-	override Bool		isClosed		:= false
-	override Bool		isAuthenticated	:= false	
-	override Str?		compressor
-	override Int?		zlibCompressionLevel
-	override Duration?	lingeringSince
-		 	 MongoSessPool	sessPool	:= MongoSessPool(ActorPool())
-		 	 MongoSess?		sess
-		 	 Obj[]			ress		:= Obj[,]
-	private	 Int			resIdx		:= 0
+	override Log				log			:= typeof.pod.log
+	override Bool				isClosed	:= false
+			 MongoConnMgrStub?	connMgr
+		 	 Obj[]				ress		:= Obj[,]
+	private	 Int				resIdx		:= 0
 
 	 		Buf	inBuf	:= Buf() { it.endian = Endian.little }
 	 		Buf outBuf	:= Buf() { it.endian = Endian.little }
@@ -20,6 +15,9 @@ internal class MongoConnStub : MongoConn {
 		// we only ever want to x2 responses to test retry
 		ress.add(inBuf)
 		ress.add(inBuf)
+		
+		// non-mgr tests need this
+		this->_sessPool = MongoSessPool(ActorPool())
 	}
 	
 	This writeI1(Int i1)		{ inBuf.write(i1);					return this }
@@ -55,40 +53,14 @@ internal class MongoConnStub : MongoConn {
 		}
 		throw Err("WTF is $res ???")
 	}
-	override OutStream	out()	{ outBuf.out }
-	override Void		close()	{ }
+	override OutStream	out			()	{ outBuf.out }
+	override Void		close		()	{ }
+	override MongoConn	_refresh	() { this }
 	
-	override MongoSess? getSession(Bool createNew) {
-		if (sess != null)
-			return sess
-		
-		if (createNew == false)
-			return null
-
-		return sess = sessPool.checkout
+	MongoSess? lastSess
+	override internal MongoSess? _getSession(Bool createNew) {
+		lastSess = super._getSession(createNew)
 	}
-
-	override MongoSess? detachSession() {
-		sess := this.sess
-		this.sess = null
-		if (sess != null)
-			sess.isDetached = true
-		return sess
-	}
-	
-	override Void setSession(MongoSess? session) {
-		if (session == null) return
-
-		if (this.sess != null)
-			throw Err("Cannot setSession(), I've already got one - $sess")
-
-		if (session.isDetached == false)
-			throw Err("Cannot setSession(), Session is NOT detached - $sess")
-
-		this.sess = session
-	}
-	
-	override MongoConn	refresh() { this }
 	
 	Str:Obj? readDoc() {
 		// THEN - req is NOT compressed
@@ -116,11 +88,11 @@ internal class MongoConnStub : MongoConn {
 		outBuf.clear
 		ress.each { (it as Buf)?.seek(0) }
 		resIdx = 0
-		sess = null
+		_sess = null
 		return this
 	}
 	
 	Int curTxnNum() {
-		sessPool->transactionNumRef->val
+		connMgr->sessPool->transactionNumRef->val
 	}
 }

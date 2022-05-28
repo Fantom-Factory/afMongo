@@ -5,8 +5,8 @@ internal class TestMsgCompression : Test {
 	Void testCompressedReq() {
 		// GIVEN
 		con					:= MongoConnStub()
-		con.compressor		= "zlib"
-		con.zlibCompressionLevel	= 6
+		con._compressor		= "zlib"
+		con._zlibCompressionLevel	= 6
 		con.writePreamble
 		con.writeDoc(["judge":"anderson", "ok":1])
 		con.flip
@@ -87,7 +87,7 @@ internal class TestMsgCompression : Test {
 	
 	Void testOpsNotCompressed() {
 		con					:= MongoConnStub()
-		con.compressor		= "zlib"
+		con._compressor		= "zlib"
 		con.writeI4(0)		// msgSize
 		con.writeI4(0)		// resId
 		con.writeI4(1)		// reqId

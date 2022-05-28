@@ -50,18 +50,17 @@ internal const class MongoConnMgrPool : MongoConnMgr {
 	** Create a 'ConnMgr' from a Mongo Connection URL.
 	** If user credentials are supplied, they are used as default authentication for each connection.
 	** 
-	**   connMgr := MongoConnMgrPool(ActorPool(), `mongodb://localhost:27017`)
-	new make(Uri connectionUrl, Log? log := null, ActorPool? actorPool := null, |This|? f := null) {
-			 actorPool			= actorPool ?: ActorPool() { it.name="afMongo.connMgrPool"; it.maxThreads=5 }
+	**   connMgr := MongoConnMgrPool(`mongodb://localhost:27017`, log, ActorPool())
+	new make(Uri connectionUrl, Log? log := null, ActorPool? actorPool := null, |This|? fn := null) {
+			 actorPool			= actorPool ?: ActorPool() { it.name = "afMongo.connMgrPool"; it.maxThreads = 5 }
 		this.connectionState	= SynchronizedState(actorPool, MongoConnMgrPoolState#)
 		this.mongoConnUrl		= MongoConnUrl(connectionUrl)
 		this.failOverThread		= connectionState.lock
 		this.sessPool			= MongoSessPool(actorPool)
 		this.log				= log ?: MongoConnMgrPool#.pod.log
-
-		// allow the it-block to override the default settings
-		// no validation occurs - only used for testing.
-		f?.call(this)
+		
+		// for backoff tests
+		fn?.call(this)
 	}
 	
 	override [Str:Obj?]? writeConcern() {
@@ -95,7 +94,7 @@ internal const class MongoConnMgrPool : MongoConnMgr {
 		huntThePrimary
 
 		// connect x times
-		pool := MongoTcpConn[,]
+		pool := MongoConn[,]
 		mongoConnUrl.minPoolSize.times { pool.push(checkOut) }
 		mongoConnUrl.minPoolSize.times { checkIn(pool.pop) }
 		
@@ -116,22 +115,19 @@ internal const class MongoConnMgrPool : MongoConnMgr {
 		if (hasShutdown.val == true)
 			throw Err("Connection Pool has been shutdown")
 
-		connection := checkOut
+		conn := checkOut
 		try {
-			return c(connection)
+			return c(conn)
 	
 		// all this error handling is because there's no guarantee that this is called from MongoOp
-		} catch (IOErr e) {
-			err := e as Err
-			
-			connection.getSession(false)?.markDirty
-			connection.close
+		} catch (IOErr err) {
+			conn.close
 
 			// that shitty MongoDB Atlas doesn't tell us when the master has changed 
 			// instead we just get IOErrs when we attempt to read the reply
 
 			// if the master URL has changed, then we've already found a new master!
-			if (connection.mongoUrl != mongoUrl)
+			if (conn._mongoUrl != mongoUrl)
 				throw err
 
 			// if we're still connected to the same master, lets play huntThePrimary!
@@ -144,20 +140,18 @@ internal const class MongoConnMgrPool : MongoConnMgr {
 			throw err
 			
 		} catch (Err err) {
-			connection.getSession(false)?.markDirty
-
 			// if something dies, kill the connection.
 			// we may have died part way through talking with the server meaning our communication 
 			// protocols are out of sync - rendering any future use of the connection useless.
-			connection.close
+			conn.close
 			throw err
 
 		} finally
-			checkIn(connection)
+			checkIn(conn)
 	}
 	
 	override Void runInTxn([Str:Obj?]? txnOpts, |Obj| fn) {
-		sessPool.checkout.runInTxn(txnOpts, fn)
+		sessPool.checkout.runInTxn(this, txnOpts, fn)
 	}
 	
 	override Future failOver() {
@@ -232,7 +226,7 @@ internal const class MongoConnMgrPool : MongoConnMgr {
 		}
 		
 		// one last call to the server to end all sessions
-		conn := MongoTcpConn(newSocket, mongoConnUrl.tls, log, sessPool).connect(mongoUrl.host, mongoUrl.port)
+		conn := newMongoConn
 		try		sessPool.shutdown(conn)
 		finally	conn.close
 
@@ -265,7 +259,7 @@ internal const class MongoConnMgrPool : MongoConnMgr {
 	** Throws 'MongoErr' if a primary can not be found. 
 	** 
 	** This method should be followed with a call to 'emptyPool()'.  
-	private Void huntThePrimary() {
+	virtual Void huntThePrimary() {
 		hostDetails := MongoSafari(mongoConnUrl, log).huntThePrimary
 		
 		// save the address of our new Master
@@ -281,15 +275,19 @@ internal const class MongoConnMgrPool : MongoConnMgr {
 		// set our connection factory
 		connectionState.sync |MongoConnMgrPoolState state| {
 			state.connFactory = |->MongoConn| {
-				return MongoTcpConn(newSocket, mongoConnUrl.tls, log, sessPool).connect(mongoUrl.host, mongoUrl.port) {
-					it.mongoUrl				= mongoUrl
-					it.compressor			= hostDetails.compression.first
-					it.zlibCompressionLevel	= this.mongoConnUrl.zlibCompressionLevel
+				return newMongoConn {
+					it._mongoUrl				= mongoUrl
+					it._compressor				= hostDetails.compression.first
+					it._zlibCompressionLevel	= this.mongoConnUrl.zlibCompressionLevel
 				}
 			} 
 		}
 
 		isConnectedToMasterRef.val = true
+	}
+	
+	virtual MongoConn newMongoConn() {
+		MongoTcpConn(newSocket, mongoConnUrl.tls, log, sessPool).connect(mongoUrl.host, mongoUrl.port)
 	}
 	
 	** Retain backwards compatibility with all recent versions of Fantom.
@@ -321,22 +319,22 @@ internal const class MongoConnMgrPool : MongoConnMgr {
 			while (!state.checkedIn.isEmpty) {
 				state.checkedIn.removeAt(0).close 
 			}
-			state.checkedOut.each { it.forceCloseOnCheckIn = true }
+			state.checkedOut.each { it._forceCloseOnCheckIn = true }
 		}
 		// re-connect x times
-		pool := MongoTcpConn[,]
+		pool := MongoConn[,]
 		mongoConnUrl.minPoolSize.times { pool.push(checkOut) }
 		mongoConnUrl.minPoolSize.times { checkIn(pool.pop) }
 	}
 
-	private MongoTcpConn checkOut() {
-		connectionFunc := |Duration totalNapTime->MongoTcpConn?| {
+	private MongoConn checkOut() {
+		connectionFunc := |Duration totalNapTime->MongoConn?| {
 			conn := connectionState.sync |MongoConnMgrPoolState state->Unsafe?| {
 				while (state.checkedIn.size > 0) {
 					conn := state.checkedIn.pop
 					// check the connection is still alive - the server may have closed it during a fail over
-					if (conn.isClosed == false && conn.isStale(mongoConnUrl.maxIdleTime) == false) {
-						conn.lingeringSince = null
+					if (conn.isClosed == false && conn._isStale(mongoConnUrl.maxIdleTime) == false) {
+						conn._lingeringSince = null
 						state.checkedOut.push(conn)
 						return Unsafe(conn)
 					}
@@ -361,7 +359,7 @@ internal const class MongoConnMgrPool : MongoConnMgr {
 			return conn
 		}
 
-		connection	:= null as MongoTcpConn
+		connection	:= null as MongoConn
 		ioErr		:= null as Err
 		try connection = backoffFunc(connectionFunc, mongoConnUrl.waitQueueTimeout)
 		
@@ -389,28 +387,28 @@ internal const class MongoConnMgrPool : MongoConnMgr {
 	
 	override Void authenticateConn(MongoConn conn) {
 		mongoCreds := mongoConnUrl.mongoCreds
-		if (mongoCreds != null && conn.isAuthenticated == false) {
+		if (mongoCreds != null && conn._isAuthenticated == false) {
 			// Note - Sessions CAN NOT be used if a conn has multiple authentications
 			mongoConnUrl.authMechs[mongoCreds.mechanism].authenticate(conn, mongoCreds)
-			((MongoTcpConn) conn).isAuthenticated = true
+			((MongoConn) conn)._isAuthenticated = true
 		}
 	}
 	
-	private Void checkIn(MongoTcpConn connection) {
+	private Void checkIn(MongoConn connection) {
 		unsafeConnection := Unsafe(connection)
 		// call sync() to make sure this thread checks in before it asks for a new one
 		connectionState.sync |MongoConnMgrPoolState state| {
-			conn := (MongoTcpConn) unsafeConnection.val
+			conn := (MongoConn) unsafeConnection.val
 			state.checkedOut.removeSame(conn)
 
 			// check the session back into the pool for future reuse
 			// if the session has already been detached, then conn.detachSess() will return null
-			sessPool.checkin(conn.detachSession, true)
+			sessPool.checkin(conn._detachSession, true)
 			
 			// make sure we don't save stale connections
 			if (!conn.isClosed) {
 				
-				if (conn.forceCloseOnCheckIn) {
+				if (conn._forceCloseOnCheckIn) {
 					conn.close
 					return
 				}
@@ -418,12 +416,12 @@ internal const class MongoConnMgrPool : MongoConnMgr {
 				// discard any stored stale conns (from the bottom of the stack) but keep minPoolSize
 				// same as MongoSessPool
 				stale := null as MongoConn
-				while (state.checkedIn.size >= mongoConnUrl.minPoolSize && (stale = state.checkedIn.first) != null && stale.isStale(mongoConnUrl.maxIdleTime)) {
+				while (state.checkedIn.size >= mongoConnUrl.minPoolSize && (stale = state.checkedIn.first) != null && stale._isStale(mongoConnUrl.maxIdleTime)) {
 					state.checkedIn.removeSame(stale)
 				}
 
 				// keep the socket open for 10 secs to ease open / close throttling during bursts of activity.
-				conn.lingeringSince	= Duration.now
+				conn._lingeringSince	= Duration.now
 
 				state.checkedIn.push(conn)
 			}
@@ -466,7 +464,7 @@ internal const class MongoConnMgrPool : MongoConnMgr {
 }
 
 internal class MongoConnMgrPoolState {
-	MongoTcpConn[]		checkedIn	:= [,]
-	MongoTcpConn[]		checkedOut	:= [,]
-	|->MongoTcpConn|?	connFactory
+	MongoConn[]		checkedIn	:= [,]
+	MongoConn[]		checkedOut	:= [,]
+	|->MongoConn|?	connFactory
 }

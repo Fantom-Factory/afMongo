@@ -15,6 +15,7 @@ class MongoOp {
 	private static const Int		OP_COMPRESSED		:= 2012
 	private static const Int		OP_MSG				:= 2013
 	private static const AtomicInt	reqIdSeq			:= AtomicInt(0)
+	private static const Str[]		reservedFields		:= "lsid txnNumber startTransaction autocommit".split
 	private static const Str[]		uncompressibleCmds	:= "hello isMaster saslStart saslContinue getnonce authenticate createUser updateUser copydbSaslStart copydbgetnonce copydb".split
 	private static const Str:Int	compressorIds		:= Str:Int[
 		"noop"		: 0,
@@ -56,40 +57,45 @@ class MongoOp {
 		this.connMgr	= connMgr
 	}
 
-		
-	// TODO Transactions!
-	// https://github.com/mongodb/specifications/blob/master/source/transactions/transactions.rst
-		
 	Str:Obj? runCommand(Str dbName, Bool checked := true) {
 		if (oneShotLock)
 			throw Err("MongoOps can only be run once")
 		oneShotLock = true
 		
-		sess := null as MongoSess
+		badFields := reservedFields.intersection(cmd.keys)
+		if (badFields.size > 0)
+			throw Err("Cmd may not contain reserved field(s): " + badFields.join(", "))
+		
+		sess := conn._getSession(false)
 
 		// this guy can NOT come first! Else, ERR, "Unknown Cmd $db"
 		cmd["\$db"]	= dbName
 		
+		if (sess?.isInTxn == true)
+			// not *every* cmd is allowed in txns, but I'll let the server decide what's valid and what's not
+			sess.prepCmdForTxn(cmd)
+		
+		else
 		// append session info where we should
 		if (nonSessionCmds.contains(cmdName) == false && isUnacknowledgedWrite == false) {
-			sess = conn.getSession(true)
+			sess = conn._getSession(true)
 			cmd["lsid"]	= sess.sessionId
 
 			// txNumber is only applicable if in a session
 			// add it now so we keep the same txNumber between retries
-			if (isRetryableWrite)
+			if (isRetryableWrite(sess))
 				cmd["txnNumber"] = sess.newTxNum
 		}
 		
 		try		return doRunCommand(sess, checked)
 		catch	(IOErr ioe) {
 			// mark ALL sessions as dirty regardless if the retry succeeds or not (as per spec)
-			conn.getSession(false)?.markDirty
+			conn._getSession(false)?.markDirty
 			
 			if (isRetryableRead)
 				return retryCommand(ioe, sess, checked)
 
-			if (isRetryableWrite)
+			if (isRetryableWrite(sess))
 				return retryCommand(ioe, sess, checked)
 
 			throw ioe
@@ -102,8 +108,8 @@ class MongoOp {
 			
 			if (isRetryableRead && retryableErrCodes.contains(me.code ?: -1))
 				return retryCommand(me, sess, checked)
-			
-			if ((isRetryableWrite && retryableErrCodes.contains(me.code ?: -1)) || me.errLabels.contains("RetryableWriteError"))
+	
+			if ((isRetryableWrite(sess) && retryableErrCodes.contains(me.code ?: -1)) || me.errLabels.contains("RetryableWriteError"))
 				return retryCommand(me, sess, checked)
 
 			throw me
@@ -120,7 +126,7 @@ class MongoOp {
 			connMgr.failOver.get(30sec)
 
 			// grab a fresh conn, 'cos the existing Conn just got closed!
-			conn = conn.refresh
+			conn = conn._refresh
 			connMgr.authenticateConn(conn)
 
 			return doRunCommand(sess, checked)
@@ -146,7 +152,7 @@ class MongoOp {
 		return	readResponse(reqId, checked)
 	}
 	
-	private Bool isRetryableWrite() {
+	private Bool isRetryableWrite(MongoSess? sess) {
 		if (connMgr == null || connMgr.retryWrites == false)
 			return false
 		
@@ -155,6 +161,9 @@ class MongoOp {
 			return false
 		
 		if (isUnacknowledgedWrite)
+			return false
+		
+		if (sess?.isInTxn == true)			// transactions do NOT allow retryableWrties (the tx IS the retry!)
 			return false
 
 		// write commands that affect multiple documents are not supported
@@ -223,11 +232,11 @@ class MongoOp {
 		msgBuf.flip
 
 		// compress the msg if we're able
-		if (conn.compressor == "zlib" && uncompressibleCmds.contains(cmdName) == false) {
+		if (conn._compressor == "zlib" && uncompressibleCmds.contains(cmdName) == false) {
 
-			compId := compressorIds[conn.compressor]
+			compId := compressorIds[conn._compressor]
 			zipBuf := Buf(msgBuf.size /2) ; zipBuf.endian	= Endian.little
-			zipOpt := conn.zlibCompressionLevel == null ? null : Str:Obj?["level": conn.zlibCompressionLevel]
+			zipOpt := conn._zlibCompressionLevel == null ? null : Str:Obj?["level": conn._zlibCompressionLevel]
 			Zip.deflateOutStream(zipBuf.out, zipOpt).writeBuf(msgBuf).flush.close
 			zipBuf.flip
 
@@ -269,7 +278,7 @@ class MongoOp {
 	
 		if (resTo != reqId) {
 			// weirdly, in my Mongo 3.6 dev environment, Mongo looses sync and often starts sending out shite!
-			help := conn.compressor != "gzip" ? "" : "  - if this Err persists, try disabling gzip compression"
+			help := conn._compressor != "gzip" ? "" : "  - if this Err persists, try disabling gzip compression"
 			throw IOErr("Bad Mongo response, returned RequestID (${resTo}) does NOT match sent RequestID (${reqId})${help}")
 		}
 		
@@ -313,7 +322,7 @@ class MongoOp {
 			log.debug(msg)
 		}
 		
-		conn.getSession(false)?.updateClusterTime(resDoc["\$clusterTime"])
+		conn._getSession(false)?.updateClusterTime(resDoc["\$clusterTime"])
 		
 		mongoErr	:= null as MongoErr
 		if (checked && resDoc["ok"] != 1f && resDoc["ok"] != 1) {

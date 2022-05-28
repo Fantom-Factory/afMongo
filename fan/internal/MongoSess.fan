@@ -1,6 +1,5 @@
 using afBson::Binary
 using afBson::BsonIO
-using concurrent::Actor
 using concurrent::AtomicRef
 using concurrent::AtomicBool
 
@@ -15,16 +14,16 @@ internal const class MongoSess {
 	private const AtomicRef		_lastUseRef
 	private const AtomicBool	_isDirtyRef
 			const AtomicBool	_isDetachedRef
-			const AtomicRef		_txnRef
+			const AtomicRef		_txnNumRef
 
 	Bool isDetached {
 		get { _isDetachedRef.val }
 		set { _isDetachedRef.val = it }
 	}
 	
-	MongoTxn txn {
-		get { _txnRef.val }
-		set { _txnRef.val = it }
+	Int? txnNum {
+		get { _txnNumRef.val }
+		set { _txnNumRef.val = it }
 	}
 
 	new make(MongoSessPool sessPool) {
@@ -33,7 +32,11 @@ internal const class MongoSess {
 		this._lastUseRef	= AtomicRef(Duration.now)
 		this._isDirtyRef	= AtomicBool(false)
 		this._isDetachedRef	= AtomicBool(false)
-		this._txnRef		= AtomicRef(null)
+		this._txnNumRef		= AtomicRef(null)
+	}
+	
+	Bool isInTxn() {
+		txnNum != null
 	}
 
 	Uuid uuid() {
@@ -80,45 +83,28 @@ internal const class MongoSess {
 		_sessPool.newTxNum
 	}
 	
-	**
-	** pre>
-	** syntax: fantom
-	** runInTxn([
-	**   "readConcern"    : [...],
-	**   "writeConcern"   : [...],
-	**   "readPreference" : [...],
-	**   "timeoutMS"      : 2000,
-	** ]) {
-	**   ...
-	** }
-	** <pre
-	Void runInTxn([Str:Obj?]? txnOpts, |MongoTxn| fn) {
+	Void runInTxn(MongoConnMgr connMgr, [Str:Obj?]? txnOpts, |MongoTxn| fn) {
+		txn := MongoTxn(connMgr, this, _sessPool.newTxNum)
 		
-		// TransactionOptions MUST be designed such that future options can be added without breaking backward compatibility.
+		// YES DO THIS - doc that the FN MUST be idempotent - retrying and ensuring success is better than the occasional coding inconvenience
+		// "TransientTransactionError" error label AND IOErr
 		
-		if (Actor.locals.containsKey("afMongo.txnSession")) {
-			txnSess := Actor.locals["afMongo.txnSession"] as MongoSess
-			throw Err("Transaction already in progress (txnNum:${txnSess?.txn?.txnNum})")
-		}
-		
-		txn := MongoTxnImpl(this, _sessPool.newTxNum)
-		try {
-			Actor.locals["afMongo.txnSession"] = this
-		
-			// we *could* retry the whole fn on "TransientTransactionError" label error - but... indempotent?
-			fn(txn)
-			
-			// doCommit
-			
-		} finally
-			Actor.locals.remove("afMongo.txnSession")
-		
-		// commitTransaction() cmd
-//		the only supported retryable write commands within a transaction are commitTransaction and abortTransaction
-		
-		// recoveryToken 
-		
-		// "TransientTransactionError" error label
+		txnNum = txn.txnNum
+		try		txn.run(txnOpts, fn)
+		finally	txnNum = null
+	}
+
+	Void prepCmdForTxn(Str:Obj? cmd) {
+		// this a little leap of faith - so just double check that we ARE associated with the current txn
+		txn := MongoTxn.cur
+		if (isInTxn == false || txnNum != txn?.txnNum || this !== txn?.sess)
+			throw Err("MongoSess is NOT part of current Txn!? (txnNum ${txnNum} != ${txn?.txnNum})")
+		txn.prepCmd(cmd)
+	}
+
+	** Called after a txn
+	Void checkin() {
+		_sessPool.checkin(this)
 	}
 	
 	private Duration lastUse() {

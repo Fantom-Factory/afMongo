@@ -3,7 +3,7 @@ using inet::TcpSocket
 
 ** Represents a connection to a MongoDB instance.
 @NoDoc	// advanced use only
-mixin MongoConn {
+abstract class MongoConn {
 	
 	abstract Log		log()
 
@@ -20,39 +20,67 @@ mixin MongoConn {
 	** Return 'true' if this socket is closed. 
 	abstract Bool		isClosed()
 	
-	** Has this connection been authenticated?
-	abstract Bool		isAuthenticated()
+	// ----
 	
 	** The preferred negotiated compressor supported by both the server and the driver.
 	** May be one of 'snappy, 'zlib', or 'zstd'.
-	abstract Str?		compressor()
+	internal Str?			_compressor
+	internal Int?			_zlibCompressionLevel
+	// FIXME not used! / set
+	internal Uri?			_mongoUrl
+	internal Bool			_forceCloseOnCheckIn
+	internal Bool			_isAuthenticated
+	internal Duration?		_lingeringSince
+	internal MongoSessPool?	_sessPool
+	internal MongoSess?		_sess
 	
-	** The compression level (0 - 9) to use with zlib.
-	abstract Int?		zlibCompressionLevel()
-
 	** Creates a fresh, detached, socket using the same host, port, and tls settings.
-	internal 
-	abstract MongoConn	refresh()
+	abstract
+	internal MongoConn	_refresh()
 	
 	** Returns the Session associated with this connection.
 	** Sessions are checked out lazily.
-	internal
-	abstract MongoSess?	getSession(Bool createNew)
+	internal virtual MongoSess? _getSession(Bool createNew) {
+		if (_sess != null)
+			return _sess
+		
+		if (MongoTxn.cur != null)
+			return MongoTxn.cur.sess
+		
+		if (createNew == false)
+			return null
+
+		if (_sessPool == null)
+			throw Err("Wot no SessPool???")
+
+		return _sess = _sessPool.checkout
+	}
 
 	** Jailbreaks the attached MongoSession from this connection.
 	** Returns 'null' if the session has already been detached, or was never created.
-	internal
-	abstract MongoSess?	detachSession()
+	internal MongoSess? _detachSession() {
+		sess := this._sess
+		this._sess = null
+		if (sess != null)
+			sess.isDetached = true
+		return sess
+	}
 	
 	** Associates a jailbroken session with this connection. 
-	internal
-	abstract Void 		setSession(MongoSess? session)
+	internal Void _setSession(MongoSess? session) {
+		if (session == null) return
+
+		if (this._sess != null)
+			throw Err("Cannot setSession(), I've already got one - $_sess")
+
+		if (session.isDetached == false)
+			throw Err("Cannot setSession(), Session is NOT detached - $_sess")
+
+		this._sess = session
+	}
 	
-	internal
-	abstract Duration?	lingeringSince
-	
-	internal Bool		isStale(Duration maxLinger) {
-		ttl := lingeringSince + maxLinger - Duration.now
+	internal Bool _isStale(Duration maxLinger) {
+		ttl := _lingeringSince + maxLinger - Duration.now
 		return ttl < 1ms
 	}
 }
@@ -61,14 +89,6 @@ mixin MongoConn {
 internal class MongoTcpConn : MongoConn {
 	override Log			log
 			 TcpSocket		socket
-			 Uri?			mongoUrl			// used by MongoConnMgrPool
-			 Bool			forceCloseOnCheckIn	// used by MongoConnMgrPool
-	override Bool			isAuthenticated
-	override Str?			compressor
-	override Int?			zlibCompressionLevel
-	override Duration?		lingeringSince
-	private	 MongoSessPool?	sessPool
-	private	 MongoSess?		sess
 	private	 Bool			ssl
 
 	** Used by ConnPool
@@ -77,7 +97,7 @@ internal class MongoTcpConn : MongoConn {
 		this.socket 	= socket
 		this.ssl		= ssl
 		this.log		= log
-		this.sessPool	= sessPool
+		this._sessPool	= sessPool
 	}
 
 	** Used by MongoSafari
@@ -97,45 +117,12 @@ internal class MongoTcpConn : MongoConn {
 			throw IOErr("Could not connect to MongoDB at ${address}:${port} - ${err.msg}", err)
 	}
 
-	override MongoSess? getSession(Bool createNew) {
-		if (sess != null)
-			return sess
-		
-		if (createNew == false)
-			return null
-
-		if (sessPool == null)
-			throw Err("Wot no SessPool???")
-
-		return sess = sessPool.checkout
-	}
-
-	override MongoSess? detachSession() {
-		sess := this.sess
-		this.sess = null
-		if (sess != null)
-			sess.isDetached = true
-		return sess
-	}
-	
-	override Void setSession(MongoSess? session) {
-		if (session == null) return
-
-		if (this.sess != null)
-			throw Err("Cannot setSession(), I've already got one - $sess")
-
-		if (session.isDetached == false)
-			throw Err("Cannot setSession(), Session is NOT detached - $sess")
-
-		this.sess = session
-	}
-
 	override InStream	in()		{ socket.in			}
 	override OutStream	out()		{ socket.out		}
 	override Void		close()		{ socket.close		}
 	override Bool		isClosed()	{ socket.isClosed	}
 	
-	override MongoConn	refresh() {
+	override MongoConn _refresh() {
 		MongoTcpConn(ssl, log).connect(socket.remoteAddr.numeric, socket.remotePort)
 	}
 	

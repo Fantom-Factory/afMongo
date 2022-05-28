@@ -3,14 +3,16 @@ using concurrent::AtomicBool
 using concurrent::AtomicInt
 using concurrent::AtomicRef
 using concurrent::Actor
+using concurrent::ActorPool
 
-internal const class MongoConnMgrStub : MongoConnMgr {
+internal const class MongoConnMgrStub : MongoConnMgrPool {
 	
 	private const AtomicBool	isStandaloneRef		:= AtomicBool(false)
 	private const AtomicBool	retryReadsRef		:= AtomicBool(true)
 	private const AtomicBool	retryWritesRef		:= AtomicBool(true)
 	private const AtomicRef		writeConcernRef		:= AtomicRef(null)
 	private const AtomicInt		failoverCountRef	:= AtomicInt(0)
+	private const Unsafe		connRef
 
 	override Bool isStandalone {
 		get { isStandaloneRef.val }
@@ -32,8 +34,10 @@ internal const class MongoConnMgrStub : MongoConnMgr {
 		set { writeConcernRef.val = it?.toImmutable }
 	}
 
-	new make(MongoConnStub? conn := null) {
-		Actor.locals["afMongo.connStub"] = conn
+	new make(MongoConnStub conn) : super(`mongodb://foo.com/bar`, null, null) {
+		connRef = Unsafe(conn)
+		conn._sessPool = this->sessPool
+		startup
 	}
 	
 	This debugOn() {
@@ -45,23 +49,12 @@ internal const class MongoConnMgrStub : MongoConnMgr {
 		failoverCountRef.getAndSet(0)
 	}
 	
-	override Log log() {
-		typeof.pod.log
+	override Void huntThePrimary() {
+		this->connectionState->connFactory = |->MongoConn| { this.connRef.val } 
 	}
-	
-	override Uri? mongoUrl() {
-		`mongodb://example.com/wotever`
-	}
-	
-	override Str? dbName() {
-		"wotever"
-	}
-	
-	override This startup()	{ this }
-	
-	override Void runInTxn([Str:Obj?]? txnOpts, |Obj| fn) {
-		conn := Actor.locals["afMongo.connStub"] as MongoConnStub
-		return conn.getSession(true).runInTxn(txnOpts, fn)
+
+	override MongoConn newMongoConn() {
+		Actor.locals["afMongo.connStub"]
 	}
 
 	override Future failOver() {
@@ -71,11 +64,10 @@ internal const class MongoConnMgrStub : MongoConnMgr {
 
 	override Void authenticateConn(MongoConn conn) { }
 	
-	override Obj? leaseConn(|MongoConn->Obj?| c) {
-		conn := Actor.locals["afMongo.connStub"]
-		return c(conn)
+	MongoSess? sess() {
+		// there should only ever be one
+echo(this->sessPool->sessions)
+		return this->sessPool->sessions->first
 	}
-
-	override This shutdown() { this }
 	
 }

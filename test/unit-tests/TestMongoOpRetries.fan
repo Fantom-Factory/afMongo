@@ -4,8 +4,8 @@ using afBson::Binary
 internal class TestMongoOpRetries : Test {
 
 	Void testTxNum() {
-		mgr := MongoConnMgrStub()
 		con	:= MongoConnStub().writePreamble.writeDoc([ "foo": "bar", "ok": 1 ]).flip
+		mgr := MongoConnMgrStub(con)
 
 		res := MongoOp(mgr, con, cmd("insert")).runCommand("db")
 		req := con.readDoc
@@ -17,7 +17,7 @@ internal class TestMongoOpRetries : Test {
 		verifyEq(res["foo"], "bar")
 		verifyEq(req["insert"], 1)
 		verifyEq(ssid.subtype, 4)	// 4 == UUID
-		verifyEq(ssid.data.toBase64, con.sess.sessionId["id"]->data->toBase64)
+		verifyEq(ssid.data.toBase64, con._sess.sessionId["id"]->data->toBase64)
 		verifyEq(txn, 1)
 		
 
@@ -117,7 +117,7 @@ internal class TestMongoOpRetries : Test {
 		}
 		verifyEq(mgr.failoverCount, 0)
 		// only IOErrs get marked as dirty
-		verifyEq(con.getSession(false).isDirty, false)
+		verifyEq(con.lastSess.isDirty, false)
 
 		
 		// assert IOErr retry - recovery
@@ -126,7 +126,7 @@ internal class TestMongoOpRetries : Test {
 		con.reset
 		col.insert(["j":"d"])
 		verifyEq(mgr.failoverCount, 1)
-		verifyEq(con.getSession(false).isDirty, true)
+		verifyEq(con.lastSess.isDirty, true)
 	
 	
 		// assert IOErr retry - double Err 
@@ -136,8 +136,8 @@ internal class TestMongoOpRetries : Test {
 		verifyErrMsg(IOErr#, "Bad Mongo 1") {
 			col.insert(["j":"d"])
 		}
-		verifyEq(mgr.failoverCount, 2)	// we failover AGAIN in the retry catch block (as per spec)
-		verifyEq(con.getSession(false).isDirty, true)
+		verifyEq(mgr.failoverCount, 3)	// we failover AGAIN in the retry catch block (as per spec) and AGAIN in leaseConn()
+		verifyEq(con.lastSess.isDirty, true)
 	
 
 		// assert non-retryable Mongo errs pass through
@@ -148,7 +148,7 @@ internal class TestMongoOpRetries : Test {
 			col.insert(["j":"d"])
 		}
 		verifyEq(mgr.failoverCount, 0)
-		verifyEq(con.getSession(false).isDirty, false)
+		verifyEq(con.lastSess.isDirty, false)
 
 		
 		// assert MongoErr retry - recovery
@@ -157,7 +157,7 @@ internal class TestMongoOpRetries : Test {
 		con.reset
 		col.insert(["j":"d"])
 		verifyEq(mgr.failoverCount, 1)
-		verifyEq(con.getSession(false).isDirty, false)
+		verifyEq(con.lastSess.isDirty, false)
 	
 
 		// assert MongoErr retry - double Err 
@@ -168,7 +168,7 @@ internal class TestMongoOpRetries : Test {
 			col.insert(["j":"d"])
 		}
 		verifyEq(mgr.failoverCount, 2)
-		verifyEq(con.getSession(false).isDirty, false)
+		verifyEq(con.lastSess.isDirty, false)
 		
 		
 		// assert retries can be turned off
@@ -179,8 +179,8 @@ internal class TestMongoOpRetries : Test {
 		verifyErrMsg(IOErr#, "Boo") {
 			col.insert(["j":"d"])
 		}
-		verifyEq(mgr.failoverCount, 0)
-		verifyEq(con.getSession(false).isDirty, true)
+		verifyEq(mgr.failoverCount, 1)	// 1 for leaseConn()
+		verifyEq(con.lastSess.isDirty, true)
 	}
 	
 	Void testRetryReads() {
@@ -197,7 +197,7 @@ internal class TestMongoOpRetries : Test {
 		}
 		verifyEq(mgr.failoverCount, 0)
 		// only IOErrs get marked as dirty
-		verifyEq(con.getSession(false).isDirty, false)
+		verifyEq(con.lastSess.isDirty, false)
 
 		
 		// assert IOErr retry - recovery
@@ -206,7 +206,7 @@ internal class TestMongoOpRetries : Test {
 		con.reset
 		col.find
 		verifyEq(mgr.failoverCount, 1)
-		verifyEq(con.getSession(false).isDirty, true)
+		verifyEq(con.lastSess.isDirty, true)
 	
 	
 		// assert IOErr retry - double Err 
@@ -216,8 +216,8 @@ internal class TestMongoOpRetries : Test {
 		verifyErrMsg(IOErr#, "Bad Mongo 1") {
 			col.find
 		}
-		verifyEq(mgr.failoverCount, 2)	// we failover AGAIN in the retry catch block (as per spec)
-		verifyEq(con.getSession(false).isDirty, true)
+		verifyEq(mgr.failoverCount, 3)	// we failover AGAIN in the retry catch block (as per spec) and AGAIN in leaseConn()
+		verifyEq(con.lastSess.isDirty, true)
 	
 
 		// assert non-retryable Mongo errs pass through
@@ -228,7 +228,7 @@ internal class TestMongoOpRetries : Test {
 			col.find
 		}
 		verifyEq(mgr.failoverCount, 0)
-		verifyEq(con.getSession(false).isDirty, false)
+		verifyEq(con.lastSess.isDirty, false)
 
 		
 		// assert MongoErr retry - recovery
@@ -237,7 +237,7 @@ internal class TestMongoOpRetries : Test {
 		con.reset
 		col.find
 		verifyEq(mgr.failoverCount, 1)
-		verifyEq(con.getSession(false).isDirty, false)
+		verifyEq(con.lastSess.isDirty, false)
 	
 
 		// assert MongoErr retry - double Err 
@@ -248,7 +248,7 @@ internal class TestMongoOpRetries : Test {
 			col.find
 		}
 		verifyEq(mgr.failoverCount, 2)
-		verifyEq(con.getSession(false).isDirty, false)
+		verifyEq(con.lastSess.isDirty, false)
 		
 		
 		// assert retries can be turned off
@@ -259,8 +259,8 @@ internal class TestMongoOpRetries : Test {
 		verifyErrMsg(IOErr#, "Boo") {
 			col.find
 		}
-		verifyEq(mgr.failoverCount, 0)
-		verifyEq(con.getSession(false).isDirty, true)
+		verifyEq(mgr.failoverCount, 1)		// 1 for leaseConn()
+		verifyEq(con.lastSess.isDirty, true)
 	}
 	
 	private [Str:Obj?] cmd(Str cmd) { Str:Obj?[:] { ordered = true }.add(cmd, 1) }

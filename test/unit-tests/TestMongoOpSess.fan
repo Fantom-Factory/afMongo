@@ -4,8 +4,8 @@ using afBson::Binary
 internal class TestMongoOpSess : Test {
 	
 	Void testSessionSet() {
-		mgr := MongoConnMgrStub()
 		con	:= MongoConnStub().writePreamble.writeDoc([ "foo": "bar", "ok": 1 ]).flip
+		mgr := MongoConnMgrStub(con)
 		res := MongoOp(mgr, con, cmd("byMy")).runCommand("db")
 		req := con.readDoc
 		
@@ -15,12 +15,12 @@ internal class TestMongoOpSess : Test {
 		verifyEq(res["foo"], "bar")
 		verifyEq(req["byMy"], 1)
 		verifyEq(ssid.subtype, 4)	// 4 == UUID
-		verifyEq(ssid.data.toBase64, con.sess.sessionId["id"]->data->toBase64)
+		verifyEq(ssid.data.toBase64, con._sess.sessionId["id"]->data->toBase64)
 	}
 	
 	Void testSessionNoSet() {
-		mgr := MongoConnMgrStub()
 		con	:= MongoConnStub().writePreamble.writeDoc([ "foo": "bar", "ok": 1 ]).flip
+		mgr := MongoConnMgrStub(con)
 
 
 		// auth commands do NOT sent lsid

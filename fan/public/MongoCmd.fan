@@ -26,7 +26,7 @@ class MongoCmd {
 		this.dbName 	= dbName
 		this.cmdName	= cmdName
 		this.cmdVal		= cmdVal
-		this.session	= session
+		this.session	= session	// cursors and txns need to specify a session
 		this.cmd		= Str:Obj?[:] { ordered = true } 
 		this.add(cmdName, cmdVal)
 	}
@@ -104,7 +104,7 @@ class MongoCmd {
 	** Executes this cmd on the MongoDB server, and returns the response as a BSON document.
 	Str:Obj? run(Bool checked := true) {
 		doc := (Str:Obj?) connMgr.leaseConn |conn->Str:Obj?| {
-			conn.setSession(session)
+			conn._setSession(session)
 			return MongoOp(connMgr, conn, cmd).runCommand(dbName, checked)
 		}
 		return doc
@@ -116,7 +116,7 @@ class MongoCmd {
 			doc		:= MongoOp(connMgr, conn, cmd).runCommand(dbName)
 			cur		:= doc["cursor"] as Str:Obj?
 			curId	:= cur["id"]
-			sess	:= curId == 0 ? null : conn.detachSession
+			sess	:= curId == 0 ? null : conn._detachSession
 			return MongoCur(connMgr, dbName, cmdVal.toStr, curId, cur["firstBatch"], sess)
 		}
 	}

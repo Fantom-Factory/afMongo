@@ -108,7 +108,19 @@ const mixin MongoConnMgr {
 	** Should the 'fn' complete normally, the transaction is committed.
 	** If the 'fn' throws an Err, the transaction is rolled back.
 	** 
-	** The obj passed to 'fn' is undefined and should not be used.
+	** pre>
+	** syntax: fantom
+	** runInTxn([
+	**   "readConcern"    : [...],
+	**   "writeConcern"   : [...],
+	**   "readPreference" : [...],
+	**   "timeoutMS"      : 2000,
+	** ]) {
+	**   ...
+	** }
+	** <pre
+	** 
+	** Note: The obj passed to 'fn' is undefined and should not be used.
 	abstract Void runInTxn([Str:Obj?]? txnOpts, |Obj| fn)
 	
 	** (Advanced)
@@ -152,7 +164,7 @@ const mixin MongoConnMgr {
 	**  - 'mongodb://example2.com?minPoolSize=10&maxPoolSize=50&ssl=true'
 	** 
 	** See `https://www.mongodb.com/docs/manual/reference/connection-string/`.
-	static new make(Uri connectionUrl, Log? log := null) { 
+	static new make(Uri connectionUrl, Log? log := null, ActorPool? actorPool := null) { 
 		MongoConnMgrPool(connectionUrl, log)
 	}
 }

@@ -66,6 +66,7 @@ internal const class MongoSessPool {
 		if (sess == null)	return
 		if (sess.isDirty)	return
 		if (sess.isStale)	return
+		if (sess.isInTxn)	return	// it'll be checked in after the transaction
 		if (sess.isDetached && force == false)
 							return
 	
