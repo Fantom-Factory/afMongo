@@ -87,7 +87,11 @@ class MongoOp {
 				cmd["txnNumber"] = sess.newTxNum
 		}
 		
-		try		return doRunCommand(sess, checked)
+		try	{
+			result := doRunCommand(sess, checked)
+			sess?.postCmd(result)
+			return result
+		}
 		catch	(IOErr ioe) {
 			// mark ALL sessions as dirty regardless if the retry succeeds or not (as per spec)
 			conn._getSession(false)?.markDirty

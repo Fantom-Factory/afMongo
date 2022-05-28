@@ -36,7 +36,7 @@ internal const class MongoSessPool {
 	}
 
 	new make(ActorPool actorPool) {
-		this.sessionTimeoutRef	= AtomicRef(0min)
+		this.sessionTimeoutRef	= AtomicRef(10min)	// don't let conns get stale during testing!
 		this.clusterTimeRef		= AtomicRef(null)
 		this.transactionNumRef	= AtomicInt(0)
 		this.sessionPool		= SynchronizedList(actorPool)
@@ -70,6 +70,8 @@ internal const class MongoSessPool {
 		if (sess.isDetached && force == false)
 							return
 	
+		// "force" checkins happen when a cursor is killed and it wishes to return its sess to the pool 
+		sess.isDetached = false
 		sessionPool.push(sess)
 	}
 

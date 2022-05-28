@@ -81,18 +81,15 @@ internal class MongoConnStub : MongoConn {
 		
 		in.readU4			// flag bits
 		in.read				// section ID
-		return BsonIO().readDoc(in)
+		doc := BsonIO().readDoc(in)
+		reset	// set ourselves up for the next cmd
+		return doc
 	}
 	
 	This reset() {
 		outBuf.clear
 		ress.each { (it as Buf)?.seek(0) }
 		resIdx = 0
-		_sess = null
 		return this
-	}
-	
-	Int curTxnNum() {
-		connMgr->sessPool->transactionNumRef->val
 	}
 }

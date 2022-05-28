@@ -66,8 +66,11 @@ internal const class MongoConnMgrStub : MongoConnMgrPool {
 	
 	MongoSess? sess() {
 		// there should only ever be one
-echo(this->sessPool->sessions)
-		return this->sessPool->sessions->first
+		this->sessPool->sessions->first
+	}
+	
+	Int nextTxnNum() {
+		1.plus(this->sessPool->transactionNumRef->val)
 	}
 	
 }

@@ -95,16 +95,27 @@ internal const class MongoSess {
 	}
 
 	Void prepCmdForTxn(Str:Obj? cmd) {
-		// this a little leap of faith - so just double check that we ARE associated with the current txn
-		txn := MongoTxn.cur
-		if (isInTxn == false || txnNum != txn?.txnNum || this !== txn?.sess)
-			throw Err("MongoSess is NOT part of current Txn!? (txnNum ${txnNum} != ${txn?.txnNum})")
-		txn.prepCmd(cmd)
+		txn(true).prepCmd(cmd)
 	}
 
+	Void postCmd(Str:Obj? res) {
+		txn(false)?.postCmd(res)
+	}
+	
 	** Called after a txn
-	Void checkin() {
-		_sessPool.checkin(this)
+	Void postTxnCheckin() {
+		txnNum = null
+		_sessPool.checkin(this, true)
+	}
+	
+	private MongoTxn? txn(Bool checked) {
+		txn := MongoTxn.cur
+		if (txn == null && checked == false)
+			return null
+		// this a little leap of faith - so just double check that we ARE associated with the current txn
+		if (isInTxn == false || txnNum != txn?.txnNum || this !== txn?.sess)
+			throw Err("MongoSess is NOT part of current Txn!? (txnNum ${txnNum} != ${txn?.txnNum})")
+		return txn
 	}
 	
 	private Duration lastUse() {

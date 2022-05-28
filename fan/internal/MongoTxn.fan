@@ -40,6 +40,7 @@ internal class MongoTxn {
 		this.connMgr	= connMgr
 		this.sess		= sess
 		this.txnNum		= txnNum
+		sess.isDetached	= true		// you're mine now! Muhahahahaha!
 	}
 	
 	Void run([Str:Obj?]? txnOpts, |MongoTxn| fn) {
@@ -56,7 +57,7 @@ internal class MongoTxn {
 			fn(this)
 			
 			if (status == statusInProgress) {
-				cmd := MongoCmd(connMgr, "admin", "commitTransaction", null, sess)
+				cmd := MongoCmd(connMgr, "admin", "commitTransaction", 1, sess)
 				cmd["writeConcern"]	= txnOpts["writeConcern"]
 				cmd["maxTimeMS"]	= txnOpts["maxTimeMS"]
 				cmd.run
@@ -66,7 +67,7 @@ internal class MongoTxn {
 		} catch (Err err) {
 			
 			if (status == statusInProgress) {
-				cmd := MongoCmd(connMgr, "admin", "abortTransaction", null, sess)
+				cmd := MongoCmd(connMgr, "admin", "abortTransaction", 1, sess)
 				cmd["writeConcern"]	= txnOpts["writeConcern"]
 				cmd.run
 				status = statusAborted
@@ -76,7 +77,7 @@ internal class MongoTxn {
 			
 		} finally {
 			Actor.locals.remove("afMongo.txn")
-			sess.checkin
+			sess.postTxnCheckin
 		}
 		
 		// commitTransaction() cmd
@@ -102,6 +103,11 @@ internal class MongoTxn {
 			cmd["recoveryToken"] = recoveryToken
 		
 		status = statusInProgress
+	}
+	
+	Void postCmd(Str:Obj? res) {
+		if (res.containsKey("recoveryToken"))
+			recoveryToken = res["recoveryToken"]
 	}
 	
 	// we *may* introduce these manual methods at a later date
