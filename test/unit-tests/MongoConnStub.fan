@@ -40,8 +40,10 @@ internal class MongoConnStub : MongoConn {
 		if (resIdx >= ress.size)
 			resIdx  = 0
 
-		if (res is Err)
+		if (res is Err) {
+//			Err("POO").trace
 			throw res
+		}
 		
 		if (res is Buf) {
 			buf := (Buf) res
@@ -62,9 +64,11 @@ internal class MongoConnStub : MongoConn {
 		lastSess = super._getSession(createNew)
 	}
 	
-	Str:Obj? readDoc() {
+	Str:Obj? readDoc(Bool reset := true) {
+		if (reset)
+			outBuf.flip
 		// THEN - req is NOT compressed
-		in := outBuf.flip.in
+		in := outBuf.in
 		in.endian			= Endian.little
 		in.readU4			// msg size
 		in.readU4			// reqId
@@ -82,7 +86,8 @@ internal class MongoConnStub : MongoConn {
 		in.readU4			// flag bits
 		in.read				// section ID
 		doc := BsonIO().readDoc(in)
-		reset	// set ourselves up for the next cmd
+		if (reset)
+			this.reset	// set ourselves up for the next cmd
 		return doc
 	}
 	

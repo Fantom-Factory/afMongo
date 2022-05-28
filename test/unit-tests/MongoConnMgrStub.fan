@@ -53,13 +53,14 @@ internal const class MongoConnMgrStub : MongoConnMgrPool {
 		this->connectionState->connFactory = |->MongoConn| { this.connRef.val } 
 	}
 
-	override MongoConn newMongoConn() {
-		Actor.locals["afMongo.connStub"]
-	}
-
 	override Future failOver() {
 		failoverCountRef.increment
+//		Err("FAIL!").trace
 		return Future.makeCompletable.complete(69)
+	}
+
+	override MongoConn newMongoConn() {
+		Actor.locals["afMongo.connStub"]
 	}
 
 	override Void authenticateConn(MongoConn conn) { }

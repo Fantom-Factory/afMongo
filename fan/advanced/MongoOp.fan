@@ -101,6 +101,21 @@ class MongoOp {
 
 			if (isRetryableWrite(sess))
 				return retryCommand(ioe, sess, checked)
+			
+			if (sess?.isInTxn == true && cmdName == "commitTransaction") {
+				// configure writeConcern as per spec
+				wc := cmd["writeConcern"] as Str:Obj? ?: Str:Obj?[:] { it.ordered = true }
+				wc  = wc.rw
+				cmd["writeConcern"] = wc.rw
+				wc["w"] = "majority"
+				if (wc["wtimeout"] == null)
+					wc["wtimeout"] = 10000
+				return retryCommand(ioe, sess, checked)
+			}
+
+			if (sess?.isInTxn == true && cmdName == "abortTransaction")
+				try return retryCommand(ioe, sess, checked)
+				catch return Str:Obj["ok":1f, "afMongo-abortErrMsg":ioe.toStr]
 
 			throw ioe
 		}
@@ -116,6 +131,19 @@ class MongoOp {
 			if ((isRetryableWrite(sess) && retryableErrCodes.contains(me.code ?: -1)) || me.errLabels.contains("RetryableWriteError"))
 				return retryCommand(me, sess, checked)
 
+			if (sess?.isInTxn == true && cmdName == "commitTransaction") {
+				// configure writeConcern as per spec
+				wc := cmd["writeConcern"] as Str:Obj? ?: Str:Obj?[:] { it.ordered = true }
+				wc["w"] = "majority"
+				if (wc["wtimeout"] == null)
+					wc["wtimeout"] = 10000
+				return retryCommand(me, sess, checked)
+			}
+
+			if (sess?.isInTxn == true && cmdName == "abortTransaction")
+				try return retryCommand(me, sess, checked)
+				catch return Str:Obj["ok":1f, "afMongo-abortErrMsg":me.toStr]
+
 			throw me
 		}
 	}
@@ -127,7 +155,7 @@ class MongoOp {
 			conn.close
 			
 			// use get, so any failover errors are thrown 
-			connMgr.failOver.get(30sec)
+			connMgr.failOver.get(10sec)	// the spec gives an example of 10sec
 
 			// grab a fresh conn, 'cos the existing Conn just got closed!
 			conn = conn._refresh

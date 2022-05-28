@@ -50,39 +50,37 @@ internal class MongoTxn {
 			throw Err("Mongo Transaction already in progress (txnNum:${cur.txnNum})")
 		
 		try {
-			Actor.locals["afMongo.txn"] = this
-			status = statusStarting
-		
-			// we *could* retry the whole fn on "TransientTransactionError" label error - but... idempotent?
-			fn(this)
+			try {
+				Actor.locals["afMongo.txn"] = this
+				status = statusStarting
+			
+				// we *could* retry the whole fn on "TransientTransactionError" label error - but... idempotent?
+				fn(this)
+				
+			} catch (Err err) {
+				
+				if (status == statusInProgress) {
+					cmd := MongoCmd(connMgr, "admin", "abortTransaction", 1, sess)
+					cmd->writeConcern	= txnOpts["writeConcern"] ?: connMgr.writeConcern
+					cmd.run(false)
+					status = statusAborted
+				}
+
+				throw err
+			}
 			
 			if (status == statusInProgress) {
 				cmd := MongoCmd(connMgr, "admin", "commitTransaction", 1, sess)
-				cmd["writeConcern"]	= txnOpts["writeConcern"]
-				cmd["maxTimeMS"]	= txnOpts["maxTimeMS"]
+				cmd->writeConcern	= txnOpts["writeConcern"] ?: connMgr.writeConcern
+				cmd->maxTimeMS		= txnOpts["maxTimeMS"]		// ->trap so nulls are not added
 				cmd.run
 				status = statusCommitted
 			}
-			
-		} catch (Err err) {
-			
-			if (status == statusInProgress) {
-				cmd := MongoCmd(connMgr, "admin", "abortTransaction", 1, sess)
-				cmd["writeConcern"]	= txnOpts["writeConcern"]
-				cmd.run
-				status = statusAborted
-			}
 
-			throw err
-			
 		} finally {
 			Actor.locals.remove("afMongo.txn")
 			sess.postTxnCheckin
 		}
-		
-		// commitTransaction() cmd
-//		the only supported retryable write commands within a transaction are commitTransaction and abortTransaction
-		
 	}
 	
 	Void prepCmd(Str:Obj? cmd) {
@@ -95,8 +93,9 @@ internal class MongoTxn {
 
 		if (status == statusStarting) {
 			cmd["startTransaction"]	= true
-			if (txnOpts.containsKey("readConcern"))
-				cmd["readConcern"] = txnOpts
+			// do NOT inherit *this* readConcen from the client
+			if (txnOpts["readConcern"] != null)
+				cmd["readConcern"] = txnOpts["readConcern"]
 		}
 		
 		if (recoveryToken != null)
