@@ -46,7 +46,7 @@ internal class MongoTxn {
 		sess.isDetached	= true		// you're mine now! Muhahahahaha!
 	}
 	
-	Void run([Str:Obj?]? txnOpts, |MongoTxn| fn) {
+	Void run([Str:Obj?]? txnOpts, |Obj?| fn) {
 		txnOpts = this.txnOpts = txnOpts ?: Str:Obj[:]
 		
 		if (cur != null)

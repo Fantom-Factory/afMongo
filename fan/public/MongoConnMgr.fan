@@ -67,8 +67,14 @@ const mixin MongoConnMgr {
 	** 
 	** What ever is returned from the func is returned from the method.
 	** 
+	** If all connections are currently in use, a truncated binary exponential backoff algorithm 
+	** is used to wait for one to become free. If, while waiting, the duration specified in 
+	** 'waitQueueTimeout' expires then a 'MongoErr' is thrown.
+	** 
+	** All leased connections are authenticated against the default credentials
+	** 
 	** Any 'IOErrs' thrown in the fn are assumed to be networking errors, and invoke a topology 
-	** recan and a Master failover.
+	** rescan and a Master failover.
 	abstract Obj? leaseConn(|MongoConn->Obj?| c)
 
 	** Runs the given 'fn' in a Mongo multi-cmd, multi-collection, transaction. 
@@ -92,7 +98,7 @@ const mixin MongoConnMgr {
 	** MongoDB server errors.
 	** 
 	** Note: The obj passed to 'fn' is undefined and should not be used.
-	abstract Void runInTxn([Str:Obj?]? txnOpts, |Obj| fn)
+	abstract Void runInTxn([Str:Obj?]? txnOpts, |Obj?| txnFn)
 	
 	** (Advanced)
 	** To be called on a network 'IOErr'.

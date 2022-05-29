@@ -141,14 +141,27 @@ const class MongoConnUrl {
 	const Int? zlibCompressionLevel
 	
 	** An option to **turn off** retryable writes.
+	** (Defaults to 'true').
 	** 
 	**   mongodb://example.com/puppies?retryWrites=false
 	const Bool retryWrites	
 
 	** An option to **turn off** retryable reads.
+	** (Defaults to 'true').
 	** 
 	**   mongodb://example.com/puppies?retryReads=false
 	const Bool retryReads
+	
+	** An "unofficial" option that can be useful for development.
+	** 
+	** Transactions CANNOT be run against standalone MongoDB servers (MongoDB raises errors).
+	** 
+	** This option switches transactions off, and instead executes the txnFns outside of a transactions.
+	** This means the same app code may be used in both standalone and clustered environments.
+	** 
+	**   mongodb://example.com/puppies?disableTxns=true
+	@NoDoc
+	const Bool disableTxns
 
 	** Parses a Mongo Connection URL.
 	new fromUrl(Uri connectionUrl) {
@@ -175,6 +188,7 @@ const class MongoConnUrl {
 		zlibCompressionLevel	:= mongoUrl.query["zlibCompressionLevel"]?.toInt(10, false)
 		this.retryWrites		 = mongoUrl.query["retryWrites"] != "false"
 		this.retryReads			 = mongoUrl.query["retryReads"] != "false"
+		this.disableTxns		 = mongoUrl.query["disableTxns"] == "true"
 
 		if (minPoolSize < 0)
 			throw ArgErr(errMsg_intTooSmall("minPoolSize", "0", minPoolSize, mongoUrl))

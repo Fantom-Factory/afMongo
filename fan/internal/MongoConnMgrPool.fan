@@ -69,14 +69,6 @@ internal const class MongoConnMgrPool : MongoConnMgr {
 		return this
 	}
 
-	** Makes a connection available to the given function.
-	** What ever is returned from the func is returned from the method.
-	** 
-	** If all connections are currently in use, a truncated binary exponential backoff algorithm 
-	** is used to wait for one to become free. If, while waiting, the duration specified in 
-	** 'waitQueueTimeout' expires then a 'MongoErr' is thrown.
-	** 
-	** All leased connections are authenticated against the default credentials.
 	override Obj? leaseConn(|MongoConn->Obj?| c) {
 		if (hasStarted.val == false)
 			throw Err("ConnectionManager has not started")
@@ -118,7 +110,7 @@ internal const class MongoConnMgrPool : MongoConnMgr {
 			checkIn(conn)
 	}
 	
-	override Void runInTxn([Str:Obj?]? txnOpts, |Obj| fn) {
+	override Void runInTxn([Str:Obj?]? txnOpts, |Obj?| fn) {
 		sessPool.checkout.runInTxn(this, txnOpts, fn)
 	}
 	

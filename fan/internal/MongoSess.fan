@@ -83,7 +83,11 @@ internal const class MongoSess {
 		_sessPool.newTxNum
 	}
 	
-	Void runInTxn(MongoConnMgr connMgr, [Str:Obj?]? txnOpts, |MongoTxn| fn) {
+	Void runInTxn(MongoConnMgr connMgr, [Str:Obj?]? txnOpts, |Obj?| fn) {
+		
+		// let txn code still run in dev envs
+		if (connMgr.mongoConnUrl.disableTxns)
+			return fn(null)
 		
 		txn := null as MongoTxn
 		doRunInTxn := |->| {
