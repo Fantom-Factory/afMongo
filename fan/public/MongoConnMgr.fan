@@ -119,6 +119,26 @@ const mixin MongoConnMgr {
 		return this
 	}
 	
+	** Returns properties and statistics about this connection manager.
+	** 
+	** pre>
+	** syntax: fantom
+	** stats() // --> [
+	**   "mongoUrl"        : `mongodb://localhost:27017/dbName`,
+	**   "hosts"           : ["localhost", "otherhost"]
+	**   "maxWireVer"      : 7,
+	**   "compression"     : ["zlib", "snappy"]
+	**   "sessionTimeout"  : 30min,
+	**   "numConnsInUse"   : 3,
+	**   "numConnsInPool"  : 7,
+	**   "primaryFound"    : true,
+	**   "
+	** ]
+	** 
+	** The keys and data returned are for debug info only and are not guaranteed to exist in 
+	** future driver versions.
+	abstract Str:Obj? props()
+	
 	** Creates a pooled Mongo Connection Manager.
 	** 
 	** URL examples:

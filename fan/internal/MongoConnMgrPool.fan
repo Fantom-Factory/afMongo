@@ -13,7 +13,6 @@ internal const class MongoConnMgrPool : MongoConnMgr {
 	private const AtomicBool		hasShutdown				:= AtomicBool()
 	private const AtomicRef 		failingOverRef			:= AtomicRef(null)
 	private const AtomicRef 		primaryDetailsRef		:= AtomicRef(null)
-	private const AtomicBool 		isConnectedToMasterRef	:= AtomicBool(false)
 	private const Synchronized		failOverThread
 	private const SynchronizedState connectionState
 	
@@ -21,9 +20,14 @@ internal const class MongoConnMgrPool : MongoConnMgr {
 	// having it here overloads the responsibility of a ConnMgr
 	private const MongoSessPool		sessPool	
 
-	override Uri? mongoUrl() { mongoUrlRef.val }
-	private const AtomicRef mongoUrlRef := AtomicRef(null)
-	
+	override Uri? mongoUrl() { 
+		if (primaryDetails == null || primaryDetails.isPrimary == false)
+			return null
+		if (mongoConnUrl.dbName == null)
+			return primaryDetails.mongoUrl
+		return primaryDetails.mongoUrl.plusSlash.plusName(mongoConnUrl.dbName) 
+	}
+
 	override const MongoConnUrl mongoConnUrl
 
 	** When the connection pool is shutting down, this is the amount of time to wait for all 
@@ -124,7 +128,6 @@ internal const class MongoConnMgrPool : MongoConnMgr {
 
 		// it doesn't matter if a race condition means we play huntThePrimary twice in succession
 		return failingOverRef.val = failOverThread.async |->| {
-			isConnectedToMasterRef.val = false
 			try	{
 				oldUrl := this.mongoUrl
 				huntThePrimary
@@ -135,7 +138,6 @@ internal const class MongoConnMgrPool : MongoConnMgr {
 					log.warn("MongoDB Master failed over from $oldUrl to $newUrl")
 				
 				// we're an unsung hero - we've established a new master connection and nobody knows! 
-				isConnectedToMasterRef.val = true
 				
 			} catch (Err err)
 				log.warn("Could not find new Master", err)
@@ -194,25 +196,19 @@ internal const class MongoConnMgrPool : MongoConnMgr {
 		return this
 	}
 	
-	** Returns the number of pooled connections currently in use.
-	Int noOfConnectionsInUse() {
-		connectionState.sync |MongoConnMgrPoolState state->Int| {
-			state.checkedOut.size
-		}		
-	}
-
-	** Returns the number of connections currently in the pool.
-	Int noOfConnectionsInPool() {
-		connectionState.sync |MongoConnMgrPoolState state->Int| {
-			state.checkedOut.size + state.checkedIn.size
+	override Str:Obj? props() {
+		connectionState.sync |MongoConnMgrPoolState state->Str:Obj?| {
+			[
+				"mongoUrl"			: this.mongoUrl,
+				"primaryFound"		: this.primaryDetails != null,
+				"maxWireVer"		: this.primaryDetails?.maxWireVer,
+				"compression"		: this.primaryDetails?.compression,
+				"hosts"				: this.primaryDetails?.hosts,
+				"sessionTimeout"	: this.primaryDetails?.sessionTimeout,
+				"numConnsInUse"		: state.checkedOut.size,
+				"numConnsInPool"	: state.checkedOut.size + state.checkedIn.size,
+			]
 		}
-	}
-	
-	** Returns 'true' if we'er currently connected to a Master node and can accept write cmds.
-	** 
-	** Returns 'false' during failovers and games of "Hunt the Primary".
-	Bool isConnectedToMaster() {
-		isConnectedToMasterRef.val
 	}
 	
 	** (Advanced)
@@ -221,13 +217,10 @@ internal const class MongoConnMgrPool : MongoConnMgr {
 	** 
 	** This method should be followed with a call to 'emptyPool()'.  
 	virtual Void huntThePrimary() {
-		primaryDetails = MongoSafari(mongoConnUrl, log).huntThePrimary
-		
-		// save the address of our new Master
-		mongoUrl	:= mongoConnUrl.dbName == null ? primaryDetails.mongoUrl : primaryDetails.mongoUrl.plusSlash.plusName(mongoConnUrl.dbName) 
-		mongoUrlRef.val	= mongoUrl
-		
+		this.primaryDetails = null
 
+		primaryDetails := MongoSafari(mongoConnUrl, log).huntThePrimary
+		
 		// keep track of the new logical session timeout
 		sessPool.sessionTimeout = primaryDetails.sessionTimeout
 
@@ -242,7 +235,7 @@ internal const class MongoConnMgrPool : MongoConnMgr {
 			} 
 		}
 
-		isConnectedToMasterRef.val = true
+		this.primaryDetails = primaryDetails
 	}
 	
 	virtual MongoConn newMongoConn() {
@@ -342,6 +335,12 @@ internal const class MongoConnMgrPool : MongoConnMgr {
 		authenticateConn(connection)
 	
 		return connection
+	}
+	
+	private Int noOfConnectionsInUse() {
+		connectionState.sync |MongoConnMgrPoolState state->Int| {
+			state.checkedOut.size
+		}
 	}
 	
 	override Void authenticateConn(MongoConn conn) {
