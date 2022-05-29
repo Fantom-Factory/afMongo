@@ -1,11 +1,9 @@
 using concurrent::AtomicBool
 using concurrent::AtomicRef
-using concurrent::Actor
 using concurrent::ActorPool
 using concurrent::Future
 using afConcurrent::Synchronized
 using afConcurrent::SynchronizedState
-using inet::IpAddr
 using inet::TcpSocket
 
 @NoDoc	// advanced use only
@@ -14,8 +12,8 @@ internal const class MongoConnMgrPool : MongoConnMgr {
 	private const AtomicBool		hasStarted				:= AtomicBool()
 	private const AtomicBool		hasShutdown				:= AtomicBool()
 	private const AtomicRef 		failingOverRef			:= AtomicRef(null)
+	private const AtomicRef 		primaryDetailsRef		:= AtomicRef(null)
 	private const AtomicBool 		isConnectedToMasterRef	:= AtomicBool(false)
-	private const AtomicBool 		isStandaloneRef			:= AtomicBool(true)		// disable transactions until we know they're accepted
 	private const Synchronized		failOverThread
 	private const SynchronizedState connectionState
 	
@@ -34,24 +32,24 @@ internal const class MongoConnMgrPool : MongoConnMgr {
 	** Defaults to '2sec'. 
 	const Duration? shutdownTimeout	:= 5sec
 	
-	// used to test the backoff func
-	internal const |Range->Int|	randomFunc	:= |Range r->Int| { r.random }
-	internal const |Duration| 	sleepFunc	:= |Duration napTime| { Actor.sleep(napTime) }
+	private const MongoBackoff backoff	:= MongoBackoff()
 	
-	new make(Uri connectionUrl, Log? log := null, ActorPool? actorPool := null, |This|? fn := null) {
+	new make(Uri connectionUrl, Log? log := null, ActorPool? actorPool := null) {
 			 actorPool			= actorPool ?: ActorPool() { it.name = "afMongo.connMgrPool"; it.maxThreads = 5 }
 		this.connectionState	= SynchronizedState(actorPool, MongoConnMgrPoolState#)
 		this.mongoConnUrl		= MongoConnUrl(connectionUrl)
 		this.failOverThread		= connectionState.lock
 		this.sessPool			= MongoSessPool(actorPool)
 		this.log				= log ?: MongoConnMgrPool#.pod.log
-		
-		// for backoff tests
-		fn?.call(this)
 	}
 
+	private MongoHostDetails? primaryDetails {
+		get { primaryDetailsRef.val }
+		set { primaryDetailsRef.val = it }
+	}
+	
 	override Bool isStandalone() {
-		isStandaloneRef.val
+		primaryDetails?.isStandalone == true
 	}
 
 	override This startup() {
@@ -179,7 +177,7 @@ internal const class MongoConnMgrPool : MongoConnMgr {
 			return waitingOn > 0 ? null : true
 		}
 		
-		allClosed := backoffFunc(closeFunc, shutdownTimeout) ?: false
+		allClosed := backoff.backoffFunc(closeFunc, shutdownTimeout) ?: false
 
 		if (!allClosed) {
 			// too late, they've had their chance. Now everybody dies.
@@ -231,24 +229,22 @@ internal const class MongoConnMgrPool : MongoConnMgr {
 	** 
 	** This method should be followed with a call to 'emptyPool()'.  
 	virtual Void huntThePrimary() {
-		hostDetails := MongoSafari(mongoConnUrl, log).huntThePrimary
+		primaryDetails = MongoSafari(mongoConnUrl, log).huntThePrimary
 		
 		// save the address of our new Master
-		mongoUrl	:= mongoConnUrl.dbName == null ? hostDetails.mongoUrl : hostDetails.mongoUrl.plusSlash.plusName(mongoConnUrl.dbName) 
+		mongoUrl	:= mongoConnUrl.dbName == null ? primaryDetails.mongoUrl : primaryDetails.mongoUrl.plusSlash.plusName(mongoConnUrl.dbName) 
 		mongoUrlRef.val	= mongoUrl
 		
-		// transactions are not allowed on standalone instances
-		isStandaloneRef.val	= hostDetails.isStandalone
 
 		// keep track of the new logical session timeout
-		sessPool.sessionTimeout = hostDetails.sessionTimeout
+		sessPool.sessionTimeout = primaryDetails.sessionTimeout
 
 		// set our connection factory
 		connectionState.sync |MongoConnMgrPoolState state| {
 			state.connFactory = |->MongoConn| {
 				return newMongoConn {
 					it._mongoUrl				= mongoUrl
-					it._compressor				= hostDetails.compression.first
+					it._compressor				= primaryDetails.compression.first
 					it._zlibCompressionLevel	= this.mongoConnUrl.zlibCompressionLevel
 				}
 			} 
@@ -332,7 +328,7 @@ internal const class MongoConnMgrPool : MongoConnMgr {
 
 		connection	:= null as MongoConn
 		ioErr		:= null as Err
-		try connection = backoffFunc(connectionFunc, mongoConnUrl.waitQueueTimeout)
+		try connection = backoff.backoffFunc(connectionFunc, mongoConnUrl.waitQueueTimeout)
 		
 		// sys::IOErr: Could not connect to MongoDB at `dsXXXXXX-a0.mlab.com:59296` - java.net.ConnectException: Connection refused
 		catch (IOErr ioe)
@@ -397,40 +393,6 @@ internal const class MongoConnMgrPool : MongoConnMgr {
 				state.checkedIn.push(conn)
 			}
 		}
-	}
-	
-	** Implements a truncated binary exponential backoff algorithm. *Damn, I'm good!*
-	** Returns 'null' if the operation timed out.
-	** 
-	** @see `http://en.wikipedia.org/wiki/Exponential_backoff`
-	internal Obj? backoffFunc(|Duration totalNapTime->Obj?| func, Duration timeout) {
-		result			:= null
-		c				:= 0
-		i				:= 10
-		totalNapTime	:= 0ms
-		
-		while (result == null && totalNapTime < timeout) {
-
-			result = func.call(totalNapTime)
-
-			if (result == null) {
-				if (++c > i) c = i	// truncate the exponentiation ~ 10 secs
-				napTime := (randomFunc(0..<2.pow(c)) * 10 * 1000000).toDuration
-
-				// don't over sleep!
-				if ((totalNapTime + napTime) > timeout)
-					napTime = timeout - totalNapTime 
-
-				sleepFunc(napTime)
-				totalNapTime += napTime
-				
-				// if we're about to quit, lets have 1 more last ditch attempt!
-				if (totalNapTime >= timeout)
-					result = func.call(totalNapTime)
-			}
-		}
-		
-		return result
 	}
 }
 

@@ -1,41 +1,41 @@
 using afConcurrent::LocalRef
 
-internal class TestConMgrPool : Test {
+internal class TestBackoffFunc : Test {
 
 	Void testBackoffFuncHappyCase() {
-		connMgr := MongoConnMgrPool(`mongodb://wotever`, null, null) {
+		backoff := MongoBackoff {
 			it.sleepFunc  = |Duration d| { }
 			it.randomFunc = |Range r->Int| { r.max }
 		}
 		
 		noOfFuncCalls := 0
-		result := connMgr.backoffFunc(|->Obj?| { noOfFuncCalls++; return "Done"  }, 10sec)
+		result := backoff.backoffFunc(|->Obj?| { noOfFuncCalls++; return "Done"  }, 10sec)
 		
 		verifyEq(result, "Done")
 		verifyEq(noOfFuncCalls, 1)
 	}
 
 	Void testBackoffFuncHappyCasePartial() {
-		connMgr := MongoConnMgrPool(`mongodb://wotever`, null, null) {
+		backoff := MongoBackoff {
 			it.sleepFunc  = |Duration d| { }
 			it.randomFunc = |Range r->Int| { r.max }
 		}
 		
 		noOfFuncCalls := 0
-		result := connMgr.backoffFunc(|->Obj?| { noOfFuncCalls++; return noOfFuncCalls==3 ? "Done" : null }, 10sec)
+		result := backoff.backoffFunc(|->Obj?| { noOfFuncCalls++; return noOfFuncCalls==3 ? "Done" : null }, 10sec)
 		
 		verifyEq(result, "Done")
 		verifyEq(noOfFuncCalls, 3)
 	}
 
 	Void testBackoffFuncUnhappyCase() {
-		connMgr := MongoConnMgrPool(`mongodb://wotever`, null, null) {
+		backoff := MongoBackoff {
 			it.sleepFunc  = |Duration d| { }
 			it.randomFunc = |Range r->Int| { r.max }
 		}
 		
 		noOfFuncCalls := 0
-		result := connMgr.backoffFunc(|->Obj?| { noOfFuncCalls++; return null }, 10sec)
+		result := backoff.backoffFunc(|->Obj?| { noOfFuncCalls++; return null }, 10sec)
 		
 		verifyEq(result, null)
 		verifyEq(noOfFuncCalls, 10)	// we just happen to know this! See testBackoffFuncNapTimes below.
@@ -43,13 +43,13 @@ internal class TestConMgrPool : Test {
 
 	Void testBackoffFuncNapTimes() {
 		napTimesU := Unsafe(Duration[,])
-		connMgr := MongoConnMgrPool(`mongodb://wotever`, null, null) {
+		backoff := MongoBackoff {
 			it.sleepFunc  = |Duration d| { napTimesU.val->add(d)  }
 			it.randomFunc = |Range r->Int| { r.max }
 		}
 		
 		noOfFuncCalls := 0
-		result := connMgr.backoffFunc(|->Obj?| { noOfFuncCalls++; return noOfFuncCalls==10 ? "Done" : null }, 10sec)
+		result := backoff.backoffFunc(|->Obj?| { noOfFuncCalls++; return noOfFuncCalls==10 ? "Done" : null }, 10sec)
 
 		napTimes := (Duration[]) napTimesU.val
 		verifyEq(result, "Done")
@@ -66,23 +66,23 @@ internal class TestConMgrPool : Test {
 	Void testBackoffFuncTotalNapTime() {
 		napTimeU  := LocalRef("napTime")
 		napTime2U := LocalRef("napTime2")
-		connMgr := MongoConnMgrPool(`mongodb://wotever`, null, null) {
+		backoff := MongoBackoff {
 			it.sleepFunc  = |Duration d| { napTimeU.val = napTimeU.val->plus(d)  }
 			it.randomFunc = |Range r->Int| { r.max }
 		}
 		
 		napTimeU.val = 0sec
-		connMgr.backoffFunc(|Duration d->Obj?| { napTime2U.val = d; return null }, 10sec)
+		backoff.backoffFunc(|Duration d->Obj?| { napTime2U.val = d; return null }, 10sec)
 		verifyEq(napTimeU.val,  10sec)
 		verifyEq(napTime2U.val, 10sec)
 
 		napTimeU.val = 0sec
-		connMgr.backoffFunc(|Duration d->Obj?| { napTime2U.val = d; return null }, 3sec)
+		backoff.backoffFunc(|Duration d->Obj?| { napTime2U.val = d; return null }, 3sec)
 		verifyEq(napTimeU.val, 3sec)
 		verifyEq(napTime2U.val, 3sec)
 
 		napTimeU.val = 0sec
-		connMgr.backoffFunc(|Duration d->Obj?| { napTime2U.val = d; return null }, 8.7sec)
+		backoff.backoffFunc(|Duration d->Obj?| { napTime2U.val = d; return null }, 8.7sec)
 		verifyEq(napTimeU.val, 8.7sec)
 		verifyEq(napTime2U.val, 8.7sec)
 	}

@@ -20,13 +20,13 @@ internal class TestScram : Test {
 		limit	:= secret.in.readS4
 		query	:= BsonIO().readDoc(secret.in)
 		
-		echo(query)
+		verifyEq(query["saslStart"], 1)
+		verifyEq(query["mechanism"], "SCRAM-SHA-1")
+		verifyEq(query.containsKey("payload"), true)
 	}
 	
 	Void testScramSha1() {
-		echo(Buf.fromBase64("dj1VTVdlSTI1SkQxeU5ZWlJNcFo0Vkh2aFo5ZTA9").readAllStr)
-		
-		md:=Buf().print("n,,n=user,r=fyko+d2lbbFgONRv9qkxdawL")	//.toDigest("SHA-1")
-		echo(md.toBase64)
+		val := Buf.fromBase64("dj1VTVdlSTI1SkQxeU5ZWlJNcFo0Vkh2aFo5ZTA9").readAllStr
+		verifyEq(val, "v=UMWeI25JD1yNYZRMpZ4VHvhZ9e0=")
 	}
 }
