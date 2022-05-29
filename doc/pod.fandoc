@@ -4,12 +4,13 @@ Mongo is a pure Fantom driver for [MongoDB]`http://www.mongodb.org/`.
 
 Mongo driver features:
 
- - Compatible with MongoDB 3.6+
- - Developed against the MongoDB Stable API v1 (introduced in MongoDB 5.2+)
+ - Developed against the MongoDB Stable API v1 from MongoDB 5.2+ (compatible with MongoDB 3.6+)
+ - Support for multi-document, multi-collection transactions
+ - Support for retryable read and write operations
  - Support for Replica Set connection URLs
- - Pooled Connection Manager for multi-threaded use and automatic connection fail over
+ - Pooled Connection Manager for multi-threaded use and automatic topology scanning and connection fail over
  - Pluggable authentication with a default [SCRAM-SHA-1 over SASL]`http://www.alienfactory.co.uk/articles/mongodb-scramsha1-over-sasl` implementation
- - 'zlib' message compression
+ - 'zlib' wire compression
 
 Mongo API features:
 
@@ -70,7 +71,7 @@ Quick Start [#quickStart]
       _____ ___ ___ ___ ___
      |     | . |   | . | . |
      |_|_|_|___|_|_|_  |___|
-                  |___|2.0.0
+                  |___|2.1.0
 
     Connected to MongoDB v5.2.0 (at mongodb://localhost:27017)
 
@@ -115,7 +116,7 @@ pre>
  _____ ___ ___ ___ ___
 |     | . |   | . | . |
 |_|_|_|___|_|_|_  |___|
-              |___|2.0.0
+              |___|2.1.0
 
 Connected to MongoDB v5.2.0
 <pre
@@ -147,7 +148,7 @@ collection.find( ["score": ["\$gt":7]] )    // --> return all docs with 'score >
 
 The '$gt' expression is an example of a [Query operator]`http://docs.mongodb.org/manual/reference/operator/query/`.
 
-This driver also supplies a little DSL for creating queries, in the form of `MongoQ`, which can make creating Mongo queries much easier.
+This driver also supplies a little DSL for creating queries, in the form of `MongoQ`, which can make Mongo queries much easier to write.
 
 pre>
 syntax: fantom

@@ -1,39 +1,42 @@
-v2.0
+v2.x [#v2.x]
 ****
 A complete re-write from the ground up. Optimised to work with Mongo's stable API v1, as introduced in Mongo 5.2.
 
-v2.0.2
+v2.1.0 [#v2.1.0]
 ======
+ - New: Support for multi-document, multi-collection transactions. See 'MongoConnMgr.runInTxn()'.
  - New: Retryable read and retryable write support via logical sessions, for robustness.
  - New: 'zlib' msg compression now supported via the 'OP_COMPRESSION' cmd.
  - New: Connections now *linger* before being closed (by 'maxIdleTimeMS) to avoid socket throttling during bursts of activity.
  - New: 'db()' and 'coll()' convenience methods on 'MongoColl' and 'MongoIdx'.
  - New: 'appname' is now supported in Mongo connection URLs and passed to MongoDB handshakes.
+ - Chg: Exposed new 'MongoConnUrl' class with connection URL options.
+ - Chg: Refactored the structure of 'MongoConnMgr' and re-assessed methods (breaking backwards compatibility).
 
-v2.0.0
+v2.0.0 [#v2.0.0]
 ======
  - New: Everything!
  - Chg: Class names have been abbreviated and start with a 'Mongo' prefix.
 
 
 
-v1.1
+v1.1 [#v1.1]
 ****
 
-v1.1.14
+v1.1.14 [#v1.1.14]
 =======
  - New: Updated to be compatible with Fantom 1.0.77.
  - Chg: Connections are no longer closed if there are more messages queued up to use the pool.
  - Chg: When 'TcpConnection' throws an 'IOErr' on TCP connection, the cause is no longer lost.
 
-v1.1.12
+v1.1.12 [#v1.1.12]
 =======
  - New: Added 'ConnectionManagerPooled.isConnectedToMaster()'.
  - Chg: Exposed ConnectionManager in 'Collection' and 'Database' classes.
  - Chg: Better handling of network IO errors.
  - Bug: Fixed potential deadlock during failovers.
 
-v1.1.10
+v1.1.10 [#v1.1.10]
 =======
  - New: Support for MongoDB 4.2 and dodgy MongoDB Altas clusters.
  - New: Added 'ssl' and 'authSource' MongoDB connection option.
@@ -41,20 +44,20 @@ v1.1.10
  - Chg: Database connections authenticate against the 'authSource', not themselves.
  - Chg: Fixed 'Cursor.count()' to work with MongoDB 4.2.
 
-v1.1.8
+v1.1.8 [#v1.1.8]
 ======
  - New: 'Collection.deleteAll()' convenience method.
  - Chg: 'skip' and 'limit' values are clamped at 0 to prevent negative values - which cause server errors.
 
-v1.1.6
+v1.1.6 [#v1.1.6]
 ======
  - Chg: 'Collection.update()' returns a map of update data and not just the number of docs updated. (Potential breaking change.)
 
-v1.1.4
+v1.1.4 [#v1.1.4]
 ======
  - Bug: Failover did not occur when a host simply went *offline* and refused connections.
 
-v1.1.2
+v1.1.2 [#v1.1.2]
 ======
  - New: Proper fail over in the event of lost connections. Ensure your MongoDB URL has multiple host nodes.
  - New: Should the Master Mongo connection switch / fail over to a replica node, the Connection Manager automatically plays "Hunt the Primary" to re-establish connection with the new Master.
@@ -62,7 +65,7 @@ v1.1.2
  - Chg: Exposed 'MongoCmdErr' and added 'code()' and 'errmsg()' helper methods.
  - Chg: 'PooledConnectionManager.minPoolSize' now defaults to 1 (used to be 0).
 
-v1.1.0
+v1.1.0 [#v1.1.0]
 ======
  - New: 'PrettyPrinter' for printing MongoDB documents.
  - New: 'Index.TEXT' for creating 'text' indexes.
@@ -72,38 +75,38 @@ v1.1.0
 
 
 
-v1.0
+v1.0 [#v1.0]
 ****
 
-v1.0.10
+v1.0.10 [#v1.0.10]
 =======
  - Bug: 'Database.collectionNames()' didn't work with MongoDB v3.2+ and WiredTiger storage.
 
-v1.0.8
+v1.0.8 [#v1.0.8]
 ======
  - New: 'Collection.runCmd(...)' to run arbitrary commands against collections.
  - Chg: Updates to 'Collections' and 'Indexes' to work with MongoDB v3.2+ and WiredTiger storage.
  - Chg: Created a couple 'xxx26()' methods that now only with MongoDB v2.6.
  - Bug: Creating unique indexes didn't work.
 
-v1.0.6
+v1.0.6 [#v1.0.6]
 ======
  - New: SCRAM-SHA-1 over SASL - New authentication protocol for MongoDB 3.x.
  - Chg: Updated 'journal' in write concern to 'j'.
  - Chg: Allowed some 'Collection' methods to take null queries.
 
-v1.0.4
+v1.0.4 [#v1.0.4]
 ======
  - Chg: Changed the signature of 'Collection.mapReduce()' to make 'out' default to *inline*. (Breaking change.)
 
-v1.0.2
+v1.0.2 [#v1.0.2]
 ======
  - New: Updated for MongoDB 3.x.
  - Chg: Added 'fieldNames' parameter to 'findAll()' - see [Issue #1]`https://bitbucket.org/AlienFactory/afmongo/issue/1/limit-fields-to-return-from-a-query`.
  - Chg: Made the 'deleteMulti()', 'insertMulti()' and 'updateMulti()' methods in 'Collection' public.
  - Chg: Documented some 'options' parameters.
 
-v1.0.0
+v1.0.0 [#v1.0.0]
 ======
  - New: Support for connecting to Replica Sets via multiple hosts in the Mongo connection URL. All read and write operations performed on the primary.
  - New: Support for the 'waitQueueTimeoutMS' Mongo connection URL option with a truncated binary exponential backoff algorithm to wait for available connections.
@@ -118,18 +121,19 @@ v1.0.0
 
 
 
-v0.0
+v0.0 [#v0.0]
 ****
 
-v0.0.6
+v0.0.6 [#v0.0.6]
 ======
  - Bug: 'Index.ensure()' when comparing indexes did not respect 'unique:false'.
 
-v0.0.4
+v0.0.4 [#v0.0.4]
 ======
  - New: 'ConnectionManagerPooled' instances are created with a [Mongo Connection URI]`http://docs.mongodb.org/manual/reference/connection-string/`.
  - New: 'ConnectionManagerPooled' accepts default database and user credentails to initially authenticate all leased connections with.
 
-v0.0.2
+v0.0.2 [#v0.0.2]
 ======
  - New: Preview Release
+

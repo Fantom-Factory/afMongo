@@ -1,8 +1,8 @@
-# Mongo v2.0.0
+# Mongo v2.1.0
 ---
 
 [![Written in: Fantom](http://img.shields.io/badge/written%20in-Fantom-lightgray.svg)](https://fantom-lang.org/)
-[![pod: v2.0.0](http://img.shields.io/badge/pod-v2.0.0-yellow.svg)](http://eggbox.fantomfactory.org/pods/afMongo)
+[![pod: v2.1.0](http://img.shields.io/badge/pod-v2.1.0-yellow.svg)](http://eggbox.fantomfactory.org/pods/afMongo)
 [![Licence: ISC](http://img.shields.io/badge/licence-ISC-blue.svg)](https://choosealicense.com/licenses/isc/)
 
 ## Overview
@@ -11,11 +11,13 @@ Mongo is a pure Fantom driver for [MongoDB](http://www.mongodb.org/).
 
 Mongo driver features:
 
-* Compatible with MongoDB 3.6+
-* Developed against the MongoDB Stable API v1 (introduced in MongoDB 5.2+)
+* Developed against the MongoDB Stable API v1 from MongoDB 5.2+ (compatible with MongoDB 3.6+)
+* Support for multi-document, multi-collection transactions
+* Support for retryable read and write operations
 * Support for Replica Set connection URLs
-* Pooled Connection Manager for multi-threaded use and automatic connection fail over
+* Pooled Connection Manager for multi-threaded use and automatic topology scanning and connection fail over
 * Pluggable authentication with a default [SCRAM-SHA-1 over SASL](http://www.alienfactory.co.uk/articles/mongodb-scramsha1-over-sasl) implementation
+* `zlib` wire compression
 
 
 Mongo API features:
@@ -43,7 +45,7 @@ Or install `Mongo` with [fanr](https://fantom.org/doc/docFanr/Tool.html#install)
 
 To use in a [Fantom](https://fantom-lang.org/) project, add a dependency to `build.fan`:
 
-    depends = ["sys 1.0", ..., "afMongo 2.0"]
+    depends = ["sys 1.0", ..., "afMongo 2.1"]
 
 ## <a name="documentation"></a>Documentation
 
@@ -90,7 +92,7 @@ Full API & fandocs are available on the [Eggbox](http://eggbox.fantomfactory.org
       _____ ___ ___ ___ ___
      |     | . |   | . | . |
      |_|_|_|___|_|_|_  |___|
-                  |___|2.0.0
+                  |___|2.1.0
     
     Connected to MongoDB v5.2.0 (at mongodb://localhost:27017)
     
@@ -129,7 +131,7 @@ When you create a `MongoClient` it immediately connects to MongoDB and verifies 
      _____ ___ ___ ___ ___
     |     | . |   | . | . |
     |_|_|_|___|_|_|_  |___|
-                  |___|2.0.0
+                  |___|2.1.0
     
     Connected to MongoDB v5.2.0
     
@@ -154,7 +156,7 @@ MongoDB stores BSON documents in Collections. Use the `find()` methods to query 
 
 The `$gt` expression is an example of a [Query operator](http://docs.mongodb.org/manual/reference/operator/query/).
 
-This driver also supplies a little DSL for creating queries, in the form of [MongoQ](http://eggbox.fantomfactory.org/pods/afMongo/api/MongoQ), which can make creating Mongo queries much easier.
+This driver also supplies a little DSL for creating queries, in the form of [MongoQ](http://eggbox.fantomfactory.org/pods/afMongo/api/MongoQ), which can make Mongo queries much easier to write.
 
     // query using standard BSON
     query := [

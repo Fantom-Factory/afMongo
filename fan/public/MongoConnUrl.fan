@@ -95,7 +95,7 @@ const class MongoConnUrl {
 	** Defaults to 10sec.
 	** 
 	**   mongodb://example.com/puppies?maxIdleTimeMS=15000
-	const Duration maxIdleTime	:= 500ms//10sec
+	const Duration maxIdleTime	:= 10sec
 
 	** Specifies a TLS / SSL connection. Set to 'true' for Atlas databases.
 	** 
