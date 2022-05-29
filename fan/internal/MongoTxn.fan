@@ -2,7 +2,9 @@ using concurrent::Actor
 
 ** The context a Mongo transaction runs in.
 internal class MongoTxn {
-	
+	// nonTxnCmds is just the same as MongoOp.nonSessionCmds
+	private static const Str[]		nonTxnCmds		:= "hello isMaster saslStart saslContinue getnonce authenticate".split
+
 	static	const Int statusNone		:= 0
 	static	const Int statusStarting	:= 1
 	static	const Int statusInProgress	:= 2
@@ -12,7 +14,8 @@ internal class MongoTxn {
 			const MongoConnMgr	connMgr
 			const Int			txnNum
 			const MongoSess		sess
-				[Str:Obj?]? 	txnOpts
+				  [Str:Obj?]? 	txnOpts
+				  Bool			funcRun
 
 	** Allows transactions to be tracked across multiple mongos. 
 	[Str:Obj?]?	recoveryToken
@@ -52,10 +55,15 @@ internal class MongoTxn {
 		try {
 			try {
 				Actor.locals["afMongo.txn"] = this
-				status = statusStarting
-			
-				// we *could* retry the whole fn on "TransientTransactionError" label error - but... idempotent?
+				status	= statusStarting
 				fn(this)
+				funcRun = true
+				
+			} catch (IOErr err) {
+				
+				// let network errors propagate so the whole txn may be retried
+				// don't worry about aborting, the txn will timeout on it's own
+				throw err
 				
 			} catch (Err err) {
 				
@@ -84,6 +92,10 @@ internal class MongoTxn {
 	}
 	
 	Void prepCmd(Str:Obj? cmd) {
+		// make sure failovers and huntThePrimary aren't part of txns!
+		if (nonTxnCmds.contains(cmd.keys.first))
+			return
+
 		if (cmd.containsKey("readConcern"))
 			throw Err("Cannot set read concern after starting a transaction")
 

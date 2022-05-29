@@ -40,7 +40,7 @@ const class MongoErr : Err {
 	override Str toStr() {
 		buf := StrBuf()
 		buf.add("${typeof.qname}: ${msg}\n")
-		buf.add("\nMongo Error Response:\n")
+		buf.add("\nMongoDB says:\n")
 		buf.add(BsonIO().print(errDoc, 60))
 		buf.add("\n")
 		buf.add("\nStack Trace:")

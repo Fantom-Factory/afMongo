@@ -14,6 +14,10 @@ internal class TestMongoTxn : Test {
 	// track returned recoveryToken (BSON doc) and send it on commit and abort cmds
 	// retry ONLY on RetryableWriteError or UnknownTransactionCommitResult label
 	// Drivers ignore all abortTransaction errors
+	
+	// specs don't specifically say we HAVE to use the same session ID (lsid) for a transaction
+	// but it makes more sense to me if we so - else why have the session in the first place!?
+	// actually, all the code examples in the spec use the same session
 
 	Void testHappyCommit() {
 		con := MongoConnStub().writePreamble.writeDoc(["ok":1, "recoveryToken":["judge":"death"]]).flip
@@ -203,7 +207,7 @@ internal class TestMongoTxn : Test {
 	Void testRetryOnAbort() {
 		doc := MongoConnStub().writePreamble.writeDoc(["ok":1]).flip.inBuf
 		con := MongoConnStub()
-		mgr := MongoConnMgrStub(con).debugOn
+		mgr := MongoConnMgrStub(con)
 		col := MongoColl(mgr, "wotever")
 		txn	:= null as MongoTxn
 		
@@ -222,12 +226,37 @@ internal class TestMongoTxn : Test {
 			}
 		}
 		req := con.readDoc
-		verifyEq(txn.status,					MongoTxn.statusAborted)	// because aborts don't throw errs
-		verifyEq(txn.sess.isDirty,				true)
-		verifyEq(mgr.failoverCount,				2)	// TWO because there WAS a retry, NO leaseConn() 'cos abort errors get swallowed
-		verifyEq(req.keys.first,				"abortTransaction")
+		verifyEq(txn.status,				MongoTxn.statusAborted)	// because aborts don't throw errs
+		verifyEq(txn.sess.isDirty,			true)
+		verifyEq(mgr.failoverCount,			2)	// TWO because there WAS a retry, NO leaseConn() 'cos abort errors get swallowed
+		verifyEq(req.keys.first,			"abortTransaction")
+	}
+	
+	Void testIdempotentFn() {
+		doc := MongoConnStub().writePreamble.writeDoc(["ok":1]).flip.inBuf
+		err := MongoConnStub().writePreamble.writeDoc(["ok":0, "code":666, "errorLabels":["TransientTransactionError"]]).flip.inBuf
+		con := MongoConnStub()
+		mgr := MongoConnMgrStub(con).setDebug
+		col := MongoColl(mgr, "wotever")
+		txn	:= null as MongoTxn
 		
-		// TODO retry func
-		// FIXME now write a REAL DB test!
+		con.ress.add(0)
+		con.ress.add(0)
+		con.ress[0] = err
+		con.ress[1] = doc
+		con.ress[2] = doc
+		con.ress[3] = doc
+
+		numRuns := 0
+		col.connMgr.runInTxn(null) {
+			numRuns++
+			txn = MongoTxn.cur
+			col.insert(["j":"d"])
+		}
+	
+		verifyEq(numRuns,					2)
+		verifyEq(txn.status,				MongoTxn.statusCommitted)
+		verifyEq(txn.sess.isDirty,			false)
+		verifyEq(mgr.failoverCount,			0)
 	}
 }

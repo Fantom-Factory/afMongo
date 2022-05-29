@@ -84,16 +84,41 @@ internal const class MongoSess {
 	}
 	
 	Void runInTxn(MongoConnMgr connMgr, [Str:Obj?]? txnOpts, |MongoTxn| fn) {
-		txn := MongoTxn(connMgr, this, _sessPool.newTxNum)
 		
-		// YES DO THIS - doc that the FN MUST be idempotent - retrying and ensuring success is better than the occasional coding inconvenience
-		// "TransientTransactionError" error label AND IOErr
+		txn := null as MongoTxn
+		doRunInTxn := |->| {
+			txn    = MongoTxn(connMgr, this, _sessPool.newTxNum)
+			txnNum = txn.txnNum
+			try		txn.run(txnOpts, fn)
+			finally	txnNum = null
+		}
 		
-		txnNum = txn.txnNum
-		try		txn.run(txnOpts, fn)
-		finally	txnNum = null
-	}
+		// like the rest of the Mongo err handling strategy, let's only re-try the once
+		// else if the network plug is pulled, we get stuck in an infinite loop!
+		try 	doRunInTxn()
+		catch	(IOErr ioe) {
+			
+			// we do NOT rerun funcs on commit or abort errors
+			if (txn.funcRun)
+				throw ioe
+			
+			// all network errors are to be treated like TransientTransactionError
+			// use get(), so any failover errors are thrown 
+			connMgr.failOver.get(10sec)	// the spec gives an example of 10sec	
+			doRunInTxn()
+			
+		} catch (MongoErr me) {
+			// we do NOT rerun funcs on commit or abort errors
+			if (txn.funcRun)
+				throw me
 
+			if (me.errLabels.contains("TransientTransactionError"))
+				doRunInTxn()
+			// KEEP this else, we're NOT returning fn(this)
+			else throw me
+		}
+	}
+	
 	Void prepCmdForTxn(Str:Obj? cmd) {
 		txn(true).prepCmd(cmd)
 	}

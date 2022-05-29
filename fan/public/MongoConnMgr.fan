@@ -65,6 +65,8 @@ const mixin MongoConnMgr {
 	** When connecting to replica sets, this should indicate the primary. 
 	** 
 	** It *should not* contain any user credentials and *should* be safe to log. 
+	** 
+	** This value is unavailable (returns 'null') until 'startup()' is called. 
 	abstract Uri? mongoUrl()
 	
 	** The default database name, taken from the the Connection URL auth source.
@@ -85,10 +87,11 @@ const mixin MongoConnMgr {
 	** Required info for transactions and retryable writes.
 	abstract Bool isStandalone()
 
-	** Does what ever the 'ConnectionManager' needs to do to initialise itself.
+	** Creates the initial pool and establishes 'minPoolSize' connections with the server.
 	** 
-	** Often this would be create database connections or other network related activity that it 
-	** may not wish to do inside a ctor.
+	** If a connection URL to a replica set is given (a connection URL with multiple hosts) then 
+	** the hosts are queried to find the primary. The primary is currently used for all read and 
+	** write operations. 
 	abstract This startup()
 
 	** (Advanced)
@@ -106,19 +109,23 @@ const mixin MongoConnMgr {
 
 	** Runs the given 'fn' in a Mongo multi-cmd, multi-collection, transaction. 
 	** Should the 'fn' complete normally, the transaction is committed.
-	** If the 'fn' throws an Err, the transaction is rolled back.
+	** If the 'fn' throws an Err, the transaction is aborted / rolled back.
 	** 
 	** pre>
 	** syntax: fantom
 	** runInTxn([
 	**   "readConcern"    : [...],
 	**   "writeConcern"   : [...],
-	**   "readPreference" : [...],
-	**   "timeoutMS"      : 2000,
+	**   "timeoutMS"      : 10_000,
 	** ]) {
+	**   ...
+	**   // do some Mongo stuff
 	**   ...
 	** }
 	** <pre
+	** 
+	** The passed function **MUST** be **idempotent** - as it will be re-executed on transient 
+	** MongoDB server errors.
 	** 
 	** Note: The obj passed to 'fn' is undefined and should not be used.
 	abstract Void runInTxn([Str:Obj?]? txnOpts, |Obj| fn)
@@ -136,6 +143,12 @@ const mixin MongoConnMgr {
 	** Closes all MongoDB connections.
 	abstract This shutdown()
 
+	** Sets the log level to 'debug' to log all cmd request and responses. 
+	virtual This setDebug(Bool debugOn := true) {
+		log.level = debugOn ? LogLevel.debug : LogLevel.info
+		return this
+	}
+	
 	** Creates a pooled Mongo Connection Manager.
 	** 
 	** The following connection URL options are supported:
@@ -162,6 +175,8 @@ const mixin MongoConnMgr {
 	** URL examples:
 	**  - 'mongodb://username:password@example1.com/database?maxPoolSize=50'
 	**  - 'mongodb://example2.com?minPoolSize=10&maxPoolSize=50&ssl=true'
+	** 
+	** If user credentials are supplied, they are used as default authentication for each connection. 
 	** 
 	** See `https://www.mongodb.com/docs/manual/reference/connection-string/`.
 	static new make(Uri connectionUrl, Log? log := null, ActorPool? actorPool := null) { 

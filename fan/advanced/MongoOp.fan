@@ -82,7 +82,7 @@ class MongoOp {
 			cmd["lsid"]	= sess.sessionId
 
 			// txNumber is only applicable if in a session
-			// add it now so we keep the same txNumber between retries
+			// add it now, so we keep the same txNumber between retries
 			if (isRetryableWrite(sess))
 				cmd["txnNumber"] = sess.newTxNum
 		}
@@ -102,6 +102,7 @@ class MongoOp {
 			if (isRetryableWrite(sess))
 				return retryCommand(ioe, sess, checked)
 			
+			// IOErrs have an implicit "UnknownTransactionCommitResult" label
 			if (sess?.isInTxn == true && cmdName == "commitTransaction") {
 				// configure writeConcern as per spec
 				wc := cmd["writeConcern"] as Str:Obj? ?: Str:Obj?[:] { it.ordered = true }
@@ -114,7 +115,7 @@ class MongoOp {
 			}
 
 			if (sess?.isInTxn == true && cmdName == "abortTransaction")
-				try return retryCommand(ioe, sess, checked)
+				try return retryCommand(ioe, sess, false)	// not checked
 				catch return Str:Obj["ok":1f, "afMongo-abortErrMsg":ioe.toStr]
 
 			throw ioe
@@ -131,7 +132,7 @@ class MongoOp {
 			if ((isRetryableWrite(sess) && retryableErrCodes.contains(me.code ?: -1)) || me.errLabels.contains("RetryableWriteError"))
 				return retryCommand(me, sess, checked)
 
-			if (sess?.isInTxn == true && cmdName == "commitTransaction") {
+			if (sess?.isInTxn == true && cmdName == "commitTransaction" && me.errLabels.contains("UnknownTransactionCommitResult")) {
 				// configure writeConcern as per spec
 				wc := cmd["writeConcern"] as Str:Obj? ?: Str:Obj?[:] { it.ordered = true }
 				wc["w"] = "majority"
@@ -141,7 +142,7 @@ class MongoOp {
 			}
 
 			if (sess?.isInTxn == true && cmdName == "abortTransaction")
-				try return retryCommand(me, sess, checked)
+				try return retryCommand(me, sess, false)	// not checked
 				catch return Str:Obj["ok":1f, "afMongo-abortErrMsg":me.toStr]
 
 			throw me

@@ -41,16 +41,12 @@ internal const class MongoConnMgrPool : MongoConnMgr {
 	** connections for close before they are forcibly closed.
 	** 
 	** Defaults to '2sec'. 
-	const Duration? shutdownTimeout	:= 2sec
+	const Duration? shutdownTimeout	:= 5sec
 	
 	// used to test the backoff func
 	internal const |Range->Int|	randomFunc	:= |Range r->Int| { r.random }
 	internal const |Duration| 	sleepFunc	:= |Duration napTime| { Actor.sleep(napTime) }
 	
-	** Create a 'ConnMgr' from a Mongo Connection URL.
-	** If user credentials are supplied, they are used as default authentication for each connection.
-	** 
-	**   connMgr := MongoConnMgrPool(`mongodb://localhost:27017`, log, ActorPool())
 	new make(Uri connectionUrl, Log? log := null, ActorPool? actorPool := null, |This|? fn := null) {
 			 actorPool			= actorPool ?: ActorPool() { it.name = "afMongo.connMgrPool"; it.maxThreads = 5 }
 		this.connectionState	= SynchronizedState(actorPool, MongoConnMgrPoolState#)
@@ -79,11 +75,6 @@ internal const class MongoConnMgrPool : MongoConnMgr {
 		isStandaloneRef.val
 	}
 
-	** Creates the initial pool and establishes 'minPoolSize' connections with the server.
-	** 
-	** If a connection URL to a replica set is given (a connection URL with multiple hosts) then 
-	** the hosts are queried to find the primary. The primary is currently used for all read and 
-	** write operations. 
 	override This startup() {
 		if (hasShutdown.val == true)
 			throw Err("Connection Pool has been shutdown")
@@ -139,6 +130,10 @@ internal const class MongoConnMgrPool : MongoConnMgr {
 			// and retryable writes take care of most of the chaff
 			throw err
 			
+		} catch (MongoErr err) {
+			// a MongoDB error means the comms is fine - no need to close the connection and re-auth 
+			throw err
+
 		} catch (Err err) {
 			// if something dies, kill the connection.
 			// we may have died part way through talking with the server meaning our communication 
@@ -186,6 +181,7 @@ internal const class MongoConnMgrPool : MongoConnMgr {
 	}
 	
 	** Closes all connections. 
+	** 
 	** Initially waits for 'shutdownTimeout' for connections to finish what they're doing before 
 	** they're closed. After that, all open connections are forcibly closed regardless of whether 
 	** they're in use or not.
