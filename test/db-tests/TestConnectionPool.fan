@@ -8,10 +8,10 @@ internal class TestConnectionPool : MongoDbTest {
 			const Unsafe handlerRef		:= Unsafe(|LogRec rec| { logs.add(rec) })
 				  |LogRec rec| handler() { handlerRef.val }
 
-	MongoConnMgrPool? connMgr
+	MongoConnMgr? connMgr
 	
 	override Void setup() {
-		connMgr = MongoConnMgrPool(`mongodb://localhost:27017?minPoolSize=5`)
+		connMgr = MongoConnMgr(`mongodb://localhost:27017?minPoolSize=5`)
 		mc = MongoClient(connMgr)
 
 		logs.clear

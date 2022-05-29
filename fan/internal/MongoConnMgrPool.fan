@@ -7,20 +7,49 @@ using afConcurrent::SynchronizedState
 using inet::TcpSocket
 
 @NoDoc	// advanced use only
-internal const class MongoConnMgrPool : MongoConnMgr {
-	override const Log				log
+//internal const class MongoConnMgrPool : MongoConnMgr {
+internal const class MongoConnMgrPool {
+			const Log				log
+			const MongoConnUrl		mongoConnUrl
 	private const AtomicBool		hasStarted				:= AtomicBool()
 	private const AtomicBool		hasShutdown				:= AtomicBool()
 	private const AtomicRef 		failingOverRef			:= AtomicRef(null)
 	private const AtomicRef 		primaryDetailsRef		:= AtomicRef(null)
 	private const Synchronized		failOverThread
 	private const SynchronizedState connectionState
+	private const MongoBackoff		backoff	:= MongoBackoff()
 	
 	// todo this should (probably) live in the MongoClient
 	// having it here overloads the responsibility of a ConnMgr
 	private const MongoSessPool		sessPool	
 
-	override Uri? mongoUrl() { 
+	private MongoHostDetails? 		primaryDetails {
+		get { primaryDetailsRef.val }
+		set { primaryDetailsRef.val = it }
+	}
+	
+	** When the connection pool is shutting down, this is the amount of time to wait for all 
+	** connections for close before they are forcibly closed.
+	** 
+	** Defaults to '2sec'. 
+	const Duration? shutdownTimeout	:= 5sec
+	
+	new make(Uri connectionUrl, Log? log := null, ActorPool? actorPool := null) {
+			 actorPool			= actorPool	?: ActorPool() { it.name = "afMongo.connMgrPool"; it.maxThreads = 5 }
+		this.log				= log		?: MongoConnMgrPool#.pod.log
+		this.connectionState	= SynchronizedState(actorPool, MongoConnMgrPoolState#)
+		this.mongoConnUrl		= MongoConnUrl(connectionUrl)
+		this.failOverThread		= connectionState.lock
+		this.sessPool			= MongoSessPool(actorPool)
+		this.backoff			= MongoBackoff()
+	}
+	
+	// for testing
+	MongoConnMgr mgr() {
+		MongoConnMgr(this)
+	}
+
+	Uri? mongoUrl() { 
 		if (primaryDetails == null || primaryDetails.isPrimary == false)
 			return null
 		if (mongoConnUrl.dbName == null)
@@ -28,35 +57,11 @@ internal const class MongoConnMgrPool : MongoConnMgr {
 		return primaryDetails.mongoUrl.plusSlash.plusName(mongoConnUrl.dbName) 
 	}
 
-	override const MongoConnUrl mongoConnUrl
-
-	** When the connection pool is shutting down, this is the amount of time to wait for all 
-	** connections for close before they are forcibly closed.
-	** 
-	** Defaults to '2sec'. 
-	const Duration? shutdownTimeout	:= 5sec
-	
-	private const MongoBackoff backoff	:= MongoBackoff()
-	
-	new make(Uri connectionUrl, Log? log := null, ActorPool? actorPool := null) {
-			 actorPool			= actorPool ?: ActorPool() { it.name = "afMongo.connMgrPool"; it.maxThreads = 5 }
-		this.connectionState	= SynchronizedState(actorPool, MongoConnMgrPoolState#)
-		this.mongoConnUrl		= MongoConnUrl(connectionUrl)
-		this.failOverThread		= connectionState.lock
-		this.sessPool			= MongoSessPool(actorPool)
-		this.log				= log ?: MongoConnMgrPool#.pod.log
-	}
-
-	private MongoHostDetails? primaryDetails {
-		get { primaryDetailsRef.val }
-		set { primaryDetailsRef.val = it }
-	}
-	
-	override Bool isStandalone() {
+	virtual Bool isStandalone() {
 		primaryDetails?.isStandalone == true
 	}
 
-	override This startup() {
+	This startup() {
 		if (hasShutdown.val == true)
 			throw Err("Connection Pool has been shutdown")
 		starting := hasStarted.compareAndSet(false, true)
@@ -73,7 +78,7 @@ internal const class MongoConnMgrPool : MongoConnMgr {
 		return this
 	}
 
-	override Obj? leaseConn(|MongoConn->Obj?| c) {
+	Obj? leaseConn(|MongoConn->Obj?| c) {
 		if (hasStarted.val == false)
 			throw Err("ConnectionManager has not started")
 		if (hasShutdown.val == true)
@@ -114,11 +119,11 @@ internal const class MongoConnMgrPool : MongoConnMgr {
 			checkIn(conn)
 	}
 	
-	override Void runInTxn([Str:Obj?]? txnOpts, |Obj?| fn) {
-		sessPool.checkout.runInTxn(this, txnOpts, fn)
+	Void runInTxn(MongoConnMgr connMgr, [Str:Obj?]? txnOpts, |Obj?| fn) {
+		sessPool.checkout.runInTxn(connMgr, txnOpts, fn)
 	}
 	
-	override Future failOver() {
+	virtual Future failOver() {
 		// no need to have 3 threads huntingThePrimary at the same time!
 		future := failingOverRef.val
 		if (future != null)
@@ -152,7 +157,7 @@ internal const class MongoConnMgrPool : MongoConnMgr {
 	** Initially waits for 'shutdownTimeout' for connections to finish what they're doing before 
 	** they're closed. After that, all open connections are forcibly closed regardless of whether 
 	** they're in use or not.
-	override This shutdown() {
+	This shutdown() {
 		if (hasStarted.val == false)
 			return this
 		shuttingDown := hasShutdown.compareAndSet(false, true)
@@ -196,7 +201,7 @@ internal const class MongoConnMgrPool : MongoConnMgr {
 		return this
 	}
 	
-	override Str:Obj? props() {
+	Str:Obj? props() {
 		connectionState.sync |MongoConnMgrPoolState state->Str:Obj?| {
 			[
 				"mongoUrl"			: this.mongoUrl,
@@ -343,7 +348,7 @@ internal const class MongoConnMgrPool : MongoConnMgr {
 		}
 	}
 	
-	override Void authenticateConn(MongoConn conn) {
+	virtual Void authenticateConn(MongoConn conn) {
 		mongoCreds := mongoConnUrl.mongoCreds
 		if (mongoCreds != null && conn._isAuthenticated == false) {
 			// Note - Sessions CAN NOT be used if a conn has multiple authentications

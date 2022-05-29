@@ -21,7 +21,7 @@ internal class TestMongoTxn : Test {
 
 	Void testHappyCommit() {
 		con := MongoConnStub().writePreamble.writeDoc(["ok":1, "recoveryToken":["judge":"death"]]).flip
-		mgr := MongoConnMgrStub(con)
+		mgr := MongoConnMgrStub(con).mgr
 		col := MongoColl(mgr, "wotever")
 		txn	:= null as MongoTxn
 		
@@ -31,7 +31,7 @@ internal class TestMongoTxn : Test {
 		verifyEq(MongoTxn.cur, 			null)
 
 
-		txnNum	:= mgr.nextTxnNum
+		txnNum	:= mgr->pool->nextTxnNum
 		col.connMgr.runInTxn(null) {
 			txn = MongoTxn.cur
 
@@ -81,7 +81,7 @@ internal class TestMongoTxn : Test {
 	
 	Void testHappyAbort() {
 		con := MongoConnStub().writePreamble.writeDoc(["ok":1, "recoveryToken":["judge":"death"]]).flip
-		mgr := MongoConnMgrStub(con)
+		mgr := MongoConnMgrStub(con).mgr
 		col := MongoColl(mgr, "wotever")
 		txn	:= null as MongoTxn
 
@@ -116,7 +116,7 @@ internal class TestMongoTxn : Test {
 	
 	Void testOptions() {
 		con := MongoConnStub().writePreamble.writeDoc(["ok":1]).flip
-		mgr := MongoConnMgrStub(con)
+		mgr := MongoConnMgrStub(con).mgr
 		col := MongoColl(mgr, "wotever")
 		txn	:= null as MongoTxn
 
@@ -148,7 +148,7 @@ internal class TestMongoTxn : Test {
 	
 	Void testNoRetriesForNormalCmds() {
 		con := MongoConnStub().writePreamble.writeDoc(["ok":1]).flip
-		mgr := MongoConnMgrStub(con)
+		mgr := MongoConnMgrStub(con).mgr
 		col := MongoColl(mgr, "wotever")
 		txn	:= null as MongoTxn
 
@@ -170,7 +170,7 @@ internal class TestMongoTxn : Test {
 	Void testRetryOnCommit() {
 		doc := MongoConnStub().writePreamble.writeDoc(["ok":1]).flip.inBuf
 		con := MongoConnStub()
-		mgr := MongoConnMgrStub(con, `mongodb://foo.com/db?w=dredd`)
+		mgr := MongoConnMgrStub(con, `mongodb://foo.com/db?w=dredd`).mgr
 		col := MongoColl(mgr, "wotever")
 		txn	:= null as MongoTxn
 		
@@ -204,7 +204,7 @@ internal class TestMongoTxn : Test {
 	Void testRetryOnAbort() {
 		doc := MongoConnStub().writePreamble.writeDoc(["ok":1]).flip.inBuf
 		con := MongoConnStub()
-		mgr := MongoConnMgrStub(con)
+		mgr := MongoConnMgrStub(con).mgr
 		col := MongoColl(mgr, "wotever")
 		txn	:= null as MongoTxn
 		
@@ -233,7 +233,7 @@ internal class TestMongoTxn : Test {
 		doc := MongoConnStub().writePreamble.writeDoc(["ok":1]).flip.inBuf
 		err := MongoConnStub().writePreamble.writeDoc(["ok":0, "code":666, "errorLabels":["TransientTransactionError"]]).flip.inBuf
 		con := MongoConnStub()
-		mgr := MongoConnMgrStub(con)
+		mgr := MongoConnMgrStub(con).mgr
 		col := MongoColl(mgr, "wotever")
 		txn	:= null as MongoTxn
 		

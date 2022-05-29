@@ -5,7 +5,7 @@ internal class TestMongoOpSess : Test {
 	
 	Void testSessionSet() {
 		con	:= MongoConnStub().writePreamble.writeDoc([ "foo": "bar", "ok": 1 ]).flip
-		mgr := MongoConnMgrStub(con)
+		mgr := MongoConnMgrStub(con).mgr
 		res := MongoOp(mgr, con, cmd("byMy")).runCommand("db")
 		req := con.readDoc
 		
@@ -20,7 +20,7 @@ internal class TestMongoOpSess : Test {
 	
 	Void testSessionNoSet() {
 		con	:= MongoConnStub().writePreamble.writeDoc([ "foo": "bar", "ok": 1 ]).flip
-		mgr := MongoConnMgrStub(con)
+		mgr := MongoConnMgrStub(con).mgr
 
 
 		// auth commands do NOT sent lsid

@@ -30,7 +30,7 @@ const class MongoClient {
 	
 	** Creates a 'MongoClient' with a pooled connection to the given Mongo connection URL. 
 	new makeFromUri(Uri mongoUrl) {
-		this.connMgr = MongoConnMgrPool(mongoUrl)
+		this.connMgr = MongoConnMgr(mongoUrl)
 		startup()
 	}
 	

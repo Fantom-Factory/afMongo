@@ -5,7 +5,7 @@ internal class TestMongoOpRetries : Test {
 
 	Void testTxNum() {
 		con	:= MongoConnStub().writePreamble.writeDoc([ "foo": "bar", "ok": 1 ]).flip
-		mgr := MongoConnMgrStub(con)
+		mgr := MongoConnMgrStub(con).mgr
 
 		res := MongoOp(mgr, con, cmd("insert")).runCommand("db")
 		req := con.readDoc
@@ -36,7 +36,7 @@ internal class TestMongoOpRetries : Test {
 		
 		
 		// standalone servers don't do transactions
-		mgr.isStandalone = true
+		mgr->isStandalone = true
 		con.reset
 		res = MongoOp(mgr, con, cmd("insert")).runCommand("db")
 		req = con.readDoc
@@ -45,7 +45,7 @@ internal class TestMongoOpRetries : Test {
 
 		
 		// unacknowledged writes don't do transactions
-		mgr.isStandalone = false
+		mgr->isStandalone = false
 		con.reset
 		res = MongoOp(mgr, con, cmd("insert").add("writeConcern", ["w":0])).runCommand("db")
 		req = con.readDoc
@@ -54,7 +54,7 @@ internal class TestMongoOpRetries : Test {
 
 		
 		// disabled retrys don't do transactions
-		mgr = MongoConnMgrStub(con, `mongodb://foo.com/bar?retryWrites=false`)
+		mgr = MongoConnMgrStub(con, `mongodb://foo.com/bar?retryWrites=false`).mgr
 		con.reset
 		res = MongoOp(mgr, con, cmd("insert")).runCommand("db")
 		req = con.readDoc
@@ -64,7 +64,7 @@ internal class TestMongoOpRetries : Test {
 	
 	Void testColCmds() {
 		con	:= MongoConnStub().writePreamble.writeDoc(["ok":1, "n":69]).flip
-		mgr := MongoConnMgrStub(con)
+		mgr := MongoConnMgrStub(con).mgr
 		col := MongoColl(mgr, "wotever")
 		
 		// insert is okay
@@ -106,7 +106,7 @@ internal class TestMongoOpRetries : Test {
 	Void testRetryWrites() {
 		doc := MongoConnStub().writePreamble.writeDoc(["ok":1, "n":69]).flip.inBuf
 		con	:= MongoConnStub()
-		mgr := MongoConnMgrStub(con)
+		mgr := MongoConnMgrStub(con).mgr
 		col := MongoColl(mgr, "wotever")
 		
 		// assert Errs pass through 
@@ -172,7 +172,7 @@ internal class TestMongoOpRetries : Test {
 		
 		
 		// assert retries can be turned off
-		mgr = MongoConnMgrStub(con, `mongodb://foo.com/bar?retryWrites=false`)
+		mgr = MongoConnMgrStub(con, `mongodb://foo.com/bar?retryWrites=false`).mgr
 		col = MongoColl(mgr, "wotever")
 		con.ress[0] = IOErr("Boo")
 		con.ress[1] = doc
@@ -187,7 +187,7 @@ internal class TestMongoOpRetries : Test {
 	Void testRetryReads() {
 		doc := MongoConnStub().writePreamble.writeDoc(["ok":1, "cursor":["id":0]]).flip.inBuf
 		con	:= MongoConnStub()
-		mgr := MongoConnMgrStub(con)
+		mgr := MongoConnMgrStub(con).mgr
 		col := MongoColl(mgr, "wotever")
 		
 		// assert Errs pass through 
@@ -253,7 +253,7 @@ internal class TestMongoOpRetries : Test {
 		
 		
 		// assert retries can be turned of) 
-		mgr = MongoConnMgrStub(con, `mongodb://foo.com/bar?retryReads=false`)
+		mgr = MongoConnMgrStub(con, `mongodb://foo.com/bar?retryReads=false`).mgr
 		col = MongoColl(mgr, "wotever")
 		con.ress[0] = IOErr("Boo")
 		con.ress[1] = doc
