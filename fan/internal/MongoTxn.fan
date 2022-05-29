@@ -69,7 +69,7 @@ internal class MongoTxn {
 				
 				if (status == statusInProgress) {
 					cmd := MongoCmd(connMgr, "admin", "abortTransaction", 1, sess)
-					cmd->writeConcern	= txnOpts["writeConcern"] ?: connMgr.writeConcern
+					cmd->writeConcern	= txnOpts["writeConcern"] ?: connMgr.mongoConnUrl.writeConcern
 					cmd.run(false)
 					status = statusAborted
 				}
@@ -79,7 +79,7 @@ internal class MongoTxn {
 			
 			if (status == statusInProgress) {
 				cmd := MongoCmd(connMgr, "admin", "commitTransaction", 1, sess)
-				cmd->writeConcern	= txnOpts["writeConcern"] ?: connMgr.writeConcern
+				cmd->writeConcern	= txnOpts["writeConcern"] ?: connMgr.mongoConnUrl.writeConcern
 				cmd->maxTimeMS		= txnOpts["maxTimeMS"]		// ->trap so nulls are not added
 				cmd.run
 				status = statusCommitted

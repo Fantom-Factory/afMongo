@@ -23,20 +23,11 @@ internal const class MongoConnMgrPool : MongoConnMgr {
 	// having it here overloads the responsibility of a ConnMgr
 	private const MongoSessPool		sessPool	
 
-	** The host name of the MongoDB server this 'ConnectionManager' connects to.
-	** When connecting to replica sets, this will indicate the primary.
-	** 
-	** This value is unavailable (returns 'null') until 'startup()' is called. 
 	override Uri? mongoUrl() { mongoUrlRef.val }
 	private const AtomicRef mongoUrlRef := AtomicRef(null)
 	
-	** The parsed Mongo Connection URL.	
-	const MongoConnUrl mongoConnUrl
+	override const MongoConnUrl mongoConnUrl
 
-	override Str? dbName() {
-		mongoConnUrl.database
-	}
-	
 	** When the connection pool is shutting down, this is the amount of time to wait for all 
 	** connections for close before they are forcibly closed.
 	** 
@@ -57,18 +48,6 @@ internal const class MongoConnMgrPool : MongoConnMgr {
 		
 		// for backoff tests
 		fn?.call(this)
-	}
-	
-	override [Str:Obj?]? writeConcern() {
-		mongoConnUrl.writeConcern
-	}
-	
-	override Bool retryReads() {
-		mongoConnUrl.retryReads
-	}
-
-	override Bool retryWrites() {
-		mongoConnUrl.retryWrites
 	}
 
 	override Bool isStandalone() {
@@ -117,17 +96,13 @@ internal const class MongoConnMgrPool : MongoConnMgr {
 			// that shitty MongoDB Atlas doesn't tell us when the master has changed 
 			// instead we just get IOErrs when we attempt to read the reply
 
-			// if the master URL has changed, then we've already found a new master!
-			if (conn._mongoUrl != mongoUrl)
-				throw err
-
-			// if we're still connected to the same master, lets play huntThePrimary!
+			// if the URL has not changed, then we're still connected to the same host
+			// so let's look around to see if anything has changed
 			// it doesn't matter if the MongoOp retry already kicked it off
-			failOver
-
-			// even though Hunt the Primary succeeded, we still need to report the original error!
-			// it would be cool to just call the "c" func again, but we can't be sure it's idempotent
-			// and retryable writes take care of most of the chaff
+			if (conn._mongoUrl == mongoUrl)
+				failOver
+			
+			// even if Hunt the Primary succeeded, we still need to report the original error
 			throw err
 			
 		} catch (MongoErr err) {
@@ -259,7 +234,7 @@ internal const class MongoConnMgrPool : MongoConnMgr {
 		hostDetails := MongoSafari(mongoConnUrl, log).huntThePrimary
 		
 		// save the address of our new Master
-		mongoUrl	:= dbName == null ? hostDetails.mongoUrl : hostDetails.mongoUrl.plusSlash.plusName(dbName) 
+		mongoUrl	:= mongoConnUrl.dbName == null ? hostDetails.mongoUrl : hostDetails.mongoUrl.plusSlash.plusName(mongoConnUrl.dbName) 
 		mongoUrlRef.val	= mongoUrl
 		
 		// transactions are not allowed on standalone instances

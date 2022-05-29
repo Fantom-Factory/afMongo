@@ -1,5 +1,6 @@
 
-** Parses a Mongo Connection URL.
+** Parses a Mongo Connection URL into known options.
+** 
 ** If user credentials are supplied, they are used as default authentication for each connection.
 ** 
 ** The following URL options are supported:
@@ -28,7 +29,6 @@
 **  - 'mongodb://example2.com?minPoolSize=10&maxPoolSize=50&ssl=true'
 ** 
 ** See `https://www.mongodb.com/docs/manual/reference/connection-string/`.
-@NoDoc	// advanced use only
 const class MongoConnUrl {
 	private const Log	log		:= MongoConnUrl#.pod.log
 	
@@ -41,7 +41,7 @@ const class MongoConnUrl {
 	** The default database name - taken from the path.
 	** 
 	**   mongodb://example1.com/<database>
-	const Str? database
+	const Str? dbName
 
 	** The default write concern for all write operations. 
 	** Set by specifying the 'w', 'wtimeoutMS' and 'journal' connection string options. 
@@ -217,7 +217,7 @@ const class MongoConnUrl {
 		if (username == null && password == null)	// a default database has no meaning without credentials
 			database = null
 
-		this.database = mongoUrl.pathOnly.relTo(`/`).encode.trimToNull
+		this.dbName = mongoUrl.pathOnly.relTo(`/`).encode.trimToNull
 		
 		if (authMech != null) {
 			props	:= Str:Obj?[:] { it.ordered = true }

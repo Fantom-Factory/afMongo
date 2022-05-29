@@ -26,7 +26,6 @@ abstract class MongoConn {
 	** May be one of 'snappy, 'zlib', or 'zstd'.
 	internal Str?			_compressor
 	internal Int?			_zlibCompressionLevel
-	// FIXME not used! / set
 	internal Uri?			_mongoUrl
 	internal Bool			_forceCloseOnCheckIn
 	internal Bool			_isAuthenticated

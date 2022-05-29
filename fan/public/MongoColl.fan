@@ -18,7 +18,7 @@ const class MongoColl {
 	** Note this just instantiates the Fantom object, it does not create anything in the database. 
 	new make(MongoConnMgr connMgr, Str name, Str? dbName := null) {
 		this.connMgr 	= connMgr
-		this.dbName		= MongoDb.validateName(dbName ?: connMgr.dbName)
+		this.dbName		= MongoDb.validateName(dbName ?: connMgr.mongoConnUrl.dbName)
 		this.name 		= validateName(name)
 	}
 	
@@ -96,7 +96,7 @@ const class MongoColl {
 	Void create(|MongoCmd cmd|? optsFn := null) {
 		cmd("create", name)
 			.withFn(				optsFn)
-			.add("writeConcern",	connMgr.writeConcern)
+			.add("writeConcern",	connMgr.mongoConnUrl.writeConcern)
 			.run
 	}
 
@@ -112,7 +112,7 @@ const class MongoColl {
 	Void drop(Bool force := false) {
 		if (force || exists)
 			cmd("drop", name)
-				.add("writeConcern", connMgr.writeConcern)
+				.add("writeConcern", connMgr.mongoConnUrl.writeConcern)
 				.run
 	}
 
@@ -122,7 +122,7 @@ const class MongoColl {
 	Void insert(Str:Obj? document) {
 		cmd("insert",			name)
 			.add("documents",	[document])
-			.add("writeConcern", connMgr.writeConcern)
+			.add("writeConcern", connMgr.mongoConnUrl.writeConcern)
 			.run	
 	}
 
@@ -139,7 +139,7 @@ const class MongoColl {
 		cmd("insert",				name)
 			.withFn(				optsFn)
 			.add("documents",		documents)
-			.add("writeConcern",	connMgr.writeConcern)
+			.add("writeConcern",	connMgr.mongoConnUrl.writeConcern)
 			.run
 	}
 	
@@ -247,7 +247,7 @@ const class MongoColl {
 		return cmd("update",	 name)
 			.add("updates",		[updateCmd.cmd])
 			.addAll(			opts)
-			.add("writeConcern",connMgr.writeConcern)
+			.add("writeConcern",connMgr.mongoConnUrl.writeConcern)
 			.run
 	}
 	
@@ -272,7 +272,7 @@ const class MongoColl {
 		return cmd("update",	 name)
 			.add("updates",		[updateCmd.cmd])
 			.addAll(			opts)
-			.add("writeConcern",connMgr.writeConcern)
+			.add("writeConcern",connMgr.mongoConnUrl.writeConcern)
 			.run
 	}
 
@@ -296,7 +296,7 @@ const class MongoColl {
 		return cmd("delete",	 name)
 			.add("deletes",		[deleteCmd.cmd])
 			.addAll(			opts)
-			.add("writeConcern",connMgr.writeConcern)
+			.add("writeConcern",connMgr.mongoConnUrl.writeConcern)
 			.run["n"]->toInt
 	}
 
@@ -317,7 +317,7 @@ const class MongoColl {
 			.add("query",			filter)
 			.add("update",			update)
 			.add("new",				true)
-			.add("writeConcern",	connMgr.writeConcern)
+			.add("writeConcern",	connMgr.mongoConnUrl.writeConcern)
 			.run["value"]
 	}
 
@@ -330,7 +330,7 @@ const class MongoColl {
 			.withFn(				optsFn)
 			.add("query",			filter)
 			.add("remove",			true)
-			.add("writeConcern",	connMgr.writeConcern)
+			.add("writeConcern",	connMgr.mongoConnUrl.writeConcern)
 			.run["value"]
 	}
 	
@@ -344,7 +344,7 @@ const class MongoColl {
 			.withFn(			optsFn)
 			.add("pipeline", 	pipeline)
 			.add("cursor",		Str:Obj?[:])	// MUST specify an empty cursor
-			.add("writeConcern",connMgr.writeConcern)
+			.add("writeConcern",connMgr.mongoConnUrl.writeConcern)
 			.cursor
 	}
 	

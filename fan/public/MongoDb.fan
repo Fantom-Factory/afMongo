@@ -13,7 +13,7 @@ const class MongoDb {
 	** Note this just instantiates the Fantom object, it does not create anything in MongoDB. 
 	new make(MongoConnMgr connMgr, Str? name := null) {
 		this.connMgr	= connMgr
-		this.name		= validateName(name ?: connMgr.dbName)
+		this.name		= validateName(name ?: connMgr.mongoConnUrl.dbName)
 	}
 
 	** Returns a 'Collection' with the given name.
@@ -47,7 +47,7 @@ const class MongoDb {
 	** @see `https://www.mongodb.com/docs/manual/reference/command/dropDatabase/`
 	Str:Obj? drop() {
 		cmd("dropDatabase")
-			.add("writeConcern", connMgr.writeConcern)
+			.add("writeConcern", connMgr.mongoConnUrl.writeConcern)
 			.run
 	}
 	
@@ -74,7 +74,7 @@ const class MongoDb {
 			.map |d->Str| { d["name"] }
 	}	
 	
-	// TODO support authenticate() and the  x.509 authentication mechanism (Stable API)
+	// todo support authenticate() and the  x.509 authentication mechanism (Stable API)
 	
 	** See `https://www.mongodb.com/docs/manual/reference/limits/#naming-restrictions`
 	private static const Int[] invalidNameChars	:= "/\\. \"*<>:|?".chars	

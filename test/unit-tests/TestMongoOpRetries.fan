@@ -54,7 +54,7 @@ internal class TestMongoOpRetries : Test {
 
 		
 		// disabled retrys don't do transactions
-		mgr.retryWrites = false
+		mgr = MongoConnMgrStub(con, `mongodb://foo.com/bar?retryWrites=false`)
 		con.reset
 		res = MongoOp(mgr, con, cmd("insert")).runCommand("db")
 		req = con.readDoc
@@ -172,7 +172,8 @@ internal class TestMongoOpRetries : Test {
 		
 		
 		// assert retries can be turned off
-		mgr.retryWrites = false
+		mgr = MongoConnMgrStub(con, `mongodb://foo.com/bar?retryWrites=false`)
+		col = MongoColl(mgr, "wotever")
 		con.ress[0] = IOErr("Boo")
 		con.ress[1] = doc
 		con.reset
@@ -251,8 +252,9 @@ internal class TestMongoOpRetries : Test {
 		verifyEq(con.lastSess.isDirty, false)
 		
 		
-		// assert retries can be turned off
-		mgr.retryReads = false
+		// assert retries can be turned of) 
+		mgr = MongoConnMgrStub(con, `mongodb://foo.com/bar?retryReads=false`)
+		col = MongoColl(mgr, "wotever")
 		con.ress[0] = IOErr("Boo")
 		con.ress[1] = doc
 		con.reset

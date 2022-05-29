@@ -11,7 +11,7 @@ using afBson::BsonIO
 **  - `https://github.com/mongodb/specifications/blob/master/source/retryable-writes/retryable-writes.rst`
 **  - `https://github.com/mongodb/specifications/blob/master/source/transactions/transactions.rst`
 @NoDoc	// advanced use only
-class MongoOp {
+internal class MongoOp {
 	private static const Int		OP_COMPRESSED		:= 2012
 	private static const Int		OP_MSG				:= 2013
 	private static const AtomicInt	reqIdSeq			:= AtomicInt(0)
@@ -186,7 +186,7 @@ class MongoOp {
 	}
 	
 	private Bool isRetryableWrite(MongoSess? sess) {
-		if (connMgr == null || connMgr.retryWrites == false)
+		if (connMgr == null || connMgr.mongoConnUrl.retryWrites == false)
 			return false
 		
 		// "Transaction numbers are only allowed on a replica set member or mongos"
@@ -222,7 +222,7 @@ class MongoOp {
 	}	
 
 	private Bool isRetryableRead() {
-		if (connMgr == null || connMgr.retryReads == false)
+		if (connMgr == null || connMgr.mongoConnUrl.retryReads == false)
 			return false
 		
 		// https://github.com/mongodb/specifications/blob/master/source/retryable-reads/retryable-reads.rst#id13

@@ -21,31 +21,6 @@ using concurrent::Future
 ** 
 **   mongodb://db1.example.net,db2.example.net:2500/?connectTimeoutMS=30000
 ** 
-** The following URL options are supported:
-**  - 'minPoolSize'
-**  - 'maxPoolSize'
-**  - 'waitQueueTimeoutMS'
-**  - 'connectTimeoutMS'
-**  - 'socketTimeoutMS'
-**  - 'maxIdleTimeMS'
-**  - 'w'
-**  - 'wtimeoutMS'
-**  - 'journal'
-**  - 'ssl'
-**  - 'tls'
-**  - 'authSource'
-**  - 'authMechanism'
-**  - 'authMechanismProperties'
-**  - 'appname'
-**  - 'compressors'
-**  - 'zlibCompressionLevel'
-**  - 'retryWrites'
-**  - 'retryReads'
-** 
-** URL examples:
-**  - 'mongodb://username:password@example1.com/database?maxPoolSize=50'
-**  - 'mongodb://example2.com?minPoolSize=10&maxPoolSize=50&ssl=true'
-** 
 ** See `https://www.mongodb.com/docs/manual/reference/connection-string/` for details.
 ** 
 ** On 'startup()' the hosts are queried to find the primary / master node. 
@@ -69,19 +44,8 @@ const mixin MongoConnMgr {
 	** This value is unavailable (returns 'null') until 'startup()' is called. 
 	abstract Uri? mongoUrl()
 	
-	** The default database name, taken from the the Connection URL auth source.
-	abstract Str? dbName()
-	
-	** The default write concern that all write operations should use.
-	abstract [Str:Obj?]? writeConcern()
-	
-	** Returns 'true' if retryable reads are enabled (the default).
-	** Use the connection URL query '?retryReads=false' to disable. 
-	abstract Bool retryReads()	
-
-	** Returns 'true' if retryable writes are enabled (the default).
-	** Use the connection URL query '?retryWrites=false' to disable. 
-	abstract Bool retryWrites()
+	** The parsed Mongo Connection URL.	
+	abstract MongoConnUrl mongoConnUrl()
 	
 	** Returns 'true' if the server type is standalone and does not declare any hosts.
 	** Required info for transactions and retryable writes.
@@ -150,27 +114,6 @@ const mixin MongoConnMgr {
 	}
 	
 	** Creates a pooled Mongo Connection Manager.
-	** 
-	** The following connection URL options are supported:
-	**  - 'minPoolSize'
-	**  - 'maxPoolSize'
-	**  - 'waitQueueTimeoutMS'
-	**  - 'connectTimeoutMS'
-	**  - 'socketTimeoutMS'
-	**  - 'maxIdleTimeMS'
-	**  - 'w'
-	**  - 'wtimeoutMS'
-	**  - 'journal'
-	**  - 'ssl'
-	**  - 'tls'
-	**  - 'authSource'
-	**  - 'authMechanism'
-	**  - 'authMechanismProperties'
-	**  - 'appname'
-	**  - 'compressors'
-	**  - 'zlibCompressionLevel'
-	**  - 'retryWrites'
-	**  - 'retryReads'
 	** 
 	** URL examples:
 	**  - 'mongodb://username:password@example1.com/database?maxPoolSize=50'

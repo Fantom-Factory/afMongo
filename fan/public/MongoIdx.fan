@@ -25,7 +25,7 @@ const class MongoIdx {
 	
 	new make(MongoConnMgr connMgr, Str idxName, Str colName, Str? dbName := null) {
 		this.connMgr	= connMgr
-		this.dbName		= MongoDb.validateName(dbName ?: connMgr.dbName)
+		this.dbName		= MongoDb.validateName(dbName ?: connMgr.mongoConnUrl.dbName)
 		this.collName	= MongoColl.validateName(colName)
 		this.name		= idxName
 	}
@@ -108,7 +108,7 @@ const class MongoIdx {
 		return cmd("createIndexes",	collName)
 			.add("indexes",			[createCmd.cmd])
 			.addAll(				opts)
-			.add("writeConcern",	connMgr.writeConcern)
+			.add("writeConcern",	connMgr.mongoConnUrl.writeConcern)
 			.run
 	}
 	

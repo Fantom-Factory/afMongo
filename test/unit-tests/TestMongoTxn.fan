@@ -170,7 +170,7 @@ internal class TestMongoTxn : Test {
 	Void testRetryOnCommit() {
 		doc := MongoConnStub().writePreamble.writeDoc(["ok":1]).flip.inBuf
 		con := MongoConnStub()
-		mgr := MongoConnMgrStub(con)
+		mgr := MongoConnMgrStub(con, `mongodb://foo.com/db?w=dredd`)
 		col := MongoColl(mgr, "wotever")
 		txn	:= null as MongoTxn
 		
@@ -179,8 +179,6 @@ internal class TestMongoTxn : Test {
 		con.ress[1] = IOErr("Bad Commit 1")
 		con.ress[2] = IOErr("Bad Commit 2")
 		
-		mgr.writeConcern = ["judge":"dredd"]
-
 		verifyErrMsg(IOErr#, "Bad Commit 1") {
 			col.connMgr.runInTxn(null) {
 				txn = MongoTxn.cur
@@ -196,8 +194,7 @@ internal class TestMongoTxn : Test {
 		verifyEq(txn.sess.isDirty,			true)
 		verifyEq(mgr.failoverCount,			3)	// TWO because there WAS a retry + leaseConn()
 		verifyEq(req1.keys.first,			"commitTransaction")
-		verifyEq(req1["writeConcern"],		Str:Obj?["judge":"dredd"])
-		verifyEq(req1["writeConcern"]->get("w"),		null)
+		verifyEq(req1["writeConcern"],		Str:Obj?["w":"dredd"])
 		verifyEq(req1["writeConcern"]->get("wtimeout"),	null)
 		verifyEq(req2.keys.first,			"commitTransaction")
 		verifyEq(req2["writeConcern"]->get("w"),		"majority")
@@ -236,7 +233,7 @@ internal class TestMongoTxn : Test {
 		doc := MongoConnStub().writePreamble.writeDoc(["ok":1]).flip.inBuf
 		err := MongoConnStub().writePreamble.writeDoc(["ok":0, "code":666, "errorLabels":["TransientTransactionError"]]).flip.inBuf
 		con := MongoConnStub()
-		mgr := MongoConnMgrStub(con).setDebug
+		mgr := MongoConnMgrStub(con)
 		col := MongoColl(mgr, "wotever")
 		txn	:= null as MongoTxn
 		
