@@ -50,6 +50,9 @@ const class MongoConnMgr {
 	** the hosts are queried to find the primary. The primary is currently used for all read and 
 	** write operations. 
 	This startup() { pool.startup; return this }
+	
+	** Returns 'true' if currently connected to the Master node.
+	Bool isConnected() { pool.isConnected }
 
 	** Makes a connection available to the given function.
 	** 

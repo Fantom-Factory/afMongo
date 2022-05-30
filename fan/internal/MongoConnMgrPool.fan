@@ -50,7 +50,7 @@ internal const class MongoConnMgrPool {
 	}
 
 	Uri? mongoUrl() { 
-		if (primaryDetails == null || primaryDetails.isPrimary == false)
+		if (isConnected == false)
 			return null
 		if (mongoConnUrl.dbName == null)
 			return primaryDetails.mongoUrl
@@ -76,6 +76,10 @@ internal const class MongoConnMgrPool {
 		mongoConnUrl.minPoolSize.times { checkIn(pool.pop) }
 		
 		return this
+	}
+	
+	Bool isConnected() {
+		primaryDetails?.isPrimary == true
 	}
 
 	Obj? leaseConn(|MongoConn->Obj?| c) {

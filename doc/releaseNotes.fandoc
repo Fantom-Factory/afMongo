@@ -7,11 +7,11 @@ v2.1.0 [#v2.1.0]
  - New: Support for multi-document, multi-collection transactions. See 'MongoConnMgr.runInTxn()'.
  - New: Retryable read and retryable write support via logical sessions, for robustness.
  - New: 'zlib' msg compression now supported via the 'OP_COMPRESSION' cmd.
- - New: Connections now *linger* before being closed (by 'maxIdleTimeMS) to avoid socket throttling during bursts of activity.
+ - New: Connections now *linger* before being closed (by 'maxIdleTimeMS') to avoid socket throttling during bursts of activity.
  - New: 'db()' and 'coll()' convenience methods on 'MongoColl' and 'MongoIdx'.
  - New: 'appname' is now supported in Mongo connection URLs and passed to MongoDB handshakes.
  - Chg: Exposed new 'MongoConnUrl' class with connection URL options.
- - Chg: Refactored the structure of 'MongoConnMgr' and re-assessed methods (breaking backwards compatibility).
+ - Chg: Refactored the structure of 'MongoConnMgr' and re-assessed its methods (breaking backwards compatibility).
 
 v2.0.0 [#v2.0.0]
 ======
