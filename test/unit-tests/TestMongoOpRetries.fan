@@ -36,7 +36,7 @@ internal class TestMongoOpRetries : Test {
 		
 		
 		// standalone servers don't do transactions
-		mgr->isStandalone = true
+		mgr->pool->isStandalone = true
 		con.reset
 		res = MongoOp(mgr, con, cmd("insert")).runCommand("db")
 		req = con.readDoc
@@ -45,7 +45,7 @@ internal class TestMongoOpRetries : Test {
 
 		
 		// unacknowledged writes don't do transactions
-		mgr->isStandalone = false
+		mgr->pool->isStandalone = false
 		con.reset
 		res = MongoOp(mgr, con, cmd("insert").add("writeConcern", ["w":0])).runCommand("db")
 		req = con.readDoc

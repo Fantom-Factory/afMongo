@@ -23,6 +23,7 @@
 **  - 'zlibCompressionLevel'
 **  - 'retryWrites'
 **  - 'retryReads'
+**  - 'disableTxns' *(unofficial)*
 ** 
 ** URL examples:
 **  - 'mongodb://username:password@example1.com/database?maxPoolSize=50'
@@ -160,7 +161,6 @@ const class MongoConnUrl {
 	** This means the same app code may be used in both standalone and clustered environments.
 	** 
 	**   mongodb://example.com/puppies?disableTxns=true
-	@NoDoc
 	const Bool disableTxns
 
 	** Parses a Mongo Connection URL.
@@ -310,6 +310,7 @@ const class MongoConnUrl {
 		query.remove("zlibCompressionLevel")
 		query.remove("retryWrites")
 		query.remove("retryReads")
+		query.remove("disableTxns")
 		query.each |val, key| {
 			log.warn("Unknown option in Mongo connection URL: ${key}=${val}")
 		}
