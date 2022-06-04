@@ -104,8 +104,12 @@ class MongoCmd {
 	** Executes this cmd on the MongoDB server, and returns the response as a BSON document.
 	Str:Obj? run(Bool checked := true) {
 		doc := (Str:Obj?) connMgr.leaseConn |conn->Str:Obj?| {
-			conn._setSession(session)
-			return MongoOp(connMgr, conn, cmd).runCommand(dbName, checked)
+			if (this.session != null)
+				conn._setSession(session)
+			try return MongoOp(connMgr, conn, cmd).runCommand(dbName, checked)
+			finally	// don't let detatched sessions get checked back in!
+				if (this.session != null || this.session?.isDetached == true)
+					conn._setSession(null)
 		}
 		return doc
 	}
@@ -117,7 +121,13 @@ class MongoCmd {
 			cur		:= doc["cursor"] as Str:Obj?
 			curId	:= cur["id"]
 			sess	:= curId == 0 ? null : conn._detachSession
-			return MongoCur(connMgr, dbName, cmdVal.toStr, curId, cur["firstBatch"], sess)
+			cursor	:= MongoCur(connMgr, dbName, cmdVal.toStr, curId, cur["firstBatch"], sess)
+			// these values need to be set per request
+			if (cmd["batchSize"] != null)
+				cursor.batchSize = cmd["batchSize"] as Int
+			if (cmd["maxTimeMS"] != null)
+				cursor.maxTime = (cmd["maxTimeMS"] as Int)?.mult(1ms.ticks)?.toDuration
+			return	cursor
 		}
 	}
 }

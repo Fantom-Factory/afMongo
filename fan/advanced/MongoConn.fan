@@ -65,15 +65,13 @@ abstract class MongoConn {
 		return sess
 	}
 	
-	** Associates a jailbroken session with this connection. 
+	** Associates (or clears) a jailbroken session with this connection. 
 	internal Void _setSession(MongoSess? session) {
-		if (session == null) return
-
-		if (this._sess != null)
+		if (this._sess != null && session != null)
 			throw Err("Cannot setSession(), I've already got one - $_sess")
 
-		if (session.isDetached == false)
-			throw Err("Cannot setSession(), Session is NOT detached - $_sess")
+		if (session?.isDetached == false)
+			throw Err("Cannot setSession(), Session is NOT detached - $session")
 
 		this._sess = session
 	}
