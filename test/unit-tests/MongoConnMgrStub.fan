@@ -36,7 +36,7 @@ internal const class MongoConnMgrStub : MongoConnMgrPool {
 		return Future.makeCompletable.complete(69)
 	}
 
-	override MongoConn newMongoConn() {
+	override MongoConn newMongoConn(Uri mongoUrl) {
 		Actor.locals["afMongo.connStub"]
 	}
 

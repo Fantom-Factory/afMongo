@@ -49,7 +49,7 @@ internal const class MongoConnMgrPool {
 		MongoConnMgr(this)
 	}
 
-	Uri? mongoUrl() { 
+	Uri? mongoUrl() {
 		if (isConnected == false)
 			return null
 		if (mongoConnUrl.dbName == null)
@@ -198,9 +198,11 @@ internal const class MongoConnMgrPool {
 		}
 		
 		// one last call to the server to end all sessions
-		conn := newMongoConn
-		try		sessPool.shutdown(conn)
-		finally	conn.close
+		if (isConnected) {
+			conn := newMongoConn(mongoUrl)
+			try		sessPool.shutdown(conn)
+			finally	conn.close
+		}
 
 		return this
 	}
@@ -231,12 +233,14 @@ internal const class MongoConnMgrPool {
 		primaryDetails := MongoSafari(mongoConnUrl, log).huntThePrimary
 		
 		// keep track of the new logical session timeout
-		sessPool.sessionTimeout = primaryDetails.sessionTimeout
+		if (primaryDetails.sessionTimeout != null)
+			sessPool.sessionTimeout = primaryDetails.sessionTimeout
 
 		// set our connection factory
+		mongoUrl := primaryDetails.mongoUrl
 		connectionState.sync |MongoConnMgrPoolState state| {
 			state.connFactory = |->MongoConn| {
-				return newMongoConn {
+				return newMongoConn(mongoUrl) {
 					it._mongoUrl				= mongoUrl
 					it._compressor				= primaryDetails.compression.first
 					it._zlibCompressionLevel	= this.mongoConnUrl.zlibCompressionLevel
@@ -247,7 +251,7 @@ internal const class MongoConnMgrPool {
 		this.primaryDetails = primaryDetails
 	}
 	
-	virtual MongoConn newMongoConn() {
+	virtual MongoConn newMongoConn(Uri mongoUrl) {
 		MongoTcpConn(newSocket, mongoConnUrl.tls, log, sessPool).connect(mongoUrl.host, mongoUrl.port)
 	}
 	

@@ -79,6 +79,7 @@ abstract class MongoConn {
 	}
 	
 	internal Bool _isStale(Duration maxLinger) {
+		if (_lingeringSince == null) return false
 		ttl := _lingeringSince + maxLinger - Duration.now
 		return ttl < 1ms
 	}
