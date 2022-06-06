@@ -377,25 +377,26 @@ internal const class MongoConnMgrPool {
 			sessPool.checkin(conn._detachSession, true)
 			
 			// make sure we don't save stale connections
-			if (!conn.isClosed) {
+			if (conn.isClosed)
+				return
 				
-				if (conn._forceCloseOnCheckIn) {
-					conn.close
-					return
-				}
-	
-				// discard any stored stale conns (from the bottom of the stack) but keep minPoolSize
-				// same as MongoSessPool
-				stale := null as MongoConn
-				while (state.checkedIn.size >= mongoConnUrl.minPoolSize && (stale = state.checkedIn.first) != null && stale._isStale(mongoConnUrl.maxIdleTime)) {
-					state.checkedIn.removeSame(stale)
-				}
-
-				// keep the socket open for 10 secs to ease open / close throttling during bursts of activity.
-				conn._lingeringSince	= Duration.now
-
-				state.checkedIn.push(conn)
+			if (conn._forceCloseOnCheckIn) {
+				conn.close
+				return
 			}
+
+			// discard any stored stale conns (from the bottom of the stack) but keep minPoolSize
+			// same as MongoSessPool
+			stale := null as MongoConn
+			while (state.checkedIn.size >= mongoConnUrl.minPoolSize && (stale = state.checkedIn.first) != null && stale._isStale(mongoConnUrl.maxIdleTime)) {
+				state.checkedIn.removeSame(stale)
+			}
+
+			// keep the socket open for 10 secs to ease open / close throttling during bursts of activity.
+			// despite the lingering, as long as the pool is full, the conn will not be removed
+			conn._lingeringSince	= Duration.now
+
+			state.checkedIn.push(conn)
 		}
 	}
 }

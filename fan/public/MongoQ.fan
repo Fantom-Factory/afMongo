@@ -306,7 +306,7 @@ class MongoQ {
 	** To sort by search relevance, add the following projection AND sort.
 	** 
 	**   syntax: fantom
-	**   col.find(MongoQ { textSearch("quack") }) {
+	**   col.find(MongoQ().textSearch("quack").query ) {
 	**     it->projection = ["_textScore": ["\$meta": "textScore"]]
 	**     it->sort       = ["_textScore": ["\$meta": "textScore"]]
 	**   }

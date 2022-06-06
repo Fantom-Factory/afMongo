@@ -379,11 +379,13 @@ internal class MongoOp {
 				// E11000 duplicate key error collection: afMongoTest.indexTest index: _data_ dup key: { data: 10 }
 				matcher1	:= "\\.([a-zA-Z0-9]+) index".toRegex.matcher(errMsg)
 				collName	:= matcher1.find ? matcher1.group(1) : null
-				matcher2	:= ": (\\{[^\\}]+\\})".toRegex.matcher(errMsg)
-				keyValue	:= matcher2.find ? matcher2.group(1) : null
+				matcher2	:= "(_[a-zA-Z0-9]+_)".toRegex.matcher(errMsg)
+				indexName	:= matcher2.find ? matcher2.group(1) : null
+				matcher3	:= ": (\\{[^\\}]+\\})".toRegex.matcher(errMsg)
+				keyValue	:= matcher3.find ? matcher3.group(1) : null
 
 				if (collName != null && keyValue != null) {
-					msg		:= "Command '${cmdName}' failed, IndexKey ${collName} ${keyValue} is already in use"
+					msg		:= "Command '${cmdName}' failed, index ${collName}.${indexName} ${keyValue} is already in use"
 					mongoErr = MongoErr(msg, resDoc)
 				}
 			}

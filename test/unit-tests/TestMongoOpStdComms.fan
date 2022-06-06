@@ -132,7 +132,7 @@ internal class TestMongoOpStdComms : Test {
 			"ok"			: 1.0f,
 		]).flip
 		
-		verifyErrMsg(MongoErr#, "Command 'wotever' failed, IndexKey indexTest { data: 10 } is already in use") {
+		verifyErrMsg(MongoErr#, "Command 'wotever' failed, index indexTest._data_ { data: 10 } is already in use") {
 			MongoOp(null, con, cmd("wotever")).runCommand("wotever")
 		}	
 	}
