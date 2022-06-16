@@ -88,6 +88,8 @@ internal class MongoTcpConn : MongoConn {
 	override Log			log
 			 TcpSocket		socket
 	private	 Bool			ssl
+	private	 Str?			origAddr
+	private	 Int?			origPort
 
 	** Used by ConnPool
 	** Allows you to pass in a TcpSocket with options already set.
@@ -109,6 +111,8 @@ internal class MongoTcpConn : MongoConn {
 	This connect(Str address, Int port) {
 		try {
 			socket.connect(IpAddr(address), port)
+			this.origAddr = address
+			this.origPort = port
 			return this
 		}
 		catch (Err err)
@@ -121,7 +125,18 @@ internal class MongoTcpConn : MongoConn {
 	override Bool		isClosed()	{ socket.isClosed	}
 	
 	override MongoConn _refresh() {
-		MongoTcpConn(ssl, log).connect(socket.remoteAddr.numeric, socket.remotePort)
+		// when retrying a cmd, avoid errors like: "Command 'saslStart' failed. MongoDB says: no SNI name sent, make sure using a MongoDB 3.4+ driver/shell."
+		// this happens when we connect using a IP address and not a host name
+		// (but only on Atlas sharded clusters)
+		// so keep the original connection addr (host) and use it to refresh and reconnect!
+		
+		// Good discussion on TLS SNI support in Java: (TLDR - it's fixed in Java 7)
+		// https://issues.apache.org/jira/browse/HTTPCLIENT-1119
+		// https://github.com/twisted/txmongo/issues/236
+		
+		if (this.origAddr == null || this.origPort == null)
+			throw Err("Cannot refresh socket connection - it was never connected!")
+		return MongoTcpConn(ssl, log).connect(this.origAddr, this.origPort)
 	}
 	
 	** Retain backwards compatibility with all recent versions of Fantom.

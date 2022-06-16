@@ -2,7 +2,11 @@ v2.x [#v2.x]
 ****
 A complete re-write from the ground up. Optimised to work with Mongo's stable API v1, as introduced in Mongo 5.2.
 
-v2.1.2 [v2.1.2]
+v2.1.4 [#v2.1.4]
+======
+ - Bug: Fixed TLS SNI issue when retrying cmds sent to an Atlas sharded cluster during failover re-connections.
+
+v2.1.2 [#v2.1.2]
 ======
  - New: Added 'MongoConnMgr.isConnected()' utility method.
  - Chg: Moar explicit err msgs on duplicate index key errors.
