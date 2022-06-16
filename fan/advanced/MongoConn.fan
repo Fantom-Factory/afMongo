@@ -129,7 +129,7 @@ internal class MongoTcpConn : MongoConn {
 		// this happens when we connect using a IP address and not a host name
 		// (but only on Atlas sharded clusters)
 		// so keep the original connection addr (host) and use it to refresh and reconnect!
-		
+
 		// Good discussion on TLS SNI support in Java: (TLDR - it's fixed in Java 7)
 		// https://issues.apache.org/jira/browse/HTTPCLIENT-1119
 		// https://github.com/twisted/txmongo/issues/236

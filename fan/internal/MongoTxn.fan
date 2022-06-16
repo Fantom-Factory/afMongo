@@ -113,6 +113,16 @@ internal class MongoTxn {
 		if (recoveryToken != null)
 			cmd["recoveryToken"] = recoveryToken
 		
+		// Only "abortTransaction" and "commitTransaction" are allowed a 'writeConcern' but ...
+		// ...it is added automatically when cmds are created - doh!
+		// so remove any writeConcern that was added automatically from ConnMgr using same equals '===' 
+		//
+		// MongoDB says: writeConcern is not allowed within a multi-statement transaction
+		// https://github.com/mongodb/specifications/blob/master/source/transactions/transactions.rst#behavior-of-the-writeconcern-field
+		if (cmd.containsKey("abortTransaction") == false && cmd.containsKey("commitTransaction") == false)
+			if (cmd["writeConcern"] === connMgr.mongoConnUrl.writeConcern)
+				cmd.remove("writeConcern")
+		
 		status = statusInProgress
 	}
 	

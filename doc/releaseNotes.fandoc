@@ -4,6 +4,7 @@ A complete re-write from the ground up. Optimised to work with Mongo's stable AP
 
 v2.1.4 [#v2.1.4]
 ======
+ - Chg: Remove any default auto-added writeConcerns from cmds when running inside multi-statement transactions.
  - Bug: Fixed TLS SNI issue when retrying cmds sent to an Atlas sharded cluster during failover re-connections.
 
 v2.1.2 [#v2.1.2]
