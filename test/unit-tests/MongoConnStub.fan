@@ -57,7 +57,7 @@ internal class MongoConnStub : MongoConn {
 	}
 	override OutStream	out			()	{ outBuf.out }
 	override Void		close		()	{ }
-	override MongoConn	_refresh	() { this }
+	override MongoConn	_refresh	(Uri mongoUrl) { this }
 	
 	MongoSess? lastSess
 	override internal MongoSess? _getSession(Bool createNew) {

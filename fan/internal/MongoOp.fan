@@ -150,22 +150,24 @@ internal class MongoOp {
 	}
 	
 	private Str:Obj? retryCommand(Err err, MongoSess? sess, Bool checked) {
-		log.warn("Re-trying cmd '${cmdName}' after Err - ${err.typeof} - ${err.msg}")
+		log.warn("Re-trying cmd '${cmdName}' - ${err.typeof} - ${err.msg} (${conn._mongoUrl})")
 
 		try {
 			conn.close
 			
 			// use get, so any failover errors are thrown 
-			connMgr.failOver.get(10sec)	// the spec gives an example of 10sec
+			newMasterUrl := connMgr.failOver.get(10sec)	// the spec gives an example of 10sec
 
 			// grab a fresh conn, 'cos the existing Conn just got closed!
-			conn = conn._refresh
+			conn = conn._refresh(newMasterUrl)
 			connMgr.authenticateConn(conn)
 
 			return doRunCommand(sess, checked)
 
 		} catch	(Err e) {
-			log.warn("Re-try cmd failed with Err - ${e.typeof} - ${e.msg}")
+			conn.close
+
+			log.warn("Re-try cmd failed - ${e.typeof} - ${e.msg} (${conn._mongoUrl})")
 
 			// "If the retry attempt also fails, drivers MUST update their topology."
 			connMgr.failOver

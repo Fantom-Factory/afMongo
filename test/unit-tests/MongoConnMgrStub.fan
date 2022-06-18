@@ -33,7 +33,7 @@ internal const class MongoConnMgrStub : MongoConnMgrPool {
 	override Future failOver() {
 		failoverCountRef.increment
 //		Err("FAIL!").trace
-		return Future.makeCompletable.complete(69)
+		return Future.makeCompletable.complete(`mongodb://newmaster:69/`)
 	}
 
 	override MongoConn newMongoConn(Uri mongoUrl) {

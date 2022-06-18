@@ -35,7 +35,7 @@ abstract class MongoConn {
 	
 	** Creates a fresh, detached, socket using the same host, port, and tls settings.
 	abstract
-	internal MongoConn	_refresh()
+	internal MongoConn	_refresh(Uri mongoUrl)
 	
 	** Returns the Session associated with this connection.
 	** Sessions are checked out lazily.
@@ -86,10 +86,8 @@ abstract class MongoConn {
 ** Connects to MongoDB via an 'inet::TcpSocket'.
 internal class MongoTcpConn : MongoConn {
 	override Log			log
-			 TcpSocket		socket
+	private	 TcpSocket		socket
 	private	 Bool			ssl
-	private	 Str?			origAddr
-	private	 Int?			origPort
 
 	** Used by ConnPool
 	** Allows you to pass in a TcpSocket with options already set.
@@ -111,8 +109,6 @@ internal class MongoTcpConn : MongoConn {
 	This connect(Str address, Int port) {
 		try {
 			socket.connect(IpAddr(address), port)
-			this.origAddr = address
-			this.origPort = port
 			return this
 		}
 		catch (Err err)
@@ -124,7 +120,9 @@ internal class MongoTcpConn : MongoConn {
 	override Void		close()		{ socket.close		}
 	override Bool		isClosed()	{ socket.isClosed	}
 	
-	override MongoConn _refresh() {
+	override MongoConn _refresh(Uri mongoUrl) {
+		socket.close
+
 		// when retrying a cmd, avoid errors like: "Command 'saslStart' failed. MongoDB says: no SNI name sent, make sure using a MongoDB 3.4+ driver/shell."
 		// this happens when we connect using a IP address and not a host name
 		// (but only on Atlas sharded clusters)
@@ -133,10 +131,17 @@ internal class MongoTcpConn : MongoConn {
 		// Good discussion on TLS SNI support in Java: (TLDR - it's fixed in Java 7)
 		// https://issues.apache.org/jira/browse/HTTPCLIENT-1119
 		// https://github.com/twisted/txmongo/issues/236
-		
-		if (this.origAddr == null || this.origPort == null)
-			throw Err("Cannot refresh socket connection - it was never connected!")
-		return MongoTcpConn(ssl, log).connect(this.origAddr, this.origPort)
+
+		// this class contains too much meta (sessions, compression, etc) to just ditch,
+		// so let's just replace the internal socket obj
+		// todo - this new socket WILL NOT have the correct timeouts as specified by MongoConnUrl
+		// so we'll just close it when finished - all new sockets in the pool should be fine.
+		this._forceCloseOnCheckIn	= true
+		this._isAuthenticated		= false
+		this._mongoUrl				= mongoUrl
+		this.socket					= newSocket(ssl)
+		connect(mongoUrl.host, mongoUrl.port)
+		return this
 	}
 	
 	** Retain backwards compatibility with all recent versions of Fantom.

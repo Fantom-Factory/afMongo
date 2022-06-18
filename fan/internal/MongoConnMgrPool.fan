@@ -136,20 +136,25 @@ internal const class MongoConnMgrPool {
 		log.warn("Failing over. Re-scanning network topology for new master...")
 
 		// it doesn't matter if a race condition means we play huntThePrimary twice in succession
-		return failingOverRef.val = failOverThread.async |->| {
+		return failingOverRef.val = failOverThread.async |->Uri| {
 			try	{
 				oldUrl := this.mongoUrl
 				huntThePrimary
 				emptyPool
 				newUrl := this.mongoUrl
 				
+				// not sure why this would ever be the case... but let's make sure
+				if (newUrl == null)
+					throw Err("Could not find new Master")
+				
 				if (oldUrl != newUrl)
 					log.warn("MongoDB Master failed over from $oldUrl to $newUrl")
 				
 				// we're an unsung hero - we've established a new master connection and nobody knows! 
+				return newUrl
 				
 			} catch (Err err)
-				log.warn("Could not find new Master", err)
+				throw IOErr("Could not find new Master", err)
 
 			finally
 				failingOverRef.val = null
