@@ -2,10 +2,15 @@ v2.x [#v2.x]
 ****
 A complete re-write from the ground up. Optimised to work with Mongo's stable API v1, as introduced in Mongo 5.2.
 
+v2.1.6 [#v2.1.6]
+======
+ - Chg: Initial socket connection errors are now subject to an binary exponential backoff algorithm.
+   This makes re-connections after a failover more robust.
+
 v2.1.4 [#v2.1.4]
 ======
  - Chg: Remove any default auto-added writeConcerns from cmds when running inside multi-statement transactions.
- - Bug: Fixed TLS SNI issue when retrying cmds sent to an Atlas sharded cluster during failover re-connections.
+ - Bug: Fixed TLS SNI issue when retrying cmds sent to an Atlas sharded cluster during a failover re-connection.
 
 v2.1.2 [#v2.1.2]
 ======
