@@ -14,7 +14,7 @@ internal class TestMongoConnUrl : Test {
 		Log.removeHandler(handler)		
 	}
 	
-	Void testMongoUriUserCreds() {		
+	Void testUserCreds() {		
 		verifyErrMsg(ArgErr#, "Mongo connection URIs must start with the scheme 'mongodb://' - dude://wotsup?") {
 			conUrl := MongoConnUrl(`dude://wotsup?`)
 		}
@@ -35,7 +35,7 @@ internal class TestMongoConnUrl : Test {
 		verify(logs.isEmpty)
 	}	
 
-	Void testMongoUriAuthMech() {		
+	Void testAuthMech() {		
 		conUrl := MongoConnUrl(`mongodb://user:pass@wotever/puppies?authSource=kinesis&authMechanism=pacificRim&authMechanismProperties=cannon:Plasmacaster,,,turbine:NuclearVortex`)
 		verifyEq(conUrl.mongoCreds.mechanism,	"pacificRim")
 		verifyEq(conUrl.mongoCreds.source, 		"kinesis")
@@ -49,7 +49,7 @@ internal class TestMongoConnUrl : Test {
 		verify(logs.isEmpty)
 	}
 	
-	Void testMongoUriPoolOptions() {
+	Void testPoolOptions() {
 		verifyErrMsg(ArgErr#, "minPoolSize must be >= 0, val=-1, uri=mongodb://wotever?minPoolSize=-1") {
 			conUrl := MongoConnUrl(`mongodb://wotever?minPoolSize=-1`)
 		}
@@ -78,7 +78,7 @@ internal class TestMongoConnUrl : Test {
 		verify(logs.isEmpty)
 	}
 
-	Void testMongoUriConnectionOptions() {
+	Void testConnectionOptions() {
 		verifyErrMsg(ArgErr#, "connectTimeoutMS must be >= 0, val=-1, uri=mongodb://wotever?connectTimeoutMS=-1") {
 			conUrl := MongoConnUrl(`mongodb://wotever?connectTimeoutMS=-1`)
 		}
@@ -147,13 +147,13 @@ internal class TestMongoConnUrl : Test {
 	}
 	
 	Void testAppName() {
-		conUrl	:= MongoConnUrl(`mongodb://wotever?appname=`)
+		conUrl	:= MongoConnUrl(`mongodb://wotever?appName=`)
 		verifyEq(conUrl.appName, null)
 
-		conUrl	= MongoConnUrl(`mongodb://wotever?appname=WattsApp`)
+		conUrl	= MongoConnUrl(`mongodb://wotever?appName=WattsApp`)
 		verifyEq(conUrl.appName, "WattsApp")
 
-		conUrl	= MongoConnUrl(`mongodb://wotever?appname=someVeryLongApplicationNameThatShouldExceedOneHundredAndTwentyEightBytesBecauseThatWouldCauseItToBeTruncatedTherebyCreatingAValidTest`)
+		conUrl	= MongoConnUrl(`mongodb://wotever?appName=someVeryLongApplicationNameThatShouldExceedOneHundredAndTwentyEightBytesBecauseThatWouldCauseItToBeTruncatedTherebyCreatingAValidTest`)
 		verifyEq(conUrl.appName, "someVeryLongApplicationNameThatShouldExceedOneHundredAndTwentyEightBytesBecauseThatWouldCauseItToBeTruncatedTherebyCreatingAVali")
 	}
 	

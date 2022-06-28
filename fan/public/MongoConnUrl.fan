@@ -4,25 +4,33 @@
 ** If user credentials are supplied, they are used as default authentication for each connection.
 ** 
 ** The following URL options are supported:
+** 
+**  - 'ssl'
+**  - 'tls'
+** 
+**  - 'connectTimeoutMS'
+**  - 'socketTimeoutMS'
+** 
+**  - 'compressors'
+**  - 'zlibCompressionLevel'
+** 
 **  - 'minPoolSize'
 **  - 'maxPoolSize'
 **  - 'waitQueueTimeoutMS'
-**  - 'connectTimeoutMS'
-**  - 'socketTimeoutMS'
 **  - 'maxIdleTimeMS'
+** 
 **  - 'w'
 **  - 'wtimeoutMS'
 **  - 'journal'
-**  - 'ssl'
-**  - 'tls'
+** 
 **  - 'authSource'
 **  - 'authMechanism'
 **  - 'authMechanismProperties'
-**  - 'appname'
-**  - 'compressors'
-**  - 'zlibCompressionLevel'
+** 
+**  - 'appName'
 **  - 'retryWrites'
 **  - 'retryReads'
+** 
 **  - 'disableTxns' *(unofficial)*
 ** 
 ** URL examples:
@@ -44,35 +52,33 @@ const class MongoConnUrl {
 	**   mongodb://example1.com/<database>
 	const Str? dbName
 
-	** The default write concern for all write operations. 
-	** Set by specifying the 'w', 'wtimeoutMS' and 'journal' connection string options. 
+	** An "unofficial" option that can be useful for development.
 	** 
-	**   mongodb://username:password@example1.com/puppies?w=1&wtimeout=0&j=false
-	const [Str:Obj?]? writeConcern
+	** Transactions CANNOT be run against standalone MongoDB servers (MongoDB raises errors).
+	** 
+	** This option switches transactions off, and instead executes the txnFns outside of a transactions.
+	** This means the same app code may be used in both standalone and clustered environments.
+	** 
+	**   mongodb://example.com/puppies?disableTxns=true
+	const Bool disableTxns
 	
-	** The minimum number of database connections the pool should keep open.
-	** 
-	** Defaults to 1.
-	** 
-	**   mongodb://example.com/puppies?minPoolSize=50
-	const Int minPoolSize	:= 1
-
-	** The maximum number of database connections the pool is allowed to open.
-	** This is the maximum number of concurrent users you expect your application to have.
-	** 
-	** Defaults to 10.
-	** 
-	**   mongodb://example.com/puppies?maxPoolSize=10
-	const Int maxPoolSize	:= 10
 	
-	** The maximum time a thread can wait for a connection to become available.
-	** 
-	** Defaults to 15 seconds.
-	** 
-	**   mongodb://example.com/puppies?waitQueueTimeoutMS=10
-	const Duration waitQueueTimeout := 15sec
+	
+	// ---- TLS Options ----
 
-	** The amount of time to attempt a connection before timing out.
+	** Specifies a TLS / SSL connection. Set to 'true' for Mongo Atlas databases.
+	** 
+	** Defaults to 'false'. 
+	** 
+	**   mongodb://example.com/puppies?tls=true
+	**   mongodb://example.com/puppies?ssl=true
+	const Bool tls := false
+	
+	
+	
+	// ---- Timeout Options ----
+
+	** The amount of time to attempt a socket connection before timing out.
 	** If 'null' (the default) then a system timeout is used.
 	** 
 	**   mongodb://example.com/puppies?connectTimeoutMS=25000
@@ -87,38 +93,10 @@ const class MongoConnUrl {
 	** 
 	** Equates to `inet::SocketOptions.receiveTimeout`.
 	const Duration? socketTimeout	
-
-	** The maximum time a connection can remain idle in the pool before being removed and 
-	** closed. (This does NOT override minPoolSize.)
-	** 
-	** This helps ease connection throttling during bursts of activity.
-	** 
-	** Defaults to 10sec.
-	** 
-	**   mongodb://example.com/puppies?maxIdleTimeMS=15000
-	const Duration maxIdleTime	:= 10sec
-
-	** Specifies a TLS / SSL connection. Set to 'true' for Atlas databases.
-	** 
-	** Defaults to 'false'. 
-	** 
-	**   mongodb://example.com/puppies?tls=true
-	**   mongodb://example.com/puppies?ssl=true
-	const Bool tls := false
 	
-	** The credentials (if any) used to authenticate connections against MongoDB. 
-	const MongoCreds? mongoCreds
 	
-	** The auth mechanisms used for authenticating connections.
-	const Str:MongoAuthMech	authMechs		:= [
-		"SCRAM-SHA-1"	: MongoAuthScramSha1(),
-	]
 	
-	** The application name this client identifies itself to the MongoDB server as.
-	** Used by MongoDB when logging.
-	** 
-	**   mongodb://example.com/puppies?appname=WattsApp
-	const Str? appName
+	// ---- Compression Options ----
 	
 	** A list of compressors, as understood by this driver and presented to the MongoDB server.
 	** Any options supplied to the MongoURL and not understood by this driver will **not** be present in this list.
@@ -141,11 +119,73 @@ const class MongoConnUrl {
 	**   mongodb://example.com/puppies?zlibCompressionLevel=8
 	const Int? zlibCompressionLevel
 	
-	** An option to **turn off** retryable writes.
-	** (Defaults to 'true').
+	
+	
+	// ---- Connection Pool Options ----
+	
+	** The minimum number of database connections the pool should keep open.
 	** 
-	**   mongodb://example.com/puppies?retryWrites=false
-	const Bool retryWrites	
+	** Defaults to 1.
+	** 
+	**   mongodb://example.com/puppies?minPoolSize=50
+	const Int minPoolSize	:= 1
+
+	** The maximum number of database connections the pool is allowed to open.
+	** This is the maximum number of concurrent users you expect your application to have.
+	** 
+	** Defaults to 10.
+	** 
+	**   mongodb://example.com/puppies?maxPoolSize=10
+	const Int maxPoolSize	:= 10
+	
+	** The maximum time a thread can wait for a connection to become available.
+	** 
+	** Defaults to 12 seconds.
+	** 
+	**   mongodb://example.com/puppies?waitQueueTimeoutMS=12000
+	const Duration waitQueueTimeout := 12sec	
+
+	** The maximum time a connection can remain idle in the pool before being removed and 
+	** closed. (This does NOT override minPoolSize.)
+	** 
+	** This helps ease connection throttling during bursts of activity.
+	** 
+	** Defaults to 10sec.
+	** 
+	**   mongodb://example.com/puppies?maxIdleTimeMS=15000
+	const Duration maxIdleTime	:= 10sec
+
+	
+	
+	// ---- Write Concern Options ----
+	
+	** The default write concern for all write operations. 
+	** Set by specifying the 'w', 'wtimeoutMS' and 'journal' connection string options. 
+	** 
+	**   mongodb://username:password@example1.com/puppies?w=1&wtimeout=0&j=false
+	const [Str:Obj?]? writeConcern	
+	
+
+	
+	// ---- Authentication Options ----
+	
+	** The credentials (if any) used to authenticate connections against MongoDB. 
+	const MongoCreds? mongoCreds
+	
+	** The auth mechanisms used for authenticating connections.
+	const Str:MongoAuthMech	authMechs		:= [
+		"SCRAM-SHA-1"	: MongoAuthScramSha1(),
+	]
+	
+	
+	
+	// ---- Miscellaneous Configuration ----
+	
+	** The application name this client identifies itself to the MongoDB server as.
+	** Used by MongoDB when logging.
+	** 
+	**   mongodb://example.com/puppies?appName=WattsApp
+	const Str? appName
 
 	** An option to **turn off** retryable reads.
 	** (Defaults to 'true').
@@ -153,15 +193,13 @@ const class MongoConnUrl {
 	**   mongodb://example.com/puppies?retryReads=false
 	const Bool retryReads
 	
-	** An "unofficial" option that can be useful for development.
+	** An option to **turn off** retryable writes.
+	** (Defaults to 'true').
 	** 
-	** Transactions CANNOT be run against standalone MongoDB servers (MongoDB raises errors).
-	** 
-	** This option switches transactions off, and instead executes the txnFns outside of a transactions.
-	** This means the same app code may be used in both standalone and clustered environments.
-	** 
-	**   mongodb://example.com/puppies?disableTxns=true
-	const Bool disableTxns
+	**   mongodb://example.com/puppies?retryWrites=false
+	const Bool retryWrites	
+
+
 
 	** Parses a Mongo Connection URL.
 	new fromUrl(Uri connectionUrl) {
@@ -183,7 +221,7 @@ const class MongoConnUrl {
 		authSource				:= mongoUrl.query["authSource"]?.trimToNull
 		authMech				:= mongoUrl.query["authMechanism"]?.trimToNull
 		authMechProps			:= mongoUrl.query["authMechanismProperties"]?.trimToNull
-		appName					:= mongoUrl.query["appname"]?.trimToNull
+		appName					:= mongoUrl.query["appName"]?.trimToNull
 		compressors				:= mongoUrl.query["compressors"]?.split(',')?.exclude { it.isEmpty || it.size > 64 } as Str[]
 		zlibCompressionLevel	:= mongoUrl.query["zlibCompressionLevel"]?.toInt(10, false)
 		this.retryWrites		 = mongoUrl.query["retryWrites"] != "false"
@@ -211,10 +249,10 @@ const class MongoConnUrl {
 		if (zlibCompressionLevel != null && zlibCompressionLevel > 9)
 			throw ArgErr(errMsg_intTooLarge("zlibCompressionLevel", "9", zlibCompressionLevel, mongoUrl))
 
-		if (waitQueueTimeoutMs	!= null)	waitQueueTimeout	= 1ms * waitQueueTimeoutMs
-		if (connectTimeoutMs	!= null)	connectTimeout		= 1ms * connectTimeoutMs
-		if (socketTimeoutMs		!= null)	socketTimeout		= 1ms * socketTimeoutMs
-		if (maxIdleTimeMs		!= null)	maxIdleTime			= 1ms * maxIdleTimeMs
+		if (waitQueueTimeoutMs			!= null)	waitQueueTimeout		= 1ms * waitQueueTimeoutMs
+		if (connectTimeoutMs			!= null)	connectTimeout			= 1ms * connectTimeoutMs
+		if (socketTimeoutMs				!= null)	socketTimeout			= 1ms * socketTimeoutMs
+		if (maxIdleTimeMs				!= null)	maxIdleTime				= 1ms * maxIdleTimeMs
 
 		// authSource trumps defaultauthdb 
 		database := authSource ?: mongoUrl.pathStr.trimToNull
@@ -305,7 +343,7 @@ const class MongoConnUrl {
 		query.remove("authSource")
 		query.remove("authMechanism")
 		query.remove("authMechanismProperties")
-		query.remove("appname")
+		query.remove("appName")
 		query.remove("compressors")
 		query.remove("zlibCompressionLevel")
 		query.remove("retryWrites")
