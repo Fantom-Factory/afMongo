@@ -17,7 +17,7 @@ internal const class MongoConnMgrPool {
 	private const AtomicRef 		primaryDetailsRef		:= AtomicRef(null)
 	private const Synchronized		failOverThread
 	private const SynchronizedState connectionState
-	private const MongoBackoff		backoff	:= MongoBackoff()
+	private const MongoBackoff		backoff					:= MongoBackoff()
 	
 	// todo this should (probably) live in the MongoClient
 	// having it here overloads the responsibility of a ConnMgr
@@ -214,16 +214,41 @@ internal const class MongoConnMgrPool {
 	
 	Str:Obj? props() {
 		connectionState.sync |MongoConnMgrPoolState state->Str:Obj?| {
-			[
-				"mongoUrl"			: this.mongoUrl,
-				"primaryFound"		: this.primaryDetails != null,
-				"maxWireVer"		: this.primaryDetails?.maxWireVer,
-				"compression"		: this.primaryDetails?.compression,
-				"hosts"				: this.primaryDetails?.hosts,
-				"sessionTimeout"	: this.primaryDetails?.sessionTimeout,
-				"numConnsInUse"		: state.checkedOut.size,
-				"numConnsInPool"	: state.checkedOut.size + state.checkedIn.size,
-			]
+			Str:Obj?[:].with |m| { 
+				m.ordered 				= true
+				m.add("mongoUrl"		, this.mongoUrl)
+				m.add("primaryFound"	, this.primaryDetails != null)
+				m.add("maxWireVer"		, this.primaryDetails?.maxWireVer)
+				m.add("hosts"			, this.primaryDetails?.hosts)
+				m.add("compression"		, this.primaryDetails?.compression)
+				m.add("sessionTimeout"	, this.primaryDetails?.sessionTimeout)
+				m.add("numConnsInUse"	, state.checkedOut.size)
+				m.add("numConnsInPool"	, state.checkedOut.size + state.checkedIn.size)
+				
+				// add non-default conn url params
+				baseUrl := MongoConnUrl.fromUrl(`mongodb://wotever`)
+				ignore  := "connectionUrl dbName authMechs".split
+				MongoConnUrl#.fields.each |field| {
+					if (ignore.contains(field.name) == false && field.get(this.mongoConnUrl) != field.get(baseUrl))
+						m.add(field.name, field.get(this.mongoConnUrl))
+				}
+				
+				i := 0					// keep a total count of ALL conns
+				state.checkedOut.each |conn| {
+					i++
+					m.add("conn.${i}.inUse"			, true)
+					m.add("conn.${i}.numUses"		, conn._numCheckouts)
+					m.add("conn.${i}.lingeringFor"	, conn._lingerTime)
+					m.add("conn.${i}.aliveFor"		, conn._aliveTime)
+				}
+				state.checkedIn.each |conn| {
+					i++
+					m.add("conn.${i}.inUse"			, false)
+					m.add("conn.${i}.numUses"		, conn._numCheckouts)
+					m.add("conn.${i}.lingeringFor"	, conn._lingerTime)
+					m.add("conn.${i}.aliveFor"		, conn._aliveTime)
+				}
+			}
 		}
 	}
 	
@@ -352,6 +377,7 @@ internal const class MongoConnMgrPool {
 		// ensure all connections are authenticated
 		authenticateConn(connection)
 	
+		connection._checkedOut
 		return connection
 	}
 	

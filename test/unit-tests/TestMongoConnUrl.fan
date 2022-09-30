@@ -14,7 +14,7 @@ internal class TestMongoConnUrl : Test {
 		Log.removeHandler(handler)		
 	}
 	
-	Void testUserCreds() {		
+	Void testUserCreds() {	
 		verifyErrMsg(ArgErr#, "Mongo connection URIs must start with the scheme 'mongodb://' - dude://wotsup?") {
 			conUrl := MongoConnUrl(`dude://wotsup?`)
 		}

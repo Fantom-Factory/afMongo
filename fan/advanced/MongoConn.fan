@@ -32,6 +32,8 @@ abstract class MongoConn {
 	internal Duration?		_lingeringSince
 	internal MongoSessPool?	_sessPool
 	internal MongoSess?		_sess
+	internal Int			_numCheckouts
+	private  Duration		_dob				:= Duration.now
 	
 	** Creates a fresh, detached, socket using the same host, port, and tls settings.
 	abstract
@@ -80,6 +82,18 @@ abstract class MongoConn {
 		if (_lingeringSince == null) return false
 		ttl := _lingeringSince + maxLinger - Duration.now
 		return ttl < 1ms
+	}
+	
+	internal Duration? _lingerTime() {
+		_lingeringSince == null ? null : (Duration.now - _lingeringSince).floor(1ms)
+	}
+
+	internal Void _checkedOut() {
+		_numCheckouts++	
+	}
+
+	internal Duration _aliveTime() {
+		(Duration.now - _dob).floor(1sec)
 	}
 }
 
