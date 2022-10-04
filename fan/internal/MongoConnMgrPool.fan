@@ -227,7 +227,7 @@ internal const class MongoConnMgrPool {
 				
 				// add non-default conn url params
 				baseUrl := MongoConnUrl.fromUrl(`mongodb://wotever`)
-				ignore  := "connectionUrl dbName authMechs".split
+				ignore  := "connectionUrl dbName authMechs mongoCreds".split
 				MongoConnUrl#.fields.each |field| {
 					if (ignore.contains(field.name) == false && field.get(this.mongoConnUrl) != field.get(baseUrl))
 						m.add(field.name, field.get(this.mongoConnUrl))

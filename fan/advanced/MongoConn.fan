@@ -93,7 +93,7 @@ abstract class MongoConn {
 	}
 
 	internal Duration _aliveTime() {
-		(Duration.now - _dob).floor(1sec)
+		(Duration.now - _dob).floor(1ms)
 	}
 }
 

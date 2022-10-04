@@ -56,10 +56,13 @@ const class MongoConnUrl {
 	** 
 	** Transactions CANNOT be run against standalone MongoDB servers (MongoDB raises errors).
 	** 
-	** This option switches transactions off, and instead executes the txnFns outside of a transactions.
+	** This option switches transactions off, and instead executes the txnFn outside of a transaction.
 	** This means the same app code may be used in both standalone and clustered environments.
 	** 
 	**   mongodb://example.com/puppies?disableTxns=true
+	** 
+	** This option exists because MongoDB does NOT provide a sure-fire way of identifying standalone instances.
+	** Plus, automatically disabling txns could be dangerous and give the user a false sense of security. 
 	const Bool disableTxns
 	
 	

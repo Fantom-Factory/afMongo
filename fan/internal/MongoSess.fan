@@ -97,7 +97,7 @@ internal const class MongoSess {
 			finally	txnNum = null
 		}
 		
-		// like the rest of the Mongo err handling strategy, let's only re-try the once
+		// like the rest of the Mongo err handling strategy, let's only re-try the fn once
 		// else if the network plug is pulled, we get stuck in an infinite loop!
 		try 	doRunInTxn()
 		catch	(IOErr ioe) {
