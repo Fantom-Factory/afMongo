@@ -5,6 +5,7 @@ A complete re-write from the ground up. Optimised to work with Mongo's stable AP
 v2.1.8 [#v2.1.8]
 ======
  - New: Added connection debug info to 'MongoConnMgr.props'.
+ - Fix: Added a guard against Mongo 'getMore()' returning an empty batch.
 
 v2.1.6 [#v2.1.6]
 ======
