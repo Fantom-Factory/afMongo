@@ -1,5 +1,6 @@
 using inet::IpAddr
 using inet::TcpSocket
+using concurrent::AtomicInt
 
 ** Represents a connection to a MongoDB instance.
 @NoDoc	// advanced use only
@@ -32,9 +33,15 @@ abstract class MongoConn {
 	internal Duration?		_lingeringSince
 	internal MongoSessPool?	_sessPool
 	internal MongoSess?		_sess
-	internal Int			_numCheckouts
+	internal Int			_id					:= _nextId.getAndIncrement
+	private	 Int			_numCheckouts
 	private  Duration		_dob				:= Duration.now
+	private  Duration?		_checkOutTs
+	private  Duration?		_lastUseTime
 	
+	static	const
+	private	AtomicInt		_nextId				:= AtomicInt(1)
+
 	** Creates a fresh, detached, socket using the same host, port, and tls settings.
 	abstract
 	internal MongoConn	_refresh(Uri mongoUrl)
@@ -84,16 +91,28 @@ abstract class MongoConn {
 		return ttl < 1ms
 	}
 	
-	internal Duration? _lingerTime() {
-		_lingeringSince == null ? null : (Duration.now - _lingeringSince).floor(1ms)
+	internal Str:Str _props() {
+		lingerTime	:= _lingeringSince == null ? null : (Duration.now - _lingeringSince).floor(1ms)
+		aliveTime	:= (Duration.now - _dob).floor(1ms)
+		id			:= _id.toHex(4).upper
+
+		return Str:Obj?[:].with |m| {
+			m.add("conn.${id}.inUse"		, _checkOutTs != null)
+			m.add("conn.${id}.numUses"		, _numCheckouts)
+			m.add("conn.${id}.lingeringFor"	, lingerTime)
+			m.add("conn.${id}.aliveFor"		, aliveTime)
+			m.add("conn.${id}.lastUseTime"	, _lastUseTime)
+		}
 	}
 
-	internal Void _checkedOut() {
-		_numCheckouts++	
+	internal Void _onCheckOut() {
+		_numCheckouts++
+		_checkOutTs = Duration.now
 	}
-
-	internal Duration _aliveTime() {
-		(Duration.now - _dob).floor(1ms)
+	
+	internal Void _onCheckIn() {
+		_lastUseTime = (Duration.now - _checkOutTs).floor(1ms)
+		_checkOutTs = null
 	}
 }
 

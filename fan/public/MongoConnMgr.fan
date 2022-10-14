@@ -110,10 +110,9 @@ const class MongoConnMgr {
 	**   "maxWireVer"      : 7,
 	**   "compression"     : ["zlib", "snappy"]
 	**   "sessionTimeout"  : 30min,
+	**   "numConns"        : 7,
 	**   "numConnsInUse"   : 3,
-	**   "numConnsInPool"  : 7,
 	**   "primaryFound"    : true,
-	**   "
 	** ]
 	** 
 	** The keys and data returned are for debug info only and are not guaranteed to exist in 

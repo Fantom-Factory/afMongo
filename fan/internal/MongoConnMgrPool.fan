@@ -222,8 +222,8 @@ internal const class MongoConnMgrPool {
 				m.add("hosts"			, this.primaryDetails?.hosts)
 				m.add("compression"		, this.primaryDetails?.compression)
 				m.add("sessionTimeout"	, this.primaryDetails?.sessionTimeout)
+				m.add("numConns"		, state.checkedOut.size + state.checkedIn.size)
 				m.add("numConnsInUse"	, state.checkedOut.size)
-				m.add("numConnsInPool"	, state.checkedOut.size + state.checkedIn.size)
 				
 				// add non-default conn url params
 				baseUrl := MongoConnUrl.fromUrl(`mongodb://wotever`)
@@ -232,22 +232,12 @@ internal const class MongoConnMgrPool {
 					if (ignore.contains(field.name) == false && field.get(this.mongoConnUrl) != field.get(baseUrl))
 						m.add(field.name, field.get(this.mongoConnUrl))
 				}
-				
-				i := 0					// keep a total count of ALL conns
-				state.checkedOut.each |conn| {
-					i++
-					m.add("conn.${i}.inUse"			, true)
-					m.add("conn.${i}.numUses"		, conn._numCheckouts)
-					m.add("conn.${i}.lingeringFor"	, conn._lingerTime)
-					m.add("conn.${i}.aliveFor"		, conn._aliveTime)
-				}
-				state.checkedIn.each |conn| {
-					i++
-					m.add("conn.${i}.inUse"			, false)
-					m.add("conn.${i}.numUses"		, conn._numCheckouts)
-					m.add("conn.${i}.lingeringFor"	, conn._lingerTime)
-					m.add("conn.${i}.aliveFor"		, conn._aliveTime)
-				}
+	
+				MongoConn[,]
+					.addAll(state.checkedOut)
+					.addAll(state.checkedIn)
+					.sort |c1, c2| { c1._id <=> c2._id }
+					.each |conn| { m.addAll(conn._props) }
 			}
 		}
 	}
@@ -377,7 +367,7 @@ internal const class MongoConnMgrPool {
 		// ensure all connections are authenticated
 		authenticateConn(connection)
 	
-		connection._checkedOut
+		connection._onCheckOut
 		return connection
 	}
 	
@@ -402,6 +392,9 @@ internal const class MongoConnMgrPool {
 		connectionState.sync |MongoConnMgrPoolState state| {
 			conn := (MongoConn) unsafeConnection.val
 			state.checkedOut.removeSame(conn)
+			
+			// let the conn clean up after itself
+			conn._onCheckIn
 
 			// check the session back into the pool for future reuse
 			// if the session has already been detached, then conn.detachSess() will return null

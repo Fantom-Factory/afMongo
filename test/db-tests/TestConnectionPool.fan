@@ -50,13 +50,13 @@ internal class TestConnectionPool : MongoDbTest {
 		
 		verifyEq((logs[0] as LogRec)?.msg, "Failing over. Re-scanning network topology for new master...")
 		verifyEq((logs[1] as LogRec)?.msg, "Found a new Master at mongodb://localhost:27017 (zlib compression)")
-		verifyEq(connMgr.mongoConnUrl.minPoolSize, 5)
-		verifyEq(connMgr.props["numConnsInUse"], 1)
-		verifyEq(connMgr.props["numConnsInPool"], 6)
+		verifyEq(connMgr.mongoConnUrl.minPoolSize,	5)
+		verifyEq(connMgr.props["numConns"],			6)
+		verifyEq(connMgr.props["numConnsInUse"],	1)
 		
 		f.get
 		
-		verifyEq(connMgr.props["numConnsInUse"], 0)
-		verifyEq(connMgr.props["numConnsInPool"], 5)
+		verifyEq(connMgr.props["numConns"],			5)
+		verifyEq(connMgr.props["numConnsInUse"],	0)
 	}
 }
