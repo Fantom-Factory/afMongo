@@ -91,6 +91,11 @@ class MongoCur {
 				this._session?.endSession
 				this._session = null
 			}
+
+			// very occasionally, we get an "IndexErr: 0" when returning _batch data,
+			// presumably after getMore() returns 0 documents
+			if (isAlive == false)
+				return null
 		}
 		
 		_totalIndex++
@@ -139,7 +144,9 @@ class MongoCur {
 	** <pre
 	Void each(|Str:Obj? doc, Int index| fn) {
 		try while (isAlive) {
-			fn(next, _totalIndex)
+			doc := next
+			if (doc != null)
+				fn(doc, _totalIndex)
 		}
 		finally kill
 	}
@@ -160,8 +167,11 @@ class MongoCur {
 		type := fn.returns == Void# ? Obj?# : fn.returns
 		list := List.make(type, 16)
 		try while (isAlive) {
-			obj := fn(next, _totalIndex)
-			list.add(obj)
+			doc := next
+			if (doc != null) {
+				obj := fn(doc, _totalIndex)
+				list.add(obj)
+			}
 		}
 		finally kill
 		return list
@@ -176,7 +186,9 @@ class MongoCur {
 		docs := Str:Obj?[][,]
 		docs.capacity = _batch.size	// it's a good starting point!
 		try while (isAlive) {
-			docs.add(next)
+			doc := next
+			if (doc != null)
+				docs.add(doc)
 		}
 		finally kill
 		return  docs
