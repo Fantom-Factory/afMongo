@@ -97,6 +97,7 @@ abstract class MongoConn {
 		id			:= _id.toHex(4).upper
 
 		return Str:Obj?[:].with |m| {
+			m.ordered 						= true
 			m.add("conn.${id}.inUse"		, _checkOutTs != null)
 			m.add("conn.${id}.numUses"		, _numCheckouts)
 			m.add("conn.${id}.lingeringFor"	, lingerTime)
