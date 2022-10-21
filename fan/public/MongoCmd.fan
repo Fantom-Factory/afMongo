@@ -27,7 +27,8 @@ class MongoCmd {
 		this.cmdName	= cmdName
 		this.cmdVal		= cmdVal
 		this.session	= session	// cursors and txns need to specify a session
-		this.cmd		= Str:Obj?[:] { ordered = true } 
+		this.cmd		= Str:Obj?[:]
+		this.cmd.ordered= true
 		this.add(cmdName, cmdVal)
 	}
 

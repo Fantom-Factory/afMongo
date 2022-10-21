@@ -149,7 +149,11 @@ internal class Mongo4x4 {
 
 	override Str toStr() { host }
 
-	private [Str:Obj?] map() { Str:Obj?[:] { ordered = true } }
+	private [Str:Obj?] map() { 
+		map := Str:Obj?[:]
+		map.ordered = true 
+		return map
+	}
 }
 
 internal const class MongoHostDetails {

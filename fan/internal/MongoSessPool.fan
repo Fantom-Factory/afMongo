@@ -118,5 +118,9 @@ internal const class MongoSessPool {
 		clusterTime?.get("clusterTime")
 	}
 
-	private [Str:Obj?] map() { Str:Obj?[:] { ordered = true } }
+	private [Str:Obj?] map() { 
+		map := Str:Obj?[:]
+		map.ordered = true 
+		return map
+	}
 }

@@ -275,7 +275,8 @@ const class MongoConnUrl {
 		this.dbName = mongoUrl.pathOnly.relTo(`/`).encode.trimToNull
 		
 		if (authMech != null) {
-			props	:= Str:Obj?[:] { it.ordered = true }
+			props	:= Str:Obj?[:]
+			props.ordered = true
 			authMechProps?.split(',')?.each |pair| {
 				if (pair.size > 0) {
 					key := pair
@@ -306,7 +307,8 @@ const class MongoConnUrl {
 				it.password		= password
 			}
 			
-		writeConcern := Str:Obj?[:] { it.ordered = true }
+		writeConcern := Str:Obj?[:]
+		writeConcern.ordered = true
 		if (w != null)
 			writeConcern["w"] = Int.fromStr(w, 10, false) != null ? w.toInt : w
 		if (wtimeoutMs != null)

@@ -116,5 +116,9 @@ internal const class MongoAuthScramSha1 : MongoAuthMech {
 		return out.flip
 	}
 	
-	private [Str:Obj?] map() { Str:Obj?[:] { ordered = true } }
+	private [Str:Obj?] map() { 
+		map := Str:Obj?[:]
+		map.ordered = true 
+		return map
+	}
 }
