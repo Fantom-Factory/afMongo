@@ -41,6 +41,12 @@ class MongoQ {
 		this._nameHookFn	= nameHookFn
 		this._valueHookFn	= valueHookFn
 	}	
+	
+	@NoDoc
+	new makeWithHooks(MongoQ q) {
+		this._nameHookFn	= q._nameHookFn
+		this._valueHookFn	= q._valueHookFn
+	}
 
 
 
@@ -57,7 +63,7 @@ class MongoQ {
 	**   q->score = 11
 	** 
 	MongoQ eq(Obj name, Obj? value) {
-		_q._set(name, _valueHookFn(value))
+		_q.set(name, _valueHookFn(value))
 	}
 	
 	** Matches values that are **not** equal to the given object.
@@ -257,7 +263,7 @@ class MongoQ {
 		qs := [q1._query, q2._query]
 		if (q3 != null) qs.add(q3._query)
 		if (q4 != null) qs.add(q4._query)
-		return _q._set("\$and", qs)
+		return _q.set("\$and", qs)
 	}
 	
 	** Selects documents that pass any of the query expressions in the given list.
@@ -273,7 +279,7 @@ class MongoQ {
 		qs := [q1._query, q2._query]
 		if (q3 != null) qs.add(q3._query)
 		if (q4 != null) qs.add(q4._query)
-		return _q._set("\$or", qs)
+		return _q.set("\$or", qs)
 	}
 	
 	** Selects documents that fail **all** the query expressions in the given list.
@@ -289,7 +295,7 @@ class MongoQ {
 		qs := [q1._query, q2._query]
 		if (q3 != null) qs.add(q3._query)
 		if (q4 != null) qs.add(q4._query)
-		return _q._set("\$nor", qs)
+		return _q.set("\$nor", qs)
 	}	
 	
 	
@@ -337,7 +343,7 @@ class MongoQ {
 	** 
 	** @see `https://www.mongodb.com/docs/manual/reference/operator/query/where/`
 	MongoQ where(Str where) {
-		_q._set("\$where", where)
+		_q.set("\$where", where)
 	}
 	
 	
@@ -362,7 +368,11 @@ class MongoQ {
 		eq(name, args?.first)
 	}
 	
-	private This _set(Obj name, Obj? value) {
+	** Sets an op.
+	** 
+	**   set("\$or", ["\$neg", 11])
+	@NoDoc
+	This set(Obj name, Obj? value) {
 		_key = _nameHookFn(name)
 		_val = value
 		if (_not) {
@@ -370,8 +380,8 @@ class MongoQ {
 			_not = false
 		}
 		return this
-	}
-	
+	}	
+
 	** Sets an op.
 	** 
 	**   op("score", "\$neq", 11)  -->  set("score", ["\$neg", 11])

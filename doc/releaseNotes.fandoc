@@ -3,6 +3,7 @@ v2.x [#v2.x]
 A complete re-write from the ground up. Optimised to work with Mongo's stable API v1, as introduced in Mongo 5.2.
 
 v2.1.10 [#v2.1.10]
+ - New: MongoQ ctor to copy hookFns, and 'MongoQ.set()' for setting custom ops.
  - Chg: Connector debug map is now ordered.
  - Fix: MongoErrs regarding retryable writes are now constructed with the underlying Mongo cause.
 
