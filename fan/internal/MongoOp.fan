@@ -124,11 +124,11 @@ internal class MongoOp {
 		catch	(MongoErr me) {
 			// MMAPv1 storage does not support transactions - the spec is *very* strong that we deal with it like this!
 			if (me.code == 20 && me.errMsg != null && me.errMsg.startsWith("Transaction numbers"))
-				throw MongoErr("This MongoDB deployment does not support retryable writes. Please add retryWrites=false to your connection string.", me.errDoc, me.cause)
-			
+				throw MongoErr("This MongoDB deployment does not support retryable writes. Please add retryWrites=false to your connection string.", me.errDoc, me)
+
 			if (isRetryableRead && retryableErrCodes.contains(me.code ?: -1))
 				return retryCommand(me, sess, checked)
-	
+
 			if ((isRetryableWrite(sess) && retryableErrCodes.contains(me.code ?: -1)) || me.errLabels.contains("RetryableWriteError"))
 				return retryCommand(me, sess, checked)
 
