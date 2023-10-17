@@ -36,16 +36,17 @@ class MongoQ {
 	}
 	
 	** Create a query instance with name / value hooks.
+	** The hooks are, usually, supplied by Morphia to convert fields to names, and Fantom values to BSON.
 	@NoDoc
 	new makeWithHookFns(|Obj->Str| nameHookFn, |Obj?->Obj?| valueHookFn) {
 		this._nameHookFn	= nameHookFn
 		this._valueHookFn	= valueHookFn
 	}	
 	
+	** Create a new MongoQ instance, re-using the name / value hooks from this instance.
 	@NoDoc
-	new makeWithHooks(MongoQ q) {
-		this._nameHookFn	= q._nameHookFn
-		this._valueHookFn	= q._valueHookFn
+	MongoQ newQuery() {
+		makeWithHookFns(this._nameHookFn, this._valueHookFn)
 	}
 
 
