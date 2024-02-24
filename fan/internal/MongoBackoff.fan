@@ -13,12 +13,13 @@ internal const class MongoBackoff {
 	** Returns 'null' if the operation timed out.
 	** 
 	** @see `http://en.wikipedia.org/wiki/Exponential_backoff`
-	Obj? backoffFunc(|Duration totalNapTime->Obj?| func, Duration timeout) {
+	Obj? backoffFunc(|Duration totalNapTime, Unsafe msgRef->Obj?| func, Duration timeout, StrBuf msgBuf) {
 		result			:= null
 		c				:= 0
 		i				:= 10
 		totalNapTime	:= 0ms
 		ioErr			:= null
+		msgRef			:= Unsafe(msgBuf)
 		
 		while (result == null && totalNapTime < timeout) {
 
@@ -26,7 +27,7 @@ internal const class MongoBackoff {
 			// IOErr would be thrown is we could not connect to the server
 			// Note that the re-tryable reads and writes are only applicable AFTER we've obtained a connection
 			// i.e. AFTER this method returns successfully
-			try result = func.call(totalNapTime)
+			try result = func.call(totalNapTime, msgRef)
 			catch (IOErr err)
 				// save the first err, and keep trying
 				ioErr = ioErr ?: err
@@ -39,12 +40,13 @@ internal const class MongoBackoff {
 				if ((totalNapTime + napTime) > timeout)
 					napTime = timeout - totalNapTime 
 
+				msgBuf.join("Sleeping for " + napTime.floor(1ms).toLocale, "\n")
 				sleepFunc(napTime)
 				totalNapTime += napTime
 				
 				// if we're about to quit, lets have 1 more last ditch attempt!
 				if (totalNapTime >= timeout)
-					result = func.call(totalNapTime)
+					result = func.call(totalNapTime, msgRef)
 			}
 		}
 		

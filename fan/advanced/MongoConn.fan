@@ -85,6 +85,7 @@ abstract class MongoConn {
 		this._sess = session
 	}
 	
+	** Allow new connections to *linger* / stay alive (by 'maxIdleTimeMS') before being closed to avoid socket throttling during bursts of activity. 
 	internal Bool _isStale(Duration maxLinger) {
 		if (_lingeringSince == null) return false
 		ttl := _lingeringSince + maxLinger - Duration.now

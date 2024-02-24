@@ -185,7 +185,7 @@ internal const class MongoConnMgrPool {
 			return waitingOn > 0 ? null : true
 		}
 		
-		allClosed := backoff.backoffFunc(closeFunc, shutdownTimeout) ?: false
+		allClosed := backoff.backoffFunc(closeFunc, shutdownTimeout, StrBuf()) ?: false
 
 		if (!allClosed) {
 			// too late, they've had their chance. Now everybody dies.
@@ -313,28 +313,45 @@ internal const class MongoConnMgrPool {
 	}
 
 	private MongoConn checkOut() {
-		connectionFunc := |Duration totalNapTime->MongoConn?| {
+		connectionFunc := |Duration totalNapTime, Unsafe msgRef->MongoConn?| {
 			conn := connectionState.sync |MongoConnMgrPoolState state->Unsafe?| {
+				msgBuf := (StrBuf) msgRef.val
+				msgBuf.join("Checked in pool size: ${state.checkedIn.size}", "\n")
 				while (state.checkedIn.size > 0) {
 					conn := state.checkedIn.pop
+					cid  := conn._id.toHex(4)
+					msgBuf.join("Conn ${cid} - Checked out", "\n")
+
 					// check the connection is still alive - the server may have closed it during a fail over
-					if (conn.isClosed == false && conn._isStale(mongoConnUrl.maxIdleTime) == false) {
+					// close and discard any old connections
+					if (conn.isClosed) {
+						msgBuf.join("Conn ${cid} - Conn is closed (may have been closed during a failover?)", "\n")
+						conn.close
+					} else
+					
+					if (conn._isStale(mongoConnUrl.maxIdleTime)) {
+						msgBuf.join("Conn ${cid} - Conn has been lingering for more than ${mongoConnUrl.maxIdleTime.toLocale}", "\n")
+						conn.close
+					} else
+					
+					{
 						conn._lingeringSince = null
 						state.checkedOut.push(conn)
 						return Unsafe(conn)
 					}
-	
-					// close and discard any old connections
-					conn.close
 				}
 
-				// create a new connection
-				if (state.checkedOut.size < mongoConnUrl.maxPoolSize) {
-					connection := state.connFactory()
-					state.checkedOut.push(connection)
-					return Unsafe(connection)
+				msgBuf.join("Checked out pool size: ${state.checkedOut.size}", "\n")
+				if (state.checkedOut.size >= mongoConnUrl.maxPoolSize) {
+					msgBuf.join("Checked out pool is full", "\n")
+					return null
 				}
-				return null
+				
+				// create a new connection
+				msgBuf.join("Creating new connection", "\n")
+				connection := state.connFactory()
+				state.checkedOut.push(connection)
+				return Unsafe(connection)
 			}?->val
 			
 			// let's not swamp the logs the first time we can't connect
@@ -346,22 +363,24 @@ internal const class MongoConnMgrPool {
 
 		connection	:= null as MongoConn
 		ioErr		:= null as Err
-		try connection = backoff.backoffFunc(connectionFunc, mongoConnUrl.waitQueueTimeout)
-		
+		msgBuf		:= StrBuf()
+		try connection = backoff.backoffFunc(connectionFunc, mongoConnUrl.waitQueueTimeout, msgBuf)
+
 		// sys::IOErr: Could not connect to MongoDB at `dsXXXXXX-a0.mlab.com:59296` - java.net.ConnectException: Connection refused
 		catch (IOErr ioe)
 			ioErr = ioe
 
 		if (connection == null || ioErr != null) {
+			detail := msgBuf.toStr.splitLines.join("\n") { " - ${it}" }
 			if (noOfConnectionsInUse >= mongoConnUrl.maxPoolSize)
-				throw Err("Argh! No more Mongo connections! All ${mongoConnUrl.maxPoolSize} are in use!")
+				throw Err("Argh! No more Mongo connections! All ${mongoConnUrl.maxPoolSize} are in use!\n${detail}", ioErr)
 			
 			// it would appear the database is down ... :(			
 			// so lets kick off a game of huntThePrimary in the background ...
 			failOver
 
 			// ... and report an error - 'cos we can't wait longer than 'waitQueueTimeout'
-			throw ioErr ?: Err("Argh! Can not connect to Mongo Master! All ${mongoConnUrl.maxPoolSize} are in use!")
+			throw ioErr ?: Err("Argh! Can not connect to Mongo Master! All ${mongoConnUrl.maxPoolSize} are in use!\n${detail}")
 		}
 		
 		// ensure all connections are authenticated
