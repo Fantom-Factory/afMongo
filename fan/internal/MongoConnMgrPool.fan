@@ -382,11 +382,14 @@ internal const class MongoConnMgrPool {
 			// ... and report an error - 'cos we can't wait longer than 'waitQueueTimeout'
 			throw ioErr ?: Err("Argh! Can not connect to Mongo Master! All ${mongoConnUrl.maxPoolSize} are in use!\n${detail}")
 		}
-		
+
+		// even if we're not authenticated (yet), the Conn is still checked out
+		// this ensures Conns are flagged as "in use" when we have MongoDB connection issues
+		connection._onCheckOut
+
 		// ensure all connections are authenticated
 		authenticateConn(connection)
 	
-		connection._onCheckOut
 		return connection
 	}
 	
